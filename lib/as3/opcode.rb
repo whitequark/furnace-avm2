@@ -32,6 +32,10 @@ module AS3
     def update!
     end
 
+    def redundant?
+      false
+    end
+
     def replace_with_nops!
       position = self.serial
 

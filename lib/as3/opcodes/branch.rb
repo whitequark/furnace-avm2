@@ -31,6 +31,10 @@ module AS3
       def conditional?
         @record.type != 0x10
       end
+
+      def redundant?
+        @record.target == 0
+      end
     end
   end
 end

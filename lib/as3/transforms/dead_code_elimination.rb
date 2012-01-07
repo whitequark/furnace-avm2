@@ -14,6 +14,12 @@ module AS3
         dead_opcodes.each do |opcode|
           stream.opcodes.delete opcode
         end
+
+        stream.opcodes.each &:update!
+
+        stream.opcodes.delete_if do |opcode|
+          opcode.redundant?
+        end
       end
     end
   end
