@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+
+require "rubygems"
+require "bundler/setup"
+
+$: << File.join(File.dirname(__FILE__), '..', 'lib')
+
+require "as3"
+
+stream = AS3::Stream.new
+stream.parse_assembly(ARGF)
+
+transforms = [
+  AS3::Transforms::DeadCodeElimination.new
+]
+
+transforms.each do |transform|
+  transform.run(stream)
+end
+
+print stream.to_assembly
