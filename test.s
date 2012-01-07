@@ -1,3 +1,4 @@
+{ func1
 //d0
 _as3_getlocal <0>
 //30
@@ -96,3 +97,20 @@ _as3_getproperty secondsLeft
 _as3_add
 //48
 _as3_returnvalue
+}
+{ func2
+//d0
+_as3_getlocal <0>
+//30
+_as3_pushscope
+//2c d8 2e
+_as3_pushstring "TechItem: slot "
+//10 01 00 00
+_as3_jump offset: 1
+//1c
+_as3_pushwith
+//af
+_as3_greaterthan
+//57
+_as3_newactivation
+}

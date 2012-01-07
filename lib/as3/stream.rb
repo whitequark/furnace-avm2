@@ -12,10 +12,10 @@ module AS3
       @opcodes = nil
     end
 
-    def parse_assembly(stream)
+    def parse_assembly(lines)
       @opcodes = []
 
-      stream.lines.map(&:strip).each_slice(2) do |(bytes, description)|
+      lines.map(&:strip).each_slice(2) do |(bytes, description)|
         binary = [ bytes[2..-1].gsub(" ", "") ].pack("H*")
         description =~ /^_as3_(\w+)/
 
@@ -73,8 +73,8 @@ module AS3
 
         if opcode.is_a? Opcodes::Branch
           if opcode.conditional?
-            graph.transfer({ true => opcode.target.serial,
-                            false => serial + 1 })
+            graph.transfer({  true => opcode.target.serial,
+                             false => serial + 1 })
           else
             graph.transfer({ nil => opcode.target.serial })
           end
