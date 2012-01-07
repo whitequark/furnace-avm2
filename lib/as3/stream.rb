@@ -3,7 +3,7 @@ module AS3
     OPCODE_MAP = {
       %w{jump iflt ifle ifnlt ifnle ifgt ifge ifngt ifnge
          ifeq ifne ifstricteq ifstrictne iftrue iffalse} => Opcodes::Branch,
-      #%w{lookupswitch} => Opcodes::Switch,
+      %w{lookupswitch} => Opcodes::Switch,
     }
 
     attr_reader :opcodes
@@ -61,6 +61,9 @@ module AS3
       @opcodes.each do |opcode|
         if opcode.is_a? Opcodes::Branch
           targets << opcode.target
+        elsif opcode.is_a? Opcodes::Switch
+          targets << opcode.default_target
+          targets += opcode.case_targets
         end
       end
 
@@ -78,6 +81,14 @@ module AS3
           else
             graph.transfer({ nil => opcode.target.serial })
           end
+        elsif opcode.is_a? Opcodes::Switch
+          map = { nil => opcode.default_target.serial }
+
+          opcode.case_targets.each_with_index do |target, index|
+            map[index] = target
+          end
+
+          graph.transfer map
         end
       end
 
