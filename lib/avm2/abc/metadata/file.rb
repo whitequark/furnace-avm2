@@ -15,9 +15,9 @@ module AVM2::ABC
     array            :instances, :type => :instance_info,   :initial_length => :klass_count
     array            :klasses, :type => :klass_info,        :initial_length => :klass_count
 
-#     uint30           :script_count,      :value => lambda { scripts.count }
-#     script_info      :scripts,           :initial_length => :script_count
-#
+    vuint30          :script_count,                         :value => lambda { scripts.count }
+    array            :scripts, :type => :script_info,       :initial_length => :script_count
+
 #     uint30           :method_body_count, :value => lambda { method_bodies.count }
 #     method_body_info :method_bodies,     :initial_length => :method_body_count
   end
