@@ -11,10 +11,10 @@ module AVM2::ABC
     vuint30          :metadata_count,                       :value => lambda { metadata.count }
     array            :metadata, :type => :metadata_info,    :initial_length => :metadata_count
 
-#     uint30           :klass_count,       :value => lambda { klasses.count }
-#     instance_info    :instances,         :initial_length => :klass_count
-#     klass_info       :klasses,           :initial_length => :klass_count
-#
+    vuint30          :klass_count,                          :value => lambda { instances.count }
+    array            :instances, :type => :instance_info,   :initial_length => :klass_count
+    array            :klasses, :type => :klass_info,        :initial_length => :klass_count
+
 #     uint30           :script_count,      :value => lambda { scripts.count }
 #     script_info      :scripts,           :initial_length => :script_count
 #

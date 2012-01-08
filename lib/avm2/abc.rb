@@ -29,4 +29,12 @@ require "avm2/abc/metadata/method_info"
 require "avm2/abc/metadata/item_info"
 require "avm2/abc/metadata/metadata_info"
 
+require "avm2/abc/metadata/trait_slot"
+require "avm2/abc/metadata/trait_method"
+require "avm2/abc/metadata/trait_class"
+require "avm2/abc/metadata/trait_function"
+require "avm2/abc/metadata/traits_info"
+require "avm2/abc/metadata/instance_info"
+require "avm2/abc/metadata/klass_info"
+
 require "avm2/abc/metadata/file"
