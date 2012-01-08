@@ -47,4 +47,7 @@ require "avm2/abc/metadata/klass_info"
 
 require "avm2/abc/metadata/script_info"
 
+require "avm2/abc/metadata/exception_info"
+require "avm2/abc/metadata/method_body_info"
+
 require "avm2/abc/metadata/file"

@@ -29,3 +29,7 @@ File.open(opts[:input]) do |file|
 end
 
 p abc
+
+File.open("out.abc", "w") do |file|
+  abc.write(file)
+end
