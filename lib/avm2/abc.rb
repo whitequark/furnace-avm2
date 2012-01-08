@@ -11,6 +11,14 @@ require "avm2/abc/primitives/vuint30"
 require "avm2/abc/primitives/vuint32"
 require "avm2/abc/primitives/vint32"
 
+require "avm2/abc/opcodes/opcode"
+require "avm2/abc/opcodes/arithmetic_opcode"
+require "avm2/abc/opcodes/control_transfer_opcode"
+
+Dir[File.join(File.dirname(__FILE__), "abc", "opcodes", "*", "*.rb")].each do |file|
+  require file
+end
+
 require "avm2/abc/metadata/string_info"
 require "avm2/abc/metadata/namespace_info"
 require "avm2/abc/metadata/ns_set_info"
