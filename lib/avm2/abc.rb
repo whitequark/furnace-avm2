@@ -6,9 +6,7 @@ module AVM2
   end
 end
 
-require "avm2/abc/primitives/variable_unsigned_le"
-require "avm2/abc/primitives/variable_signed_le"
-
+require "avm2/abc/primitives/variable_integer_le"
 require "avm2/abc/primitives/vuint30"
 require "avm2/abc/primitives/vuint32"
 require "avm2/abc/primitives/vint32"

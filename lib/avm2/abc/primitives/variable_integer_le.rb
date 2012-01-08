@@ -1,10 +1,11 @@
 module AVM2::ABC
-  class VariableUnsignedLE < BinData::BasePrimitive
-    def value_to_binary_string(value, signed = false)
-      if value < 0 && signed
+  class VariableIntegerLE < BinData::BasePrimitive
+    def value_to_binary_string(value)
+      if value < 0 && self.class.signed?
         value = -value
+        is_negative = true
       else
-        signed = false
+        is_negative = false
       end
 
       bytes = []
@@ -15,7 +16,7 @@ module AVM2::ABC
 
         if value != 0
           byte |= 0x80
-        elsif signed
+        elsif is_negative
           byte |= 0x40
         end
 
@@ -25,7 +26,7 @@ module AVM2::ABC
       bytes.pack("C*")
     end
 
-    def read_and_return_value(io, signed = false)
+    def read_and_return_value(io)
       value = 0
       bit_shift = 0
 
@@ -36,8 +37,9 @@ module AVM2::ABC
         bit_shift += 7
       end while byte & 0x80 != 0
 
-      if signed && (value & (1 << (bit_shift - 1)) != 0)
-        value = -(value & ~(1 << (bit_shift - 1)))
+      sign_bit = (1 << (bit_shift - 1))
+      if self.class.signed? && (value & sign_bit) != 0
+        value = -(value & ~sign_bit)
       end
 
       value
