@@ -9,7 +9,6 @@ module AVM2::ABC
 
       bytes = []
 
-
       begin
         byte = value & 0x7F
         value >>= 7
@@ -21,7 +20,6 @@ module AVM2::ABC
         end
 
         bytes.push(byte)
-
       end while value != 0x00
 
       bytes.pack("C*")
@@ -32,7 +30,7 @@ module AVM2::ABC
       bit_shift = 0
 
       begin
-        byte = read_uint8(io)
+        byte = io.readbytes(1).unpack("C").at(0)
 
         value |= (byte & 0x7F) << bit_shift
         bit_shift += 7
@@ -47,10 +45,6 @@ module AVM2::ABC
 
     def sensible_default
       0
-    end
-
-    def read_uint8(io)
-      io.readbytes(1).unpack("C").at(0)
     end
   end
 end

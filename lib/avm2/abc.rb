@@ -6,13 +6,13 @@ module AVM2
   end
 end
 
-require "avm2/abc/variable_unsigned_le"
-require "avm2/abc/variable_signed_le"
-require "avm2/abc/vuint30"
-require "avm2/abc/vuint32"
-require "avm2/abc/vint32"
+require "avm2/abc/primitives/variable_unsigned_le"
+require "avm2/abc/primitives/variable_signed_le"
 
-require "avm2/abc/string_info"
-require "avm2/abc/const_pool_info"
+require "avm2/abc/primitives/vuint30"
+require "avm2/abc/primitives/vuint32"
+require "avm2/abc/primitives/vint32"
 
-require "avm2/abc/file"
+require "avm2/abc/metadata/string_info"
+require "avm2/abc/metadata/const_pool_info"
+require "avm2/abc/metadata/file"
