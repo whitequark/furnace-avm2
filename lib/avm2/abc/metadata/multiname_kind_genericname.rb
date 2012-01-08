@@ -1,9 +1,8 @@
 module AVM2::ABC
   # Undocumented
-  class MultinameKindGenericname < BinData::Record
-    vuint30  :type
+  class MultinameKindGenericname < Record
+    vuint30      :name_type
 
-    vuint30  :parameter_count,                :value => lambda { parameters.count }
-    array    :parameters, :type => :vuint30, :initial_length => :parameter_count
+    abc_array_of :parameter, :vuint30
   end
 end

@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class MultinameKindRtqname < BinData::Record
+  class MultinameKindRtqname < Record
     vuint30 :name
   end
 end

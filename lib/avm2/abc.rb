@@ -2,6 +2,19 @@ module AVM2
   module ABC
     class Record < BinData::Record
       endian :little
+
+      def self.abc_array_of(name, type, options={})
+        field_size, field_array = :"#{name}_count", options.delete(:plural) || :"#{name}s"
+
+        vuint30 field_size,  { :value => lambda { send(field_array).count } }.merge(options)
+        array   field_array, { :type => type, :initial_length => lambda { send(field_size) } }.merge(options)
+      end
+
+      def self.constant_table(hash)
+        hash.each do |constant, value|
+          const_set constant, value
+        end
+      end
     end
   end
 end
@@ -42,7 +55,7 @@ require "avm2/abc/metadata/trait_slot"
 require "avm2/abc/metadata/trait_method"
 require "avm2/abc/metadata/trait_class"
 require "avm2/abc/metadata/trait_function"
-require "avm2/abc/metadata/traits_info"
+require "avm2/abc/metadata/trait_info"
 require "avm2/abc/metadata/instance_info"
 require "avm2/abc/metadata/klass_info"
 

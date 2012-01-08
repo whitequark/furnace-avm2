@@ -1,5 +1,4 @@
 module AVM2::ABC
-  class MultinameKindRtqnamel < BinData::Record
-
+  class MultinameKindRtqnamel < Record
   end
 end
