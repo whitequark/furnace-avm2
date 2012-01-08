@@ -22,4 +22,8 @@ require "avm2/abc/metadata/multiname_kind_rtqnamel"
 require "avm2/abc/metadata/multiname_info"
 require "avm2/abc/metadata/const_pool_info"
 
+require "avm2/abc/metadata/option_detail"
+require "avm2/abc/metadata/option_info"
+require "avm2/abc/metadata/method_info"
+
 require "avm2/abc/metadata/file"

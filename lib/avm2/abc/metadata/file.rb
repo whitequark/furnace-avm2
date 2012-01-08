@@ -4,9 +4,9 @@ module AVM2::ABC
     uint16           :major_version
 
     const_pool_info  :constant_pool
-#
-#     uint30           :method_count,      :value => lambda { methods.count }
-#     method_info      :methods,           :initial_length => :method_count
+
+    vuint30          :klass_method_count,                   :value => lambda { klass_methods.count }
+    array            :klass_methods, :type => :method_info, :initial_length => :klass_method_count
 #
 #     uint30           :metadata_count,    :value => lambda { metadata.count }
 #     metadata_info    :metadata,          :initial_length => :metadata_count
