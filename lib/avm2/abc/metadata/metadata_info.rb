@@ -2,6 +2,8 @@ module AVM2::ABC
   class MetadataInfo < Record
     vuint30      :name
 
-    abc_array_of :item, :item_info
+    vuint30      :item_count,  :value => lambda { keys.count }
+    array        :item_keys,   :type => :vuint30, :initial_length => :item_count
+    array        :item_values, :type => :vuint30, :initial_length => :item_count
   end
 end

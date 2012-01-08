@@ -48,7 +48,6 @@ require "avm2/abc/metadata/option_detail"
 require "avm2/abc/metadata/option_info"
 require "avm2/abc/metadata/method_info"
 
-require "avm2/abc/metadata/item_info"
 require "avm2/abc/metadata/metadata_info"
 
 require "avm2/abc/metadata/trait_slot"
