@@ -8,6 +8,7 @@ GEM
   remote: http://rubygems.org/
   specs:
     bindata (1.4.3)
+    trollop (1.16.2)
 
 PLATFORMS
   ruby
@@ -15,3 +16,4 @@ PLATFORMS
 DEPENDENCIES
   bindata
   furnace!
+  trollop

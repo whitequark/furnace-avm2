@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+
+require "rubygems"
+require "bundler/setup"
+
+$: << File.join(File.dirname(__FILE__), '..', 'lib')
+
+require "trollop"
+require "avm2"
+
+require 'trollop'
+
+opts = Trollop::options do
+  opt :input, "Input file"
+end
+
+abc = nil
+File.open(opts[:input]) do |file|
+  abc = AVM2::ABC::File.read(file)
+end
+
+p abc
