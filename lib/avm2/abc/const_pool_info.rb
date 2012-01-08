@@ -1,6 +1,6 @@
 module AVM2::ABC
   class ConstPoolInfo < Record
-    uint30 :int_count,      :value => lambda { ints.count }
-    vint32 :ints,           :initial_length => :method_count
+    vuint30 :int_count,              :value => lambda { ints.count }
+    array   :ints, :type => :vint32, :initial_length => :int_count
   end
 end

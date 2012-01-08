@@ -1,4 +1,4 @@
 module AVM2::ABC
-  class Vint32le < VariableSignedLE
+  class Vint32 < VariableUnsignedLE
   end
 end
