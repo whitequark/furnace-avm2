@@ -7,10 +7,10 @@ module AVM2::ABC
 
     vuint30          :klass_method_count,                   :value => lambda { klass_methods.count }
     array            :klass_methods, :type => :method_info, :initial_length => :klass_method_count
-#
-#     uint30           :metadata_count,    :value => lambda { metadata.count }
-#     metadata_info    :metadata,          :initial_length => :metadata_count
-#
+
+    vuint30          :metadata_count,                       :value => lambda { metadata.count }
+    array            :metadata, :type => :metadata_info,    :initial_length => :metadata_count
+
 #     uint30           :klass_count,       :value => lambda { klasses.count }
 #     instance_info    :instances,         :initial_length => :klass_count
 #     klass_info       :klasses,           :initial_length => :klass_count
