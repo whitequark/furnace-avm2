@@ -6,4 +6,6 @@ require "furnace/cfg/graph"
 
 require "furnace/graphviz"
 
+require "avm2/version"
+
 require "avm2/abc"

@@ -11,12 +11,21 @@ require "avm2"
 require 'trollop'
 
 opts = Trollop::options do
-  opt :input, "Input file"
+  version "furnace-avm2 #{AVM2::VERSION}"
+  banner <<-EOS
+  furnace-avm2 is something.
+
+  Usage: #{__FILE__} [options]
+EOS
+
+  opt :input, "Input file", :type => :string
 end
+
+Trollop::die "Input file is required" unless opts[:input]
 
 abc = nil
 File.open(opts[:input]) do |file|
   abc = AVM2::ABC::File.read(file)
 end
 
-p abc
+p abc, abc.to_binary_s.bytes.map{|b| b.to_s(16).ljust(2, "0") }.join(" ")
