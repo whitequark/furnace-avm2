@@ -3,7 +3,7 @@ module AVM2::ABC
     def self.cpool_array_of(name, type)
       field_size, field_array = :"#{name}_count", :"#{name}s"
 
-      vuint30 field_size,                 :value => lambda { send(field_array).count + 1 }
+      vuint30 field_size,                 :value => lambda { send(field_array).count == 0 ? 0 : send(field_array).count + 1 }
       array   field_array, :type => type, :initial_length => lambda { send(field_size) - 1 }
     end
 
