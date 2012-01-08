@@ -13,7 +13,7 @@ module AVM2::ABC
     vuint30     :name
 
     uint8       :flags
-    option_info :options, :only_if => lambda { flags & HAS_OPTIONAL != 0 }
-    array       :param_names, :type => :vuint30, :initial_length => :param_count, :only_if => lambda { flags & HAS_PARAM_NAMES != 0 }
+    option_info :options, :onlyif => lambda { flags & HAS_OPTIONAL != 0 }
+    array       :param_names, :type => :vuint30, :initial_length => :param_count, :onlyif => lambda { flags & HAS_PARAM_NAMES != 0 }
   end
 end
