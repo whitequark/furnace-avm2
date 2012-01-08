@@ -8,7 +8,7 @@ module AVM2::ABC
     vuint30 :name
     vuint30 :super_name
     uint8   :flags
-    vuint30 :protectedNs, :onlyif => lambda { flags & ClassProtectedNs }
+    vuint30 :protectedNs, :onlyif => lambda { flags & ClassProtectedNs != 0}
 
     vuint30 :interface_count, :value => lambda { interfaces.count() }
     array   :interfaces, :type => :vuint30, :initial_length => :interface_count

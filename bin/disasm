@@ -25,7 +25,9 @@ Trollop::die "Input file is required" unless opts[:input]
 
 abc = nil
 File.open(opts[:input]) do |file|
-  abc = AVM2::ABC::File.read(file)
+  BinData::trace_reading do
+    abc = AVM2::ABC::File.read(file)
+  end
 end
 
 p abc

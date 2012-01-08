@@ -27,6 +27,7 @@ require "avm2/abc/metadata/multiname_kind_multinamel"
 require "avm2/abc/metadata/multiname_kind_qname"
 require "avm2/abc/metadata/multiname_kind_rtqname"
 require "avm2/abc/metadata/multiname_kind_rtqnamel"
+require "avm2/abc/metadata/multiname_kind_genericname"
 require "avm2/abc/metadata/multiname_info"
 require "avm2/abc/metadata/const_pool_info"
 
