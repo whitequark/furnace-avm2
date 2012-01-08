@@ -1,6 +1,14 @@
 module AVM2::ABC
-  class StringInfo < BinData::Record
-    vuint30 :str_length, :value => lambda { data.length }
-    string  :data,       :read_length => :str_length
+  class StringInfo < BinData::Primitive
+    vuint30 :data_size, :value => lambda { data.length }
+    string  :data,      :read_length => :data_size
+
+    def get
+      self.data
+    end
+
+    def set(value)
+      self.data = value
+    end
   end
 end
