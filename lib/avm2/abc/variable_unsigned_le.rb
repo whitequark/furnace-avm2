@@ -3,19 +3,18 @@ module AVM2::ABC
     def value_to_binary_string(value)
       value = value.abs
       bytes = []
-      has_more = 0
 
-      loop do
-        seven_bit_byte = value & 0x7f
+      begin
+        byte = value & 0x7F
         value >>= 7
 
-        has_more = 0x80
-        byte = seven_bit_byte
+        if value != 0
+          byte |= 0x80
+        end
 
-        bytes.unshift(byte)
+        bytes.push(byte)
 
-        break if value.zero?
-      end
+      end while value != 0x00
 
       bytes.pack("C*")
     end
@@ -24,18 +23,12 @@ module AVM2::ABC
       value = 0
       bit_shift = 0
 
-      loop do
+      begin
         byte = read_uint8(io)
-        has_more = byte & 0x80
-        seven_bit_byte = byte & 0x7f
 
-        value <<= bit_shift
-        value  |= seven_bit_byte
-
+        value |= (byte & 0x7F) << bit_shift
         bit_shift += 7
-
-        break if has_more.zero?
-      end
+      end while byte & 0x80 != 0
 
       value
     end

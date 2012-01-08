@@ -7,8 +7,10 @@ module AVM2
 end
 
 require "avm2/abc/variable_unsigned_le"
+require "avm2/abc/variable_signed_le"
 require "avm2/abc/uint30"
 require "avm2/abc/uint32"
+require "avm2/abc/vint32"
 
 require "avm2/abc/const_pool_info"
 

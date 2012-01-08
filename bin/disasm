@@ -28,4 +28,4 @@ File.open(opts[:input]) do |file|
   abc = AVM2::ABC::File.read(file)
 end
 
-p abc, abc.to_binary_s.bytes.map{|b| b.to_s(16).ljust(2, "0") }.join(" ")
+p abc, abc.to_binary_s.unpack("H*")
