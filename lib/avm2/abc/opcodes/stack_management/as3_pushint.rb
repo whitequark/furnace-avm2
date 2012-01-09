@@ -6,6 +6,6 @@ module AVM2::ABC
     consume 0
     produce 1
 
-    type :null
+    type :integer
   end
 end
