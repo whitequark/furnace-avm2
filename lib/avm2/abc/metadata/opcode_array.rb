@@ -4,12 +4,13 @@ module AVM2::ABC
 
     def do_read(io)
       bytes_total = eval_parameter(:initial_byte_length)
-      sub_io = StringIO.new(io.readbytes(bytes_total))
+
+      string = io.readbytes(bytes_total)
+      sub_io = StringIO.new(string)
       bin_io = BinData::IO.new(sub_io)
 
       until sub_io.eof?
-        instruction = sub_io.getbyte
-        sub_io.ungetbyte(instruction)
+        instruction = string[sub_io.pos].ord
 
         opcode = Opcode::MAP[instruction]
         if opcode.nil?

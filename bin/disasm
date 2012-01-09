@@ -7,8 +7,7 @@ $: << File.join(File.dirname(__FILE__), '..', 'lib')
 
 require "trollop"
 require "avm2"
-
-require 'trollop'
+require "benchmark"
 
 opts = Trollop::options do
   version "furnace-avm2 #{AVM2::VERSION}"
@@ -24,12 +23,19 @@ end
 Trollop::die "Input file is required" unless opts[:input]
 
 abc = nil
-File.open(opts[:input]) do |file|
-  abc = AVM2::ABC::File.read(file)
-end
 
-p abc
+Benchmark.bm(7) do |stat|
+  10.times {
+    stat.report "read " do
+      File.open(opts[:input]) do |file|
+        abc = AVM2::ABC::File.read(file)
+      end
+    end
 
-File.open("out.abc", "w") do |file|
-  abc.write(file)
+    stat.report "write" do
+      File.open("out.abc", "w") do |file|
+        abc.write(file)
+      end
+    end
+  }
 end
