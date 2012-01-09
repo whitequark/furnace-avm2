@@ -25,6 +25,7 @@ require "avm2/abc/opcodes/stack_management_opcode"
 require "avm2/abc/opcodes/control_transfer_opcode"
 require "avm2/abc/opcodes/function_invocation_opcode"
 require "avm2/abc/opcodes/function_return_opcode"
+require "avm2/abc/opcodes/exception_opcode"
 
 Dir[File.join(File.dirname(__FILE__), "abc", "opcodes", "*", "*.rb")].each do |file|
   require file
