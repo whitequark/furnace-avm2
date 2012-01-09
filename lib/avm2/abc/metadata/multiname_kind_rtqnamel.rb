@@ -1,4 +1,4 @@
 module AVM2::ABC
-  class MultinameKindRtqnamel < Record
+  class MultinameKindRtqnamel < IndirectlyNestedRecord
   end
 end

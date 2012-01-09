@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class TraitInfo < Record
+  class TraitInfo < NestedRecord
     Kinds = {
       :Slot     => 0,
       :Method   => 1,

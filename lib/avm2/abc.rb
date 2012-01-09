@@ -1,28 +1,18 @@
-module AVM2
-  module ABC
-    class Record < BinData::Record
-      endian :little
-
-      def self.abc_array_of(name, type, options={})
-        field_size, field_array = :"#{name}_count", options.delete(:plural) || :"#{name}s"
-
-        vuint30 field_size,  { :value => lambda { send(field_array).count } }.merge(options)
-        array   field_array, { :type => type, :initial_length => lambda { send(field_size) } }.merge(options)
-      end
-
-      def self.constant_table(hash)
-        hash.each do |constant, value|
-          const_set constant, value
-        end
-      end
-    end
-  end
+module AVM2::ABC
 end
+
+require "avm2/abc/primitives/record"
+require "avm2/abc/primitives/nested_record"
+require "avm2/abc/primitives/indirectly_nested_record"
 
 require "avm2/abc/primitives/variable_integer_le"
 require "avm2/abc/primitives/vuint30"
 require "avm2/abc/primitives/vuint32"
 require "avm2/abc/primitives/vint32"
+
+require "avm2/abc/primitives/nested_array"
+require "avm2/abc/primitives/constant_array"
+require "avm2/abc/primitives/opcode_array"
 
 require "avm2/abc/opcodes/opcode"
 require "avm2/abc/opcodes/load_store_opcode"
@@ -69,7 +59,6 @@ require "avm2/abc/metadata/klass_info"
 require "avm2/abc/metadata/script_info"
 
 require "avm2/abc/metadata/exception_info"
-require "avm2/abc/metadata/opcode_array"
 require "avm2/abc/metadata/method_body_info"
 
 require "avm2/abc/metadata/file"

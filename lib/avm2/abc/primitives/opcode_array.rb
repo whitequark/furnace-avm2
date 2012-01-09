@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class OpcodeArray < BinData::Array
+  class OpcodeArray < NestedArray
     mandatory_parameter :initial_byte_length
 
     def do_read(io)

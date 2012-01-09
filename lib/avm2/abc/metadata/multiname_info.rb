@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class MultinameInfo < Record
+  class MultinameInfo < NestedRecord
     Kinds = {
       :QName       => 0x07,
       :QNameA      => 0x0D,

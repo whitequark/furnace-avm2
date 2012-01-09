@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class ExceptionInfo < Record
+  class ExceptionInfo < NestedRecord
     vuint30 :from
     vuint30 :to
     vuint30 :target

@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class MethodInfo < Record
+  class MethodInfo < NestedRecord
     NEED_ARGUMENTS  = 0x01
     NEED_ACTIVATION = 0x02
     NEED_REST       = 0x04

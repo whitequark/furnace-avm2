@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class OptionDetail < Record
+  class OptionDetail < NestedRecord
     Int                = 0x03
     UInt               = 0x04
     Double             = 0x06

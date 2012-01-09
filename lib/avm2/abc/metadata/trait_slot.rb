@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class TraitSlot < Record
+  class TraitSlot < IndirectlyNestedRecord
     vuint30 :slot_id
     vuint30 :type_name
     vuint30 :vindex

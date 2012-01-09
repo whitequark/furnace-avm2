@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class MethodBodyInfo < Record
+  class MethodBodyInfo < NestedRecord
     vuint30      :method_name
     vuint30      :max_stack
     vuint30      :local_count

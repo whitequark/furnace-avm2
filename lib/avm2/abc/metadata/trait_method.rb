@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class TraitMethod < Record
+  class TraitMethod < IndirectlyNestedRecord
     vuint30 :disp_id
     vuint30 :trait_method
   end
