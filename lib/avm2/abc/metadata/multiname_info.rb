@@ -1,6 +1,6 @@
 module AVM2::ABC
   class MultinameInfo < NestedRecord
-    Kinds = {
+    XlatTable = {
       :QName       => 0x07,
       :QNameA      => 0x0D,
       :RTQName     => 0x0F,
@@ -14,21 +14,19 @@ module AVM2::ABC
       :GenericName => 0x1D # Undocumented
     }
 
-    constant_table Kinds
-
-    uint8  :kind, :check_value => lambda { Kinds.values.include? value }
-    choice :data, :selection => :kind do
-      multiname_kind_qname       QName
-      multiname_kind_qname       QNameA
-      multiname_kind_rtqname     RTQName
-      multiname_kind_rtqname     RTQNameA
-      multiname_kind_rtqnamel    RTQNameL
-      multiname_kind_rtqnamel    RTQNameLA
-      multiname_kind_multiname   Multiname
-      multiname_kind_multiname   MultinameA
-      multiname_kind_multinamel  MultinameL
-      multiname_kind_multinamel  MultinameLA
-      multiname_kind_genericname GenericName # Undocumented
+    xlat_uint8 :kind
+    choice     :data, :selection => :kind do
+      multiname_kind_qname       XlatTable[:QName]
+      multiname_kind_qname       XlatTable[:QNameA]
+      multiname_kind_rtqname     XlatTable[:RTQName]
+      multiname_kind_rtqname     XlatTable[:RTQNameA]
+      multiname_kind_rtqnamel    XlatTable[:RTQNameL]
+      multiname_kind_rtqnamel    XlatTable[:RTQNameLA]
+      multiname_kind_multiname   XlatTable[:Multiname]
+      multiname_kind_multiname   XlatTable[:MultinameA]
+      multiname_kind_multinamel  XlatTable[:MultinameL]
+      multiname_kind_multinamel  XlatTable[:MultinameLA]
+      multiname_kind_genericname XlatTable[:GenericName] # Undocumented
     end
   end
 end

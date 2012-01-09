@@ -9,6 +9,8 @@ require "avm2/abc/primitives/variable_integer_le"
 require "avm2/abc/primitives/vuint30"
 require "avm2/abc/primitives/vuint32"
 require "avm2/abc/primitives/vint32"
+require "avm2/abc/primitives/vstring"
+require "avm2/abc/primitives/xlat"
 
 require "avm2/abc/primitives/nested_array"
 require "avm2/abc/primitives/constant_array"
@@ -30,7 +32,6 @@ end
 
 AVM2::ABC::Opcode::MAP.freeze
 
-require "avm2/abc/metadata/string_info"
 require "avm2/abc/metadata/namespace_info"
 require "avm2/abc/metadata/ns_set_info"
 require "avm2/abc/metadata/multiname_kind_multiname"
