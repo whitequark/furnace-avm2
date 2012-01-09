@@ -1,6 +1,6 @@
 module AVM2::ABC
-  class AS3Add < ArithmeticOpcode
-    instruction 0xa0
+  class AS3BitOr < BitwiseOpcode
+    instruction 0xa9
 
     consume 2
     produce 1

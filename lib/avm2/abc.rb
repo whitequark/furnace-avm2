@@ -25,12 +25,20 @@ require "avm2/abc/primitives/vuint32"
 require "avm2/abc/primitives/vint32"
 
 require "avm2/abc/opcodes/opcode"
+require "avm2/abc/opcodes/load_store_opcode"
 require "avm2/abc/opcodes/arithmetic_opcode"
+require "avm2/abc/opcodes/bitwise_opcode"
+require "avm2/abc/opcodes/type_conversion_opcode"
+require "avm2/abc/opcodes/stack_management_opcode"
 require "avm2/abc/opcodes/control_transfer_opcode"
+require "avm2/abc/opcodes/function_invocation_opcode"
+require "avm2/abc/opcodes/function_return_opcode"
 
 Dir[File.join(File.dirname(__FILE__), "abc", "opcodes", "*", "*.rb")].each do |file|
   require file
 end
+
+AVM2::ABC::Opcode::MAP.freeze
 
 require "avm2/abc/metadata/string_info"
 require "avm2/abc/metadata/namespace_info"
@@ -61,6 +69,7 @@ require "avm2/abc/metadata/klass_info"
 require "avm2/abc/metadata/script_info"
 
 require "avm2/abc/metadata/exception_info"
+require "avm2/abc/metadata/opcode_array"
 require "avm2/abc/metadata/method_body_info"
 
 require "avm2/abc/metadata/file"
