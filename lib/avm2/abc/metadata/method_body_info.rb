@@ -1,6 +1,6 @@
 module AVM2::ABC
   class MethodBodyInfo < Record
-    vuint30      :method_name
+    root_ref     :method
     vuint30      :max_stack
     vuint30      :local_count
     vuint30      :init_scope_depth

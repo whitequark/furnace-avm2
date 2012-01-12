@@ -14,5 +14,9 @@ module AVM2::ABC
     xlat_field :kind
 
     const_ref  :name, :string
+
+    def to_s
+      name.to_s
+    end
   end
 end

@@ -8,9 +8,9 @@ module AVM2::ABC
     HAS_PARAM_NAMES = 0x80
 
     vuint30     :param_count, :value => lambda { param_types.count }
-    vuint30     :return_type
+    const_ref   :return_type, :multiname
     array       :param_types, :type => :vuint30, :initial_length => :param_count
-    vuint30     :name
+    const_ref   :name, :string
 
     uint8       :flags
     nested      :options, :class => OptionInfo, :if => lambda { flags & HAS_OPTIONAL != 0 }

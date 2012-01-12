@@ -3,7 +3,7 @@ module AVM2::ABC
     attr_reader :root, :parent
 
     def initialize(options={})
-      @root, @parent = options[:root], options[:parent]
+      @root, @parent = options[:parent].root, options[:parent]
       @pos_cache    = {}
       @opcode_cache = {}
     end
@@ -96,6 +96,15 @@ module AVM2::ABC
         end
       end
 
+      if @parent.exceptions.any?
+        exception_node = Furnace::CFG::Node.new(graph, :exception, [])
+        graph.nodes.add exception_node
+
+        @parent.exceptions.each do |exception|
+          targets << exception.target
+        end
+      end
+
       each do |opcode|
         if targets.include? opcode
           graph.transfer({ nil => opcode.offset })
@@ -123,6 +132,10 @@ module AVM2::ABC
 
       graph.transfer({ })
 
+      @parent.exceptions.each do |exception|
+        graph.edges.add Furnace::CFG::Edge.new(graph, nil, :exception, exception.target)
+      end
+
       graph
     end
 
@@ -137,10 +150,17 @@ module AVM2::ABC
       end
 
       dead_opcodes.each do |opcode|
-        delete opcode
+        index = find_index(opcode)
+        delete_at index
+
+        opcode.byte_length.times do
+          insert index, AS3Nop.new(self)
+        end
       end
 
       recache!
+
+      dead_opcodes.any?
     end
 
     protected

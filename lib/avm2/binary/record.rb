@@ -146,6 +146,10 @@ module AVM2::Binary
       hash
     end
 
+    def inspect
+      to_hash.inspect
+    end
+
     def byte_length
       self.class.format.map do |method, name, options|
         send(:"length_#{method}", instance_variable_get(:"@#{name}"), options)

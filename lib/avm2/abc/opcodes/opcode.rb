@@ -48,9 +48,13 @@ module AVM2::ABC
       @sequence = sequence
     end
 
+    def root
+      @sequence.root
+    end
+
     def read(io)
       if respond_to? :body
-        @body = self.class.const_get(:Body).new
+        @body = self.class.const_get(:Body).new(:parent => @sequence)
         @body.read(io)
       end
     end

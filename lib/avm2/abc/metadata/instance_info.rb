@@ -5,14 +5,14 @@ module AVM2::ABC
     CLASS_INTERFACE    = 0x04
     CLASS_PROTECTED_NS = 0x08
 
-    vuint30      :name
-    vuint30      :super_name
+    const_ref    :name,         :multiname
+    const_ref    :super_name,   :multiname
     uint8        :flags
-    vuint30      :protected_ns, :if => lambda { flags & CLASS_PROTECTED_NS != 0}
+    const_ref    :protected_ns, :namespace, :if => lambda { flags & CLASS_PROTECTED_NS != 0}
 
-    abc_array_of :interface, :vuint30
+    abc_array_of :interface,    :vuint30
 
-    vuint30      :iinit
+    root_ref     :initializer,  :method
 
     abc_array_of :trait, :nested, :class => TraitInfo
   end

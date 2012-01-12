@@ -9,8 +9,33 @@ module AVM2::ABC
                               :options => { :class => klass } }.merge(options)
     end
 
+    def self.ref(name, type, options={})
+      field, array = :"#{name}_idx", options.delete(:plural) || :"#{type}s"
+
+      vuint30 field, options
+
+      if options[:pool] == :root
+        define_method(name) do
+          root.send(array)[send(field)]
+        end
+      elsif options[:pool] == :const
+        define_method(name) do
+          index = send(field)
+          if index == 0
+            nil
+          else
+            root.constant_pool.send(array)[index - 1]
+          end
+        end
+      end
+    end
+
+    def self.root_ref(name, type=name, options={})
+      ref name, type, options.merge(:pool => :root)
+    end
+
     def self.const_ref(name, type, options={})
-      vuint30 :"#{name}_idx"
+      ref name, type, options.merge(:pool => :const)
     end
 
     def self.xlat_direct

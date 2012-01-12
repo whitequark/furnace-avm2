@@ -3,10 +3,14 @@ module AVM2::ABC
     instruction 0x68
 
     body do
-      vuint30 :property_index
+      const_ref :property, :multiname
     end
 
     consume nil # TODO
     produce 0
+
+    def disassemble_parameters
+      "#{body.property}"
+    end
   end
 end

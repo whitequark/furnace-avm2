@@ -1,6 +1,14 @@
 module AVM2::ABC
   class MultinameKindQName < Record
-    vuint30 :name
-    vuint30 :ns
+    const_ref :ns, :namespace
+    const_ref :name, :string
+
+    def to_s
+      if ns
+        "#{ns}::#{name || '*'}"
+      else
+        name || '*'
+      end
+    end
   end
 end

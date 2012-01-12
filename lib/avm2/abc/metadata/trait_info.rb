@@ -31,7 +31,7 @@ module AVM2::ABC
       io.write([ byte ].pack("C"))
     end
 
-    vuint30    :name
+    const_ref  :name, :multiname
 
     attributes :attributes
     xlat_field :kind

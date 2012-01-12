@@ -19,9 +19,11 @@ EOS
 
   opt :input,         "Input file",                                 :type => :string
   opt :output,        "Output file",                                :type => :string
+  opt :verbose,       "Be verbose",                                 :default => false
 
-  opt :only,          "Only operate on methods <i+>",               :type => :ints
-  opt :except,        "Operate on all methods except <i+>",         :type => :ints
+  opt :only,          "Only operate on methods <i+>",               :type => :ints,   :short => '-O'
+  opt :except,        "Operate on all methods except <i+>",         :type => :ints,   :short => '-E'
+  opt :grep,          "Search <s> in method names",                 :type => :string, :short => '-G'
 
   opt :collect,       "Collect failed methods instead of exiting",  :default => false
   opt :smallest,      "Find method with smallest body",             :default => false
@@ -30,7 +32,7 @@ EOS
   opt :disasm_after,  "Disassemble methods after transforming",     :default => false, :short => '-A'
   opt :cfg,           "Emit CFG in Graphviz format for methods",    :default => false, :short => '-C'
 
-  opt :dce,           "Eliminate dead code",                        :default => false, :short => '-E'
+  opt :dce,           "Eliminate dead code",                        :default => false
 end
 
 Trollop::die "Input file is required" unless opts[:input]
@@ -44,7 +46,8 @@ end
 
 disasm = lambda do |body, after|
   puts
-  puts "Method #{body.method_name}, max stack #{body.max_stack}, local count #{body.local_count}"
+  puts "Method #{body.method_idx}," <<
+       " max stack #{body.max_stack}, local count #{body.local_count}"
   if after
     puts "After transformation"
   else
@@ -54,11 +57,36 @@ disasm = lambda do |body, after|
 end
 
 failed = []
+dced = []
 smallest = nil
 
+if opts[:grep]
+  regexp = Regexp.new(opts[:grep])
+
+  (abc.klasses + abc.instances).each do |scope|
+    if scope.is_a? AVM2::ABC::InstanceInfo
+      if scope.name.to_s =~ regexp
+        puts "Inst  Constructor  #{scope.name} #{scope.initializer_idx}"
+      end
+
+      type = "Inst "
+    else
+      type = "Class"
+    end
+
+    scope.traits.each do |trait|
+      if [:Function, :Method].include? trait.kind
+        if trait.name.to_s =~ regexp
+          puts "#{type} #{trait.kind.to_s.ljust 12} #{trait.name} #{trait.data.method_idx}"
+        end
+      end
+    end
+  end
+end
+
 abc.method_bodies.each do |body|
-  if (opts[:except] && opts[:except].include?(body.method_name)) ||
-     (opts[:only]   && !opts[:only].include?(body.method_name))
+  if (opts[:except] && opts[:except].include?(body.method_idx)) ||
+     (opts[:only]   && !opts[:only].include?(body.method_idx))
     next
   end
 
@@ -67,7 +95,7 @@ abc.method_bodies.each do |body|
 
     if opts[:cfg]
       cfg = body.code.build_cfg
-      File.open("method-#{body.method_name}.dot", "w") do |dot|
+      File.open("method-#{body.method_idx}.dot", "w") do |dot|
         dot.write cfg.to_graphviz
       end
     end
@@ -78,21 +106,30 @@ abc.method_bodies.each do |body|
       end
     end
 
-    body.code.eliminate_dead! if opts[:dce]
+    if opts[:dce]
+      dced << body.method_idx if body.code.eliminate_dead!
+    end
 
     disasm[body, true] if opts[:disasm_after]
   rescue Exception => e
     if opts[:collect]
-      puts "Failure at method body name=#{body.method_name}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
-      failed << body.method_name
+      puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
+      failed << body.method_idx
     else
       raise e
     end
   end
 end
 
+if opts[:verbose]
+  if opts[:dce]
+    puts "List of methods undergone DCE transform (#{dced.count}):"
+    puts "  #{dced.join " "}"
+  end
+end
+
 if opts[:smallest]
-  puts "Smallest method is #{smallest.method_name} with #{smallest.code_length} bytes"
+  puts "Smallest method is #{smallest.method_idx} with #{smallest.code_length} bytes"
 end
 
 if opts[:collect] && failed.any?

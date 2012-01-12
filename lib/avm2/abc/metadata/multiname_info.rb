@@ -30,5 +30,9 @@ module AVM2::ABC
       variant :MultinameLA, :nested, :class => MultinameKindMultinameL
       variant :GenericName, :nested, :class => MultinameKindGenericName
     end
+
+    def to_s
+      data.to_s
+    end
   end
 end

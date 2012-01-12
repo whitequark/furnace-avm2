@@ -8,5 +8,9 @@ module AVM2::ABC
 
     consume { 1 + arg_count }
     produce 0
+
+    def disassemble_parameters
+      "(#{body.arg_count})"
+    end
   end
 end

@@ -5,7 +5,7 @@ module AVM2::ABC
 
     nested          :constant_pool, :class => ConstPoolInfo
 
-    abc_array_of    :klass_method,  :nested, :class => MethodInfo
+    abc_array_of    :method,        :nested, :class => MethodInfo
 
     abc_array_of    :metadata,      :nested, :class => MetadataInfo
 
