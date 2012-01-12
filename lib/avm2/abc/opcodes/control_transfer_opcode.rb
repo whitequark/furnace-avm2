@@ -15,7 +15,6 @@ module AVM2::ABC
     end
 
     def lookup!
-      #p self if @target.offset.nil? || offset.nil?
       body.jump_offset = @target.offset - offset - byte_length
     end
   end

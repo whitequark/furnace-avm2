@@ -141,12 +141,6 @@ module AVM2::ABC
       end
 
       recache!
-
-      delete_if do |opcode|
-        opcode.redundant?
-      end
-
-      recache!
     end
 
     protected
