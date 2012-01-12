@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class InstanceInfo < NestedRecord
+  class InstanceInfo < Record
     CLASS_SEALED       = 0x01
     CLASS_FINAL        = 0x02
     CLASS_INTERFACE    = 0x04
@@ -8,12 +8,12 @@ module AVM2::ABC
     vuint30      :name
     vuint30      :super_name
     uint8        :flags
-    vuint30      :protectedNs, :onlyif => lambda { flags & CLASS_PROTECTED_NS != 0}
+    vuint30      :protected_ns, :if => lambda { flags & CLASS_PROTECTED_NS != 0}
 
     abc_array_of :interface, :vuint30
 
     vuint30      :iinit
 
-    abc_array_of :trait, :trait_info
+    abc_array_of :trait, :nested, :class => TraitInfo
   end
 end

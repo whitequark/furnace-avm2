@@ -1,7 +1,10 @@
 module AVM2::ABC
   class AS3GetLex < Opcode
     instruction 0x60
-    vuint30 :property_index
+
+    body do
+      vuint30 :property_index
+    end
 
     consume 0
     produce 1

@@ -1,7 +1,10 @@
 module AVM2::ABC
   class AS3Construct < Opcode
     instruction 0x42
-    vuint30 :arg_count
+
+    body do
+      vuint30 :arg_count
+    end
 
     consume { 1 + arg_count }
     produce 0

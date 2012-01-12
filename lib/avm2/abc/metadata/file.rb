@@ -3,22 +3,20 @@ module AVM2::ABC
     uint16          :minor_version
     uint16          :major_version
 
-    const_pool_info :constant_pool
+    nested          :constant_pool, :class => ConstPoolInfo
 
-    abc_array_of    :klass_method, :method_info
+    abc_array_of    :klass_method,  :nested, :class => MethodInfo
 
-    abc_array_of    :metadata, :metadata_info
+    abc_array_of    :metadata,      :nested, :class => MetadataInfo
 
-    vuint30         :klass_count,                        :value => lambda { instances.count }
-    nested_array    :instances, :type => :instance_info, :initial_length => :klass_count
-    nested_array    :klasses, :type => :klass_info,      :initial_length => :klass_count
+    vuint30         :klass_count,   :value => lambda { instances.count }
+    array           :instances,     :type => :nested, :initial_length => :klass_count,
+                                    :options => { :class => InstanceInfo }
+    array           :klasses,       :type => :nested, :initial_length => :klass_count,
+                                    :options => { :class => KlassInfo }
 
-    abc_array_of    :script, :script_info
+    abc_array_of    :script,        :nested, :class => ScriptInfo
 
-    abc_array_of    :method_body, :method_body_info,     :plural => :method_bodies
-
-    def root
-      self
-    end
+    abc_array_of    :method_body,   :nested, :class => MethodBodyInfo, :plural => :method_bodies
   end
 end

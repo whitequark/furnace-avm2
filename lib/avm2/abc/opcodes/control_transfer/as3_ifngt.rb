@@ -1,7 +1,10 @@
 module AVM2::ABC
   class AS3IfNGt < ControlTransferOpcode
     instruction 0x0e
-    int24       :jump_offset
+
+    body do
+      int24     :jump_offset
+    end
 
     consume 2
     produce 0

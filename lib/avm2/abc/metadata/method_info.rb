@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class MethodInfo < NestedRecord
+  class MethodInfo < Record
     NEED_ARGUMENTS  = 0x01
     NEED_ACTIVATION = 0x02
     NEED_REST       = 0x04
@@ -13,7 +13,7 @@ module AVM2::ABC
     vuint30     :name
 
     uint8       :flags
-    option_info :options, :onlyif => lambda { flags & HAS_OPTIONAL != 0 }
-    array       :param_names, :type => :vuint30, :initial_length => :param_count, :onlyif => lambda { flags & HAS_PARAM_NAMES != 0 }
+    nested      :options, :class => OptionInfo, :if => lambda { flags & HAS_OPTIONAL != 0 }
+    array       :param_names, :type => :vuint30, :initial_length => :param_count, :if => lambda { flags & HAS_PARAM_NAMES != 0 }
   end
 end

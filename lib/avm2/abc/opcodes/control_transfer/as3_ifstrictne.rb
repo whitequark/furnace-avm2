@@ -1,7 +1,10 @@
 module AVM2::ABC
   class AS3IfStrictNE < ControlTransferOpcode
     instruction 0x1a
-    int24       :jump_offset
+
+    body do
+      int24     :jump_offset
+    end
 
     consume 1
     produce 0

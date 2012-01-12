@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class OptionDetail < NestedRecord
+  class OptionDetail < Record
     XlatTable = {
       :Int                => 0x03,
       :UInt               => 0x04,
@@ -19,6 +19,8 @@ module AVM2::ABC
     }
 
     vuint30    :val
-    xlat_uint8 :kind
+
+    uint8      :kind_raw
+    xlat_field :kind
   end
 end

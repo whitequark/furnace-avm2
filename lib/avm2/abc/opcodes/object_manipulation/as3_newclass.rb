@@ -1,7 +1,10 @@
 module AVM2::ABC
   class AS3NewClass < Opcode
     instruction 0x58
-    vuint30 :klass_index
+
+    body do
+      vuint30 :klass_index
+    end
 
     consume 1
     produce 1

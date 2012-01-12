@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class TraitInfo < NestedRecord
+  class TraitInfo < Record
     XlatTable = {
       :Slot     => 0,
       :Method   => 1,
@@ -14,21 +14,38 @@ module AVM2::ABC
     OVERRIDE = 0x02
     METADATA = 0x04
 
-    vuint30   :name
+    attr_accessor :kind_raw
 
-    bit4      :attributes
-    xlat_bit4 :kind, :type => :bit4
+    def read_attributes(io, options)
+      byte = io.read(1).unpack("C").at(0)
 
-    choice    :data, :selection => :kind do
-      trait_slot     XlatTable[:Slot]
-      trait_method   XlatTable[:Method]
-      trait_method   XlatTable[:Getter]
-      trait_method   XlatTable[:Setter]
-      trait_class    XlatTable[:Class]
-      trait_function XlatTable[:Function]
-      trait_slot     XlatTable[:Const]
+      value     = byte >> 4
+      @kind_raw = byte & 0xF
+
+      value
     end
 
-    abc_array_of :metadata, :vuint30, :plural => :metadata, :onlyif => lambda { attributes & METADATA != 0 }
+    def write_attributes(io, value, options)
+      byte = (value << 4) | (@kind_raw & 0xf)
+
+      io.write([ byte ].pack("C"))
+    end
+
+    vuint30    :name
+
+    attributes :attributes
+    xlat_field :kind
+
+    choice     :data, :selection => :kind do
+      variant :Slot,     :nested, :class => TraitSlot
+      variant :Method,   :nested, :class => TraitMethod
+      variant :Getter,   :nested, :class => TraitMethod
+      variant :Setter,   :nested, :class => TraitMethod
+      variant :Class,    :nested, :class => TraitClass
+      variant :Function, :nested, :class => TraitFunction
+      variant :Const,    :nested, :class => TraitSlot
+    end
+
+    abc_array_of :metadata, :vuint30, :plural => :metadata, :if => lambda { attributes & METADATA != 0 }
   end
 end

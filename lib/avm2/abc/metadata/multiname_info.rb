@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class MultinameInfo < NestedRecord
+  class MultinameInfo < Record
     XlatTable = {
       :QName       => 0x07,
       :QNameA      => 0x0D,
@@ -14,19 +14,21 @@ module AVM2::ABC
       :GenericName => 0x1D # Undocumented
     }
 
-    xlat_uint8 :kind
+    uint8      :kind_raw
+    xlat_field :kind
+
     choice     :data, :selection => :kind do
-      multiname_kind_qname       XlatTable[:QName]
-      multiname_kind_qname       XlatTable[:QNameA]
-      multiname_kind_rtqname     XlatTable[:RTQName]
-      multiname_kind_rtqname     XlatTable[:RTQNameA]
-      multiname_kind_rtqnamel    XlatTable[:RTQNameL]
-      multiname_kind_rtqnamel    XlatTable[:RTQNameLA]
-      multiname_kind_multiname   XlatTable[:Multiname]
-      multiname_kind_multiname   XlatTable[:MultinameA]
-      multiname_kind_multinamel  XlatTable[:MultinameL]
-      multiname_kind_multinamel  XlatTable[:MultinameLA]
-      multiname_kind_genericname XlatTable[:GenericName] # Undocumented
+      variant :QName,       :nested, :class => MultinameKindQName
+      variant :QNameA,      :nested, :class => MultinameKindQName
+      variant :RTQName,     :nested, :class => MultinameKindRTQName
+      variant :RTQNameA,    :nested, :class => MultinameKindRTQName
+      variant :RTQNameL,    :nested, :class => MultinameKindRTQNameL
+      variant :RTQNameLA,   :nested, :class => MultinameKindRTQNameL
+      variant :Multiname,   :nested, :class => MultinameKindMultiname
+      variant :MultinameA,  :nested, :class => MultinameKindMultiname
+      variant :MultinameL,  :nested, :class => MultinameKindMultinameL
+      variant :MultinameLA, :nested, :class => MultinameKindMultinameL
+      variant :GenericName, :nested, :class => MultinameKindGenericName
     end
   end
 end

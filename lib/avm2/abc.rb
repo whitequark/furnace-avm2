@@ -1,21 +1,12 @@
 module AVM2::ABC
 end
 
+require "avm2/binary/choice_definition"
+require "avm2/binary/record"
+
 require "avm2/abc/primitives/record"
-require "avm2/abc/primitives/nested_record"
-require "avm2/abc/primitives/indirectly_nested_record"
 
-require "avm2/abc/primitives/variable_integer_le"
-require "avm2/abc/primitives/vuint30"
-require "avm2/abc/primitives/vuint32"
-require "avm2/abc/primitives/vint32"
-require "avm2/abc/primitives/vstring"
-require "avm2/abc/primitives/xlat"
-
-require "avm2/abc/primitives/nested_array"
-require "avm2/abc/primitives/constant_array"
-require "avm2/abc/primitives/opcode_array"
-
+=begin
 require "avm2/abc/opcodes/opcode"
 require "avm2/abc/opcodes/load_store_opcode"
 require "avm2/abc/opcodes/arithmetic_opcode"
@@ -32,6 +23,7 @@ Dir[File.join(File.dirname(__FILE__), "abc", "opcodes", "*", "*.rb")].each do |f
 end
 
 AVM2::ABC::Opcode::MAP.freeze
+=end
 
 require "avm2/abc/metadata/namespace_info"
 require "avm2/abc/metadata/ns_set_info"
@@ -64,3 +56,5 @@ require "avm2/abc/metadata/exception_info"
 require "avm2/abc/metadata/method_body_info"
 
 require "avm2/abc/metadata/file"
+
+AVM2::Binary::Record.codegen_each

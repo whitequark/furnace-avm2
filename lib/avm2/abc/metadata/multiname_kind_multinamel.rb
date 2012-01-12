@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class MultinameKindMultinamel < IndirectlyNestedRecord
+  class MultinameKindMultinameL < Record
     vuint30 :ns_set
   end
 end

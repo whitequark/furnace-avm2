@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class NamespaceInfo < NestedRecord
+  class NamespaceInfo < Record
     XlatTable = {
       :Namespace          => 0x08,
       :PackageNamespace   => 0x16,
@@ -10,7 +10,9 @@ module AVM2::ABC
       :PrivateNs          => 0x05,
     }
 
-    xlat_uint8 :kind
+    uint8      :kind_raw
+    xlat_field :kind
+
     const_ref  :name, :string
   end
 end

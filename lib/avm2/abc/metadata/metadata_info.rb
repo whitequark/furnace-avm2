@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class MetadataInfo < NestedRecord
+  class MetadataInfo < Record
     vuint30      :name
 
     vuint30      :item_count,  :value => lambda { item_keys.count }

@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class MultinameKindQname < IndirectlyNestedRecord
+  class MultinameKindQName < Record
     vuint30 :name
     vuint30 :ns
   end

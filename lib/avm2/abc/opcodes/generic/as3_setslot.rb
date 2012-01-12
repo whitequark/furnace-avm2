@@ -1,7 +1,10 @@
 module AVM2::ABC
   class AS3SetSlot < Opcode
     instruction 0x6d
-    vuint30 :slotindex
+
+    body do
+      vuint30 :slotindex
+    end
 
     consume 2
     produce 0

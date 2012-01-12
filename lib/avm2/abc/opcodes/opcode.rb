@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class Opcode < Record
+  class Opcode
     MAP = {}
 
     def self.define_property(name, options={}, &block)
@@ -22,9 +22,16 @@ module AVM2::ABC
       end
     end
 
-    # Magic.
-    hide  :instruction
-    uint8 :instruction
+    def self.body(&block)
+      @body_defined = true
+
+      klass = Class.new(Record) do
+        instance_exec &block
+      end
+      const_set :Body, klass
+
+      attr_accessor :body
+    end
 
     define_property :instruction do |encoding|
       MAP[encoding] = self
@@ -35,16 +42,28 @@ module AVM2::ABC
 
     define_property :type
 
+    def do_read(io)
+      @body = self.class.const_get(:Body).read(io) if respond_to? :body
+    end
+
+    def do_write(io)
+      @body.do_write(io) if respond_to? :body
+    end
+
     def mnemonic
       BinData::RegisteredClasses.underscore_name(self.class.to_s)
     end
 
     def disassemble
-      "   #{rel_offset.to_s.rjust(4, "0")}  #{mnemonic.ljust(25)} #{disassemble_parameters}"
+      "   #{offset.to_s.rjust(4, "0")}  #{mnemonic.ljust(25)} #{disassemble_parameters}"
     end
 
     def disassemble_parameters
       snapshot.map { |k,v| "#{k}: #{v}" }.join(", ")
+    end
+
+    def offset
+      0
     end
   end
 end

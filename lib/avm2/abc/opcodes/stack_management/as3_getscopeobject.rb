@@ -1,7 +1,10 @@
 module AVM2::ABC
   class AS3GetScopeObject < StackManagementOpcode
     instruction 0x65
-    uint8 :scope_index
+
+    body do
+      uint8 :scope_index
+    end
 
     consume 0
     produce 1

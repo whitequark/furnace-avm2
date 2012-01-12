@@ -1,7 +1,10 @@
 module AVM2::ABC
   class AS3Kill < Opcode
     instruction 0x8
-    vuint30 :local_index
+
+    body do
+      vuint30 :local_index
+    end
 
     consume 0
     produce 0

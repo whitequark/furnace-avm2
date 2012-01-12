@@ -25,10 +25,11 @@ Trollop::die "Input file is required" unless opts[:input]
 abc = nil
 
 Benchmark.bm(7) do |stat|
-  10.times {
+  10.times do
     stat.report "read " do
       File.open(opts[:input]) do |file|
-        abc = AVM2::ABC::File.read(file)
+        abc = AVM2::ABC::File.new
+        abc.read(file)
       end
     end
 
@@ -37,5 +38,5 @@ Benchmark.bm(7) do |stat|
         abc.write(file)
       end
     end
-  }
+  end
 end
