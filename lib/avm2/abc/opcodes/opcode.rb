@@ -8,7 +8,7 @@ module AVM2::ABC
           define_method(name) do
             instance_exec &value_block
           end
-        elsif value
+        elsif !value.nil?
           define_method(name) do
             value
           end
@@ -72,11 +72,19 @@ module AVM2::ABC
     end
 
     def offset
-      0
+      @sequence.offset_of(self)
+    end
+
+    def forward
+      @sequence.opcode_at(offset + byte_length)
+    end
+
+    def redundant?
+      false
     end
 
     def mnemonic
-      self.class.to_s
+      self.class.to_s.sub("AVM2::ABC::AS3", "")
     end
 
     def disassemble_parameters
@@ -84,7 +92,8 @@ module AVM2::ABC
     end
 
     def disassemble
-      "   #{offset.to_s.rjust(4, "0")}  #{mnemonic.ljust(35)} #{disassemble_parameters}"
+      params = "\n           #{disassemble_parameters}" if disassemble_parameters
+      "   #{offset.to_s.rjust(4, "0")}  #{mnemonic}#{params}"
     end
     alias :inspect :disassemble
   end

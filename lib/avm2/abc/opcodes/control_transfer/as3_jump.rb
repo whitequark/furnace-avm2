@@ -10,5 +10,9 @@ module AVM2::ABC
     produce 0
 
     conditional false
+
+    def redundant?
+      self.target == self.forward
+    end
   end
 end

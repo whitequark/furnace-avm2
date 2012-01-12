@@ -1,0 +1,105 @@
+#!/usr/bin/env ruby
+
+require "rubygems"
+require "bundler/setup"
+
+$: << File.join(File.dirname(__FILE__), '..', 'lib')
+
+require "trollop"
+require "avm2"
+require "benchmark"
+
+opts = Trollop::options do
+  version "furnace-as3 #{AVM2::VERSION}"
+  banner <<-EOS
+  furnace-avm2 is a processing tool which operates on ActionScript3 bytecode.
+
+  Usage: #{__FILE__} [options]
+EOS
+
+  opt :input,         "Input file",                                 :type => :string
+  opt :output,        "Output file",                                :type => :string
+
+  opt :only,          "Only operate on methods <i+>",               :type => :ints
+  opt :except,        "Operate on all methods except <i+>",         :type => :ints
+
+  opt :collect,       "Collect failed methods instead of exiting",  :default => false
+  opt :smallest,      "Find method with smallest body",             :default => false
+
+  opt :disasm_before, "Disassemble methods before transforming",    :default => false, :short => '-B'
+  opt :disasm_after,  "Disassemble methods after transforming",     :default => false, :short => '-A'
+  opt :cfg,           "Emit CFG in Graphviz format for methods",    :default => false, :short => '-C'
+
+  opt :dce,           "Eliminate dead code",                        :default => false, :short => '-E'
+end
+
+Trollop::die "Input file is required" unless opts[:input]
+Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
+
+abc = nil
+File.open(opts[:input]) do |file|
+  abc = AVM2::ABC::File.new
+  abc.read(file)
+end
+
+disasm = lambda do |body, after|
+  puts
+  puts "Method #{body.method_name}, max stack #{body.max_stack}, local count #{body.local_count}"
+  if after
+    puts "After transformation"
+  else
+    puts "Before transformation"
+  end
+  puts body.code.disassemble
+end
+
+failed = []
+smallest = nil
+
+abc.method_bodies.each do |body|
+  if (opts[:except] && opts[:except].include?(body.method_name)) ||
+     (opts[:only]   && !opts[:only].include?(body.method_name))
+    next
+  end
+
+  begin
+    disasm[body, false] if opts[:disasm_before]
+
+    if opts[:cfg]
+      cfg = body.code.build_cfg
+      File.open("method-#{body.method_name}.dot", "w") do |dot|
+        dot.write cfg.to_graphviz
+      end
+    end
+
+    if opts[:smallest]
+      if smallest.nil? || smallest.code_length > body.code_length
+        smallest = body
+      end
+    end
+
+    body.code.eliminate_dead! if opts[:dce]
+
+    disasm[body, true] if opts[:disasm_after]
+  rescue Exception => e
+    if opts[:collect]
+      puts "Failure at method body name=#{body.method_name}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
+      failed << body.method_name
+    else
+      raise e
+    end
+  end
+end
+
+if opts[:smallest]
+  puts "Smallest method is #{smallest.method_name} with #{smallest.code_length} bytes"
+end
+
+if opts[:collect] && failed.any?
+  puts "To skip #{failed.count} failed methods, append this command-line argument:"
+  puts "  --except #{failed.join " "}"
+elsif opts[:output]
+  File.open(opts[:output], "w") do |file|
+    abc.write(file)
+  end
+end
