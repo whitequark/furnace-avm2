@@ -12,5 +12,11 @@ module AVM2::ABC
     abc_array_of :exception, :nested, :class => ExceptionInfo
 
     abc_array_of :trait, :nested, :class => TraitInfo
+
+    def after_read(io)
+      exceptions.each do |exception|
+        exception.resolve!
+      end
+    end
   end
 end

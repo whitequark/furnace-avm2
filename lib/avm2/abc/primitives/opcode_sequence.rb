@@ -96,12 +96,12 @@ module AVM2::ABC
         end
       end
 
-      if @parent.exceptions.any?
+      if exceptions.any?
         exception_node = Furnace::CFG::Node.new(graph, :exception, [])
         graph.nodes.add exception_node
 
-        @parent.exceptions.each do |exception|
-          targets << exception.target
+        exceptions.each do |exception|
+          targets << exception.target_offset
         end
       end
 
@@ -132,8 +132,8 @@ module AVM2::ABC
 
       graph.transfer({ })
 
-      @parent.exceptions.each do |exception|
-        graph.edges.add Furnace::CFG::Edge.new(graph, nil, :exception, exception.target)
+      exceptions.each do |exception|
+        graph.edges.add Furnace::CFG::Edge.new(graph, nil, :exception, exception.target_offset)
       end
 
       graph
@@ -150,12 +150,7 @@ module AVM2::ABC
       end
 
       dead_opcodes.each do |opcode|
-        index = find_index(opcode)
-        delete_at index
-
-        opcode.byte_length.times do
-          insert index, AS3Nop.new(self)
-        end
+        delete opcode
       end
 
       recache!
@@ -169,6 +164,14 @@ module AVM2::ABC
       each do |element|
         element.lookup! if element.respond_to? :lookup!
       end
+
+      exceptions.each do |exception|
+        exception.lookup!
+      end
+    end
+
+    def exceptions
+      @parent.exceptions
     end
   end
 end

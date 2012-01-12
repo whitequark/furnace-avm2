@@ -93,16 +93,20 @@ module AVM2::Binary
           @root = options[:parent].root if options[:parent]
           #{@format.map { |f| "@#{f[1]} = nil\n" }.join}
 
-          initialize_record(options) if respond_to? :initialize_record
+          #{"initialize_record(options)" if instance_methods.include? :initialize_record}
         end
 
         def read(io)
+          #{"before_read(io)" if instance_methods.include? :before_read}
           #{@format.each_index.map { |index| gen_read[index] }.join "\n"}
+          #{"after_read(io)" if instance_methods.include? :after_read}
         end
 
         def write(io)
+          #{"before_write(io)" if instance_methods.include? :before_write}
           #{@format.each_index.map { |index| gen_write[index] }.join "\n"}
-        end
+          #{"after_write(io)" if instance_methods.include? :after_write}
+          end
         CODE
       end
 
