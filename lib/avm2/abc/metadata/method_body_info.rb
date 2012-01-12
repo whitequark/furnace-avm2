@@ -6,8 +6,8 @@ module AVM2::ABC
     vuint30      :init_scope_depth
     vuint30      :max_scope_depth
 
-    vuint30      :code_length, :value => lambda { code.length }
-    array        :code, :type => :uint8, :initial_length => :code_length
+    vuint30      :code_length, :value => lambda { code.byte_length }
+    nested       :code, :class => OpcodeSequence
 
     abc_array_of :exception, :nested, :class => ExceptionInfo
 

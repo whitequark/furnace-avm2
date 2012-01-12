@@ -18,5 +18,9 @@ module AVM2::ABC
     abc_array_of    :script,        :nested, :class => ScriptInfo
 
     abc_array_of    :method_body,   :nested, :class => MethodBodyInfo, :plural => :method_bodies
+
+    def root
+      self
+    end
   end
 end

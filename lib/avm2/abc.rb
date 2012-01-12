@@ -5,8 +5,8 @@ require "avm2/binary/choice_definition"
 require "avm2/binary/record"
 
 require "avm2/abc/primitives/record"
+require "avm2/abc/primitives/opcode_sequence"
 
-=begin
 require "avm2/abc/opcodes/opcode"
 require "avm2/abc/opcodes/load_store_opcode"
 require "avm2/abc/opcodes/arithmetic_opcode"
@@ -23,7 +23,6 @@ Dir[File.join(File.dirname(__FILE__), "abc", "opcodes", "*", "*.rb")].each do |f
 end
 
 AVM2::ABC::Opcode::MAP.freeze
-=end
 
 require "avm2/abc/metadata/namespace_info"
 require "avm2/abc/metadata/ns_set_info"

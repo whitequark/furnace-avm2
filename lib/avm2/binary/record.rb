@@ -36,6 +36,8 @@ module AVM2::Binary
       end
 
       def codegen
+        tracing = $avm2_binary_trace
+
         gen_read = lambda do |index|
           method, name, options = @format[index]
           code = []
@@ -46,11 +48,11 @@ module AVM2::Binary
             code << "if instance_exec(&options[:if])"
           end
 
-          code << "self.class.trace_scope(#{name}) do"
+          code << "self.class.trace_scope(#{name}) do" if tracing
           code << "  value = read_#{method}(io, options)"
-          code << "  self.class.trace_value(value)"
+          code << "  self.class.trace_value(value)" if tracing
           code << "  @#{name} = value"
-          code << "end"
+          code << "end" if tracing
 
           if options.include? :if
             code << "end"
@@ -69,15 +71,15 @@ module AVM2::Binary
             code << "if instance_exec(&options[:if])"
           end
 
-          code << "self.class.trace_scope(#{name}) do"
+          code << "self.class.trace_scope(#{name}) do" if tracing
           if options.include? :value
             code << "value = fetch(options[:value])"
           else
             code << "value = @#{name}"
           end
-          code << "  self.class.trace_value(value)"
+          code << "  self.class.trace_value(value)" if tracing
           code << "  value = write_#{method}(io, value, options)"
-          code << "end"
+          code << "end" if tracing
 
           if options.include? :if
             code << "end"
@@ -88,8 +90,10 @@ module AVM2::Binary
 
         class_eval <<-CODE
         def initialize(options={})
-          @root = options[:root]
+          @root = options[:parent].root if options[:parent]
           #{@format.map { |f| "@#{f[1]} = nil\n" }.join}
+
+          initialize_record(options) if respond_to? :initialize_record
         end
 
         def read(io)
@@ -113,47 +117,44 @@ module AVM2::Binary
       end
 
       def trace_scope(scope)
-        if AVM2::Binary::Record.tracing
-          Thread.current[:binary_trace_scope] ||= []
-          Thread.current[:binary_trace_scope].push scope
-          Thread.current[:binary_trace_nested] = false
-        end
+        Thread.current[:binary_trace_scope] ||= []
+        Thread.current[:binary_trace_scope].push scope
+        Thread.current[:binary_trace_nested] = false
 
         yield
       ensure
-        if AVM2::Binary::Record.tracing
-          Thread.current[:binary_trace_scope].pop
-          Thread.current[:binary_trace_nested] = true
-        end
+        Thread.current[:binary_trace_scope].pop
+        Thread.current[:binary_trace_nested] = true
       end
 
       def trace_value(value)
-        if AVM2::Binary::Record.tracing
-          return if value.is_a?(Array) && value[0].is_a?(Record)
-          puts "#{Thread.current[:binary_trace_scope].join(".")} = #{value}"
-        end
+        return if value.is_a?(Array) && value[0].is_a?(Record)
+
+        puts "#{Thread.current[:binary_trace_scope].join(".")} = #{value}"
       end
     end
 
     attr_reader :root
 
-    def write(io)
+    def to_hash
+      hash = {}
+
       self.class.format.each do |method, name, options|
-        if condition = options[:if]
-          next unless instance_exec(&condition)
-        end
-
-        if options[:value]
-          value = fetch(options[:value])
-        else
-          value = instance_variable_get(:"@#{name}")
-        end
-
-        send(:"write_#{method}", io, value, options)
+        hash[name] = instance_variable_get :"@#{name}"
       end
+
+      hash
+    end
+
+    def byte_length
+      self.class.format.map do |method, name, options|
+        send(:"length_#{method}", instance_variable_get(:"@#{name}"), options)
+      end.reduce(0, :+)
     end
 
     protected
+
+    # uint8
 
     def read_uint8(io, options)
       io.read(1).unpack("C").at(0)
@@ -163,6 +164,12 @@ module AVM2::Binary
       io.write([value].pack("C"))
     end
 
+    def length_uint8(value, options)
+      1
+    end
+
+    # uint16
+
     def read_uint16(io, options)
       io.read(2).unpack("v").at(0)
     end
@@ -170,6 +177,33 @@ module AVM2::Binary
     def write_uint16(io, value, options)
       io.write([value].pack("v"))
     end
+
+    def length_uint16(value, options)
+      2
+    end
+
+    # int24
+
+    def read_int24(io, options)
+      lo, hi = io.read(3).unpack("vC")
+      value = lo | (hi << 16)
+      if value & 0x800000 != 0
+        -(-value & 0x7fffff)
+      else
+        value
+      end
+    end
+
+    def write_int24(io, value, options)
+      lo, hi = value & 0xffff, (value >> 16) & 0xff
+      io.write([lo, hi].pack("vC"))
+    end
+
+    def length_int24(value, options)
+      3
+    end
+
+    # double
 
     def read_double(io, options)
       io.read(8).unpack("E").at(0)
@@ -179,6 +213,12 @@ module AVM2::Binary
       io.write([value].pack("E"))
     end
 
+    def length_double(value, options)
+      8
+    end
+
+    # vint32
+
     def read_vint32(io, options)
       read_vint(io, true)
     end
@@ -186,6 +226,12 @@ module AVM2::Binary
     def write_vint32(io, value, options)
       write_vint(io, value, true)
     end
+
+    def length_vint32(value, options)
+      length_vint(value)
+    end
+
+    # vuint32
 
     def read_vuint32(io, options)
       read_vint(io, false)
@@ -195,6 +241,12 @@ module AVM2::Binary
       write_vint(io, value, true)
     end
 
+    def length_vuint32(value, options)
+      length_vint(value)
+    end
+
+    # vuint30
+
     def read_vuint30(io, options)
       read_vint(io, false)
     end
@@ -202,6 +254,12 @@ module AVM2::Binary
     def write_vuint30(io, value, options)
       write_vint(io, value, true)
     end
+
+    def length_vuint30(value, options)
+      length_vint(value)
+    end
+
+    # vstring
 
     def read_vstring(io, options)
       length = read_vuint32(io, {})
@@ -212,6 +270,8 @@ module AVM2::Binary
       write_vuint32(io, value.bytesize, {})
       io.write(value)
     end
+
+    # nested
 
     def self.check_nested(options={})
       do_check(options, "nested", [:class])
@@ -230,6 +290,8 @@ module AVM2::Binary
 
       value.write(io)
     end
+
+    # array
 
     def self.check_array(options={})
       do_check(options, "array", [:initial_length, :type], [:options])
@@ -254,6 +316,14 @@ module AVM2::Binary
         send(:"write_#{options[:type]}", io, element, options[:options])
       end
     end
+
+    def length_array(value, options)
+      value.map do |element|
+        send(:"length_#{options[:type]}", element, options[:options])
+      end.reduce(0, :+)
+    end
+
+    # choice
 
     def self.check_choice(options={})
       do_check(options, "choice", [:selection, :block])
@@ -285,6 +355,10 @@ module AVM2::Binary
       raise Exception, "unknown choice value #{value}"
     end
 
+    def length_choice(value)
+      value.length
+    end
+
     # Common
 
     def fetch(what)
@@ -302,7 +376,6 @@ module AVM2::Binary
         send :"check_#{type}", options
       end
     end
-
 
     def self.do_check(original_options, name, mandatory=[], optional=[])
       options = original_options.clone
@@ -365,9 +438,20 @@ module AVM2::Binary
         end
 
         bytes.push(byte)
-      end while value != 0x00
+      end while value != 0
 
       io.write bytes.pack("C*")
+    end
+
+    def length_vint(value)
+      length = 0
+
+      begin
+        length += 1
+        value >>= 7
+      end while value != 0
+
+      length
     end
   end
 end

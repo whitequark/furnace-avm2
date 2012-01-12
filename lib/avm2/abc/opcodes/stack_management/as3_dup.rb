@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class AS3Swap < StackManagementOpcode
+  class AS3Dup < StackManagementOpcode
     instruction 0x2a
 
     consume 1

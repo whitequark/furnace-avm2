@@ -42,28 +42,50 @@ module AVM2::ABC
 
     define_property :type
 
-    def do_read(io)
-      @body = self.class.const_get(:Body).read(io) if respond_to? :body
+    attr_reader :sequence
+
+    def initialize(sequence)
+      @sequence = sequence
     end
 
-    def do_write(io)
-      @body.do_write(io) if respond_to? :body
+    def read(io)
+      if respond_to? :body
+        @body = self.class.const_get(:Body).new
+        @body.read(io)
+      end
     end
 
-    def mnemonic
-      BinData::RegisteredClasses.underscore_name(self.class.to_s)
+    def write(io)
+      io.write([ instruction ].pack("C"))
+
+      if respond_to? :body
+        @body.write(io)
+      end
     end
 
-    def disassemble
-      "   #{offset.to_s.rjust(4, "0")}  #{mnemonic.ljust(25)} #{disassemble_parameters}"
-    end
-
-    def disassemble_parameters
-      snapshot.map { |k,v| "#{k}: #{v}" }.join(", ")
+    def byte_length
+      if respond_to? :body
+        @body.byte_length + 1
+      else
+        1
+      end
     end
 
     def offset
       0
     end
+
+    def mnemonic
+      self.class.to_s
+    end
+
+    def disassemble_parameters
+      @body.to_hash if @body
+    end
+
+    def disassemble
+      "   #{offset.to_s.rjust(4, "0")}  #{mnemonic.ljust(35)} #{disassemble_parameters}"
+    end
+    alias :inspect :disassemble
   end
 end
