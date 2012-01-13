@@ -1,5 +1,3 @@
-require "bindata"
-
 require "furnace/cfg/node"
 require "furnace/cfg/edge"
 require "furnace/cfg/graph"
