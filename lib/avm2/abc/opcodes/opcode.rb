@@ -25,9 +25,9 @@ module AVM2::ABC
     def self.body(&block)
       @body_defined = true
 
-      klass = Class.new(Record) do
-        instance_exec &block
-      end
+      klass = Class.new(Record)
+      klass.instance_exec &block
+
       const_set :Body, klass
 
       attr_accessor :body
