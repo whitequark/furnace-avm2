@@ -7,8 +7,14 @@ module AVM2::ABC
 
     const_ref    :name,         :multiname
     const_ref    :super_name,   :multiname
+
     uint8        :flags
-    const_ref    :protected_ns, :namespace, :if => lambda { flags & CLASS_PROTECTED_NS != 0}
+    flag         :sealed,       :flags, CLASS_SEALED
+    flag         :final,        :flags, CLASS_FINAL
+    flag         :interface,    :flags, CLASS_INTERFACE
+    flag         :protected_ns, :flags, CLASS_PROTECTED_NS
+
+    const_ref    :protected_ns, :namespace, :if => :protected_ns?
 
     abc_array_of :interface,    :vuint30
 

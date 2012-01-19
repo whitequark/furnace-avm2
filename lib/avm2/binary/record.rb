@@ -38,24 +38,34 @@ module AVM2::Binary
       def codegen
         tracing = $avm2_binary_trace
 
+        gen_if = lambda do |code, options, &block|
+          if options.include? :if
+            if options[:if].to_proc.arity == 0
+              code << "if instance_exec(&options[:if])"
+            else
+              code << "if instance_exec(self, &options[:if])"
+            end
+          end
+
+          block.call(code)
+
+          if options.include? :if
+            code << "end"
+          end
+        end
+
         gen_read = lambda do |index|
           method, name, options = @format[index]
           code = []
 
           code << "options = self.class.format[#{index}][2]"
 
-          if options.include? :if
-            code << "if instance_exec(&options[:if])"
-          end
-
-          code << "self.class.trace_scope(#{name}) do" if tracing
-          code << "  value = read_#{method}(io, options)"
-          code << "  self.class.trace_value(value)" if tracing
-          code << "  @#{name} = value"
-          code << "end" if tracing
-
-          if options.include? :if
-            code << "end"
+          gen_if.(code, options) do
+            code << "self.class.trace_scope(#{name}) do" if tracing
+            code << "  value = read_#{method}(io, options)"
+            code << "  self.class.trace_value(value)" if tracing
+            code << "  @#{name} = value"
+            code << "end" if tracing
           end
 
           code.join "\n"
@@ -67,28 +77,22 @@ module AVM2::Binary
 
           code << "options = self.class.format[#{index}][2]"
 
-          if options.include? :if
-            code << "if instance_exec(&options[:if])"
-          end
-
-          code << "self.class.trace_scope(#{name}) do" if tracing
-          if options.include? :value
-            code << "value = fetch(options[:value])"
-          else
-            code << "value = @#{name}"
-          end
-          code << "  self.class.trace_value(value)" if tracing
-          code << "  value = write_#{method}(io, value, options)"
-          code << "end" if tracing
-
-          if options.include? :if
-            code << "end"
+          gen_if.(code, options) do
+            code << "self.class.trace_scope(#{name}) do" if tracing
+            if options.include? :value
+              code << "value = fetch(options[:value])"
+            else
+              code << "value = @#{name}"
+            end
+            code << "  self.class.trace_value(value)" if tracing
+            code << "  value = write_#{method}(io, value, options)"
+            code << "end" if tracing
           end
 
           code.join "\n"
         end
 
-        class_eval <<-CODE
+        class_eval <<-CODE, "(generated-io:#{self})"
         def initialize(options={})
           @root = options[:parent].root if options[:parent]
           #{@format.map { |f| "@#{f[1]} = nil\n" }.join}
@@ -98,13 +102,13 @@ module AVM2::Binary
 
         def read(io)
           #{"before_read(io)" if instance_methods.include? :before_read}
-          #{@format.each_index.map { |index| gen_read[index] }.join "\n"}
+          #{@format.each_index.map { |index| gen_read.(index) }.join "\n"}
           #{"after_read(io)" if instance_methods.include? :after_read}
         end
 
         def write(io)
           #{"before_write(io)" if instance_methods.include? :before_write}
-          #{@format.each_index.map { |index| gen_write[index] }.join "\n"}
+          #{@format.each_index.map { |index| gen_write.(index) }.join "\n"}
           #{"after_write(io)" if instance_methods.include? :after_write}
           end
         CODE

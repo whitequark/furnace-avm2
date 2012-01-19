@@ -65,5 +65,27 @@ module AVM2::ABC
         instance_variable_set :"@#{name}_raw", self.class.xlat_inverse[new_value]
       end
     end
+
+    def self.flag(name, field, constant)
+      define_method(:"#{name}?") do
+        instance_variable_get(:"@#{field}") & constant != 0
+      end
+
+      define_method(:"#{name}=") do |is_set|
+        flags = instance_variable_get(:"@#{field}")
+
+        if is_set
+          instance_variable_set(:"@#{field}", flags | constant)
+        else
+          instance_variable_set(:"@#{field}", flags & ~constant)
+        end
+      end
+    end
+
+    def self.subset(name, array, selector)
+      define_method(:"#{name}") do
+        send(array).select &selector
+      end
+    end
   end
 end

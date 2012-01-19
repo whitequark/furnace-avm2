@@ -14,6 +14,7 @@ module AVM2::ABC
                                     :options => { :class => InstanceInfo }
     array           :klasses,       :type => :nested, :initial_length => :klass_count,
                                     :options => { :class => KlassInfo }
+    subset          :interfaces,    :instances, :interface?
 
     abc_array_of    :script,        :nested, :class => ScriptInfo
 
