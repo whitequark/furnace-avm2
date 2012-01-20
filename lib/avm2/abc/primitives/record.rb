@@ -9,16 +9,18 @@ module AVM2::ABC
                               :options => { :class => klass } }.merge(options)
     end
 
-    def self.ref(name, type, options={})
+    # Pools
+
+    def self.pool_ref(pool, name, type=name, options={})
       field, array = :"#{name}_idx", options.delete(:plural) || :"#{type}s"
 
       vuint30 field, options
 
-      if options[:pool] == :root
+      if pool == :root
         define_method(name) do
           root.send(array)[send(field)]
         end
-      elsif options[:pool] == :const
+      elsif pool == :const
         define_method(name) do
           index = send(field)
           if index == 0
@@ -30,36 +32,48 @@ module AVM2::ABC
       end
     end
 
-    def self.root_ref(name, type=name, options={})
-      ref name, type, options.merge(:pool => :root)
-    end
-
-    def self.const_ref(name, type, options={})
-      ref name, type, options.merge(:pool => :const)
-    end
-
-    def self.const_array(name, type, options={})
-      field, type_plural = :"#{name}_raw", :"#{type}s"
+    def self.pool_array(pool, name, type, options={})
+      field, type_plural = :"#{name}_raw", options.delete(:plural) || :"#{type}s"
 
       array field, { :type => :vuint30 }.merge(options)
 
-      define_method(name) do
-        send(field).map do |element|
-          if element == 0
-            nil
-          else
-            root.constant_pool.send(type_plural)[element - 1]
+      if pool == :root
+        define_method(name) do
+          send(field).map do |element|
+            root.send(type_plural)[element]
+          end
+        end
+      elsif pool == :const
+        define_method(name) do
+          send(field).map do |element|
+            if element == 0
+              nil
+            else
+              root.constant_pool.send(type_plural)[element - 1]
+            end
           end
         end
       end
     end
 
-    def self.const_array_of(name, type, options={})
+    def self.pool_array_of(pool, name, type, options={})
       field_size, field_array = :"#{name}_count", options.delete(:plural) || :"#{name}s"
 
-      vuint30     field_size,        { :value => lambda { send(field_array).count } }.merge(options)
-      const_array field_array, type, { :initial_length => field_size }.merge(options)
+      vuint30          field_size,        { :value => lambda { send(field_array).count } }.merge(options)
+      pool_array pool, field_array, type, { :initial_length => field_size }.merge(options)
     end
+
+    # Pool references
+
+    [:root, :const].each do |pool|
+      [:ref, :array, :array_of].each do |method|
+        define_singleton_method(:"#{pool}_#{method}") do |*args|
+          send(:"pool_#{method}", pool, *args)
+        end
+      end
+    end
+
+    # Xlat
 
     def self.xlat_direct
       @xlat_direct  ||= const_get(:XlatTable).invert
@@ -89,6 +103,8 @@ module AVM2::ABC
       end
     end
 
+    # Flags
+
     def self.flag(name, field, constant)
       define_method(:"#{name}?") do
         instance_variable_get(:"@#{field}") & constant != 0
@@ -104,6 +120,8 @@ module AVM2::ABC
         end
       end
     end
+
+    # Subsetting
 
     def self.subset(name, array, selector)
       define_method(:"#{name}") do
