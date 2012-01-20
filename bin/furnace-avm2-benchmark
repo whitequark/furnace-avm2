@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+
+require "rubygems"
+require "bundler/setup"
+
+$: << File.join(File.dirname(__FILE__), '..', 'lib')
+
+require "avm2"
+require "benchmark"
+
+puts "Working on #{RUBY_DESCRIPTION}"
+
+Benchmark.bm(7) do |x|
+  5.times do
+    abc = nil
+
+    GC.start
+
+    x.report("read   ") do
+      File.open(ARGV.first) do |file|
+        abc = AVM2::ABC::File.new
+        abc.read(file)
+      end
+    end
+
+    x.report("dce    ") do
+      abc.method_bodies.each do |body|
+        body.code.eliminate_dead!
+      end
+    end
+
+    x.report("write  ") do
+      File.open("/dev/null", "w") do |file|
+        abc.write(file)
+      end
+    end
+  end
+end
