@@ -38,6 +38,29 @@ module AVM2::ABC
       ref name, type, options.merge(:pool => :const)
     end
 
+    def self.const_array(name, type, options={})
+      field, type_plural = :"#{name}_raw", :"#{type}s"
+
+      array field, { :type => :vuint30 }.merge(options)
+
+      define_method(name) do
+        send(field).map do |element|
+          if element == 0
+            nil
+          else
+            root.constant_pool.send(type_plural)[element - 1]
+          end
+        end
+      end
+    end
+
+    def self.const_array_of(name, type, options={})
+      field_size, field_array = :"#{name}_count", options.delete(:plural) || :"#{name}s"
+
+      vuint30     field_size,        { :value => lambda { send(field_array).count } }.merge(options)
+      const_array field_array, type, { :initial_length => field_size }.merge(options)
+    end
+
     def self.xlat_direct
       @xlat_direct  ||= const_get(:XlatTable).invert
     end
