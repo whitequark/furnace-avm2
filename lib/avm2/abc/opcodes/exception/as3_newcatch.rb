@@ -8,5 +8,9 @@ module AVM2::ABC
 
     consume 0
     produce 1
+
+    def parameters
+      [ body.catch_index ]
+    end
   end
 end

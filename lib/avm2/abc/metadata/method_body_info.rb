@@ -18,5 +18,14 @@ module AVM2::ABC
         exception.resolve!
       end
     end
+
+    def build_ast
+      pipeline = Furnace::Transform::Pipeline.new([
+        AVM2::Transform::ASTBuild.new(validate: true),
+        #AVM2::Transform::ASTNormalize.new
+      ])
+
+      pipeline.run(code, self)
+    end
   end
 end

@@ -9,5 +9,9 @@ module AVM2::ABC
 
     consume 0
     produce 1
+
+    def parameters
+      [ body.object_reg, body.index_reg ]
+    end
   end
 end

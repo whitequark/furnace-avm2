@@ -8,5 +8,9 @@ module AVM2::ABC
 
     consume 0
     produce 0
+
+    def parameters
+      [ body.local_index ]
+    end
   end
 end

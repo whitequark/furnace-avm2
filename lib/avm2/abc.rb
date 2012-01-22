@@ -1,4 +1,6 @@
 module AVM2::ABC
+  AST = Furnace::AST
+  CFG = Furnace::CFG
 end
 
 require "avm2/binary/choice_definition"
@@ -8,15 +10,19 @@ require "avm2/abc/primitives/record"
 require "avm2/abc/primitives/opcode_sequence"
 
 require "avm2/abc/opcodes/opcode"
+require "avm2/abc/opcodes/contextual_opcode"
+
 require "avm2/abc/opcodes/load_store_opcode"
 require "avm2/abc/opcodes/arithmetic_opcode"
 require "avm2/abc/opcodes/bitwise_opcode"
 require "avm2/abc/opcodes/type_conversion_opcode"
-require "avm2/abc/opcodes/stack_management_opcode"
+require "avm2/abc/opcodes/push_literal_opcode"
 require "avm2/abc/opcodes/control_transfer_opcode"
 require "avm2/abc/opcodes/function_invocation_opcode"
 require "avm2/abc/opcodes/function_return_opcode"
 require "avm2/abc/opcodes/exception_opcode"
+
+require "avm2/abc/opcodes/property_opcode"
 
 Dir[File.join(File.dirname(__FILE__), "abc", "opcodes", "*", "*.rb")].each do |file|
   require file

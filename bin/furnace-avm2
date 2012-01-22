@@ -7,6 +7,7 @@ $: << File.join(File.dirname(__FILE__), '..', 'lib')
 
 require "trollop"
 require "avm2"
+require "thread"
 require "benchmark"
 
 opts = Trollop::options do
@@ -33,6 +34,7 @@ EOS
   opt :cfg,           "Emit CFG in Graphviz format for methods",    :default => false, :short => '-C'
 
   opt :dce,           "Eliminate dead code",                        :default => false
+  opt :ast,           "Build AST",                                  :default => false
 end
 
 Trollop::die "Input file is required" unless opts[:input]
@@ -54,6 +56,15 @@ disasm = lambda do |body, after|
     puts "Before transformation"
   end
   puts body.code.disassemble
+
+  if body.exceptions.any?
+    puts
+    puts "Exceptions"
+    body.exceptions.each do |exception|
+      puts "  #{exception.from_offset} -> #{exception.to_offset}: " <<
+           "catch(#{exception.exc_type} #{exception.var_name}) #{exception.target_offset}"
+    end
+  end
 end
 
 failed = []
@@ -82,44 +93,66 @@ if opts[:grep]
       end
     end
   end
+
+  exit
 end
 
-abc.method_bodies.each do |body|
-  if (opts[:except] && opts[:except].include?(body.method_idx)) ||
-     (opts[:only]   && !opts[:only].include?(body.method_idx))
-    next
-  end
+Thread.abort_on_exception = true
 
-  begin
-    disasm[body, false] if opts[:disasm_before]
+threads = []
+bodies  = abc.method_bodies.dup
+mutex   = Mutex.new
 
-    if opts[:cfg]
-      cfg = body.code.build_cfg
-      File.open("method-#{body.method_idx}.dot", "w") do |dot|
-        dot.write cfg.to_graphviz
+5.times do
+  threads << Thread.new do
+    loop do
+      body = mutex.synchronize { bodies.pop }
+      break if body.nil?
+
+      if (opts[:except] && opts[:except].include?(body.method_idx)) ||
+        (opts[:only]   && !opts[:only].include?(body.method_idx))
+        next
       end
-    end
 
-    if opts[:smallest]
-      if smallest.nil? || smallest.code_length > body.code_length
-        smallest = body
+      begin
+        disasm[body, false] if opts[:disasm_before]
+
+        if opts[:smallest]
+          if smallest.nil? || smallest.code_length > body.code_length
+            smallest = body
+          end
+        end
+
+        if opts[:dce]
+          dced << body.method_idx if body.code.eliminate_dead!
+        end
+
+        if opts[:ast]
+          ast, = body.build_ast
+          puts ast.to_sexp
+        end
+
+        if opts[:cfg]
+          cfg = body.code.build_cfg
+          File.open("method-#{body.method_idx}.dot", "w") do |dot|
+            dot.write cfg.to_graphviz
+          end
+        end
+
+        disasm[body, true] if opts[:disasm_after]
+      rescue Exception => e
+        if opts[:collect]
+          #puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
+          failed << body.method_idx
+        else
+          raise e
+        end
       end
-    end
-
-    if opts[:dce]
-      dced << body.method_idx if body.code.eliminate_dead!
-    end
-
-    disasm[body, true] if opts[:disasm_after]
-  rescue Exception => e
-    if opts[:collect]
-      puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
-      failed << body.method_idx
-    else
-      raise e
     end
   end
 end
+
+threads.each &:join
 
 if opts[:verbose]
   if opts[:dce]

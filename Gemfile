@@ -1,5 +1,5 @@
 source "http://rubygems.org"
 
-gem "furnace"
+gem "furnace", :path => '../furnace'
 
 gem "trollop"

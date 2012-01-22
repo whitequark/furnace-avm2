@@ -3,10 +3,14 @@ module AVM2::ABC
     instruction 0x80
 
     body do
-      vuint30 :type_index
+      const_ref :type, :multiname
     end
 
     consume 1
     produce 1
+
+    def parameters
+      [ body.type.to_astlet ]
+    end
   end
 end

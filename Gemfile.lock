@@ -1,7 +1,11 @@
+PATH
+  remote: ../furnace
+  specs:
+    furnace (0.0.1)
+
 GEM
   remote: http://rubygems.org/
   specs:
-    furnace (0.0.1)
     trollop (1.16.2)
 
 PLATFORMS
@@ -9,5 +13,5 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  furnace
+  furnace!
   trollop

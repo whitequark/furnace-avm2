@@ -31,6 +31,10 @@ module AVM2::ABC
       variant :GenericName, :nested, :class => MultinameKindGenericName
     end
 
+    def method_missing(method, *args, &block)
+      data.send(method, *args, &block)
+    end
+
     def to_s
       data.to_s
     end

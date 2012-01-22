@@ -8,5 +8,9 @@ module AVM2::ABC
     def to_s
       "(genericname)"
     end
+
+    def to_astlet
+      AST::Node.new(:generic, [ name_type, parameters ])
+    end
   end
 end

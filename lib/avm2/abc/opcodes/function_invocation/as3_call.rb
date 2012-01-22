@@ -6,7 +6,7 @@ module AVM2::ABC
       vuint30 :arg_count
     end
 
-    consume { 2 + arg_count }
+    consume { 2 + body.arg_count }
     produce 1
 
     def disassemble_parameters

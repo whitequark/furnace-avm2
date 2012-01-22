@@ -2,10 +2,26 @@ module AVM2::ABC
   class ControlTransferOpcode < Opcode
     define_property :conditional
 
+    def parameters
+      [ target_offset ]
+    end
+
     attr_accessor :target
 
+    def target_offset
+      self.offset + byte_length + body.jump_offset
+    end
+
+    def target_offset=(new_offset)
+      body.jump_offset = new_offset - offset - byte_length
+    end
+
+    def target_offsets
+      [ target_offset ]
+    end
+
     def resolve!
-      @target = @sequence.opcode_at(offset + byte_length + body.jump_offset)
+      @target = @sequence.opcode_at(target_offset)
 
       if !@target
         # Probably, we're in the middle of invalid code emitted by this fucking braindead
@@ -15,7 +31,7 @@ module AVM2::ABC
     end
 
     def lookup!
-      body.jump_offset = @target.offset - offset - byte_length
+      self.target_offset = @target.offset
     end
   end
 end

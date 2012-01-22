@@ -9,8 +9,8 @@ module AVM2::ABC
     consume 0
     produce 1
 
-    def disassemble_parameters
-      "#{body.property}"
+    def parameters
+      [ body.property.to_astlet ]
     end
   end
 end

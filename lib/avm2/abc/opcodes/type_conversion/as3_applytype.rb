@@ -6,7 +6,7 @@ module AVM2::ABC
       vuint30 :argc
     end
 
-    consume { argc + 1 }
+    consume { body.argc + 1 }
     produce 1
   end
 end

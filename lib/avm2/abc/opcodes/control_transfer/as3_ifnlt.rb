@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class AS3IfNLt < ControlTransferOpcode
+  class AS3IfNlt < ControlTransferOpcode
     instruction 0x0c
 
     body do

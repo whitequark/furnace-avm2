@@ -6,7 +6,7 @@ module AVM2::ABC
       vuint30 :arg_count
     end
 
-    consume { 1 + arg_count }
-    produce 0
+    consume { 1 + body.arg_count }
+    produce 1
   end
 end

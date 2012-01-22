@@ -1,6 +1,6 @@
-require "furnace/cfg/node"
-require "furnace/cfg/edge"
-require "furnace/cfg/graph"
+require "furnace/cfg"
+require "furnace/ast"
+require "furnace/transform"
 
 require "furnace/graphviz"
 
@@ -10,3 +10,4 @@ end
 require "avm2/version"
 
 require "avm2/abc"
+require "avm2/transform"
