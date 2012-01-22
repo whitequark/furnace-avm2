@@ -3,5 +3,9 @@ module AVM2::ABC
     def to_s
       "(rt)::(rt)"
     end
+
+    def context_size
+      2
+    end
   end
 end

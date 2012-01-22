@@ -47,5 +47,9 @@ module AVM2::ABC
     end
 
     abc_array_of :metadata, :vuint30, :plural => :metadata, :if => lambda { attributes & METADATA != 0 }
+
+    def to_astlet
+      data.to_astlet(self)
+    end
   end
 end

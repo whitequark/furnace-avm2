@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class AS3IfLE < ControlTransferOpcode
+  class AS3IfLe < ControlTransferOpcode
     instruction 0x16
 
     body do

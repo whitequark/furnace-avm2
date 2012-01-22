@@ -13,6 +13,10 @@ module AVM2::ABC
 
     attr_accessor :default_target, :case_targets
 
+    def parameters
+      [ body.default_offset ].concat(body.case_offsets)
+    end
+
     def resolve!
       @default_target = @sequence.opcode_at(offset + body.default_offset)
       @case_targets = body.case_offsets.map do |case_offset|

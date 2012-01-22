@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class AS3IfEQ < ControlTransferOpcode
+  class AS3IfEq < ControlTransferOpcode
     instruction 0x13
 
     body do

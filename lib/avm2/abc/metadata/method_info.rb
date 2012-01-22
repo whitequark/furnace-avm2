@@ -24,5 +24,34 @@ module AVM2::ABC
 
     nested      :options, :class => OptionInfo, :if => lambda { flags & HAS_OPTIONAL != 0 }
     const_array :param_names, :string, :initial_length => :param_count, :if => lambda { flags & HAS_PARAM_NAMES != 0 }
+
+    def to_astlet(name=nil)
+      root = AST::Node.new(:method)
+      root.metadata = { origin: self }
+
+      root.children << name || self.name
+
+      if return_type
+        root.children << return_type.to_astlet
+      else
+        root.children << nil
+      end
+
+      if has_param_names?
+        names = param_names
+      else
+        names = param_count.times.map { |n| "a#{n}" }
+      end
+
+      root.children << names.each_with_index.map do |name, index|
+        if param_types[index]
+          [ name, param_types[index].to_astlet ]
+        else
+          [ name, nil ]
+        end
+      end
+
+      root.normalize_hierarchy!
+    end
   end
 end

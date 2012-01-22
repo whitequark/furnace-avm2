@@ -4,5 +4,8 @@ module AVM2::ABC
     vuint30 :type_name
     vuint30 :vindex
     uint8   :vkind, :if => lambda { vindex != 0 }
+
+    def to_astlet(trait)
+    end
   end
 end

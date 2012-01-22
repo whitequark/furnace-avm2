@@ -8,5 +8,9 @@ module AVM2::ABC
 
     consume 1
     produce 1
+
+    def parameters
+      [ body.slotindex ]
+    end
   end
 end

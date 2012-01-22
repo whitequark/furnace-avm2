@@ -6,7 +6,7 @@ module AVM2::ABC
     const_ref :exc_type, :string
     const_ref :var_name, :string
 
-    attr_reader :from, :to
+    attr_reader :from, :to, :target
 
     def initialize_record(options)
       @parent = options[:parent]

@@ -1,5 +1,5 @@
 module AVM2::ABC
-  class AS3IfNE < ControlTransferOpcode
+  class AS3IfNe < ControlTransferOpcode
     instruction 0x14
 
     body do

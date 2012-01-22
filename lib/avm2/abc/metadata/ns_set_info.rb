@@ -5,5 +5,9 @@ module AVM2::ABC
     def to_s
       "{#{ns.map(&:to_s).join(",")}}"
     end
+
+    def to_astlet
+      ns.map(&:name).uniq
+    end
   end
 end

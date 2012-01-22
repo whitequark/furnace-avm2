@@ -11,8 +11,12 @@ module AVM2::ABC
 
     conditional false
 
-    def redundant?
-      self.target == self.forward
+    def disassemble_parameters
+      if body.jump_offset >= 0
+        "+#{body.jump_offset}"
+      else
+        body.jump_offset.to_s
+      end
     end
   end
 end

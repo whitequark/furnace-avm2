@@ -5,5 +5,13 @@ module AVM2::ABC
     def to_s
       "#{ns_set}::(rt)"
     end
+
+    def to_astlet(name)
+      node = AST::Node.new(:m, [ ns_set.to_astlet, name ])
+    end
+
+    def context_size
+      1
+    end
   end
 end

@@ -10,5 +10,9 @@ module AVM2::ABC
     produce 0
 
     type :integer
+
+    def parameters
+      [ body.reg_index ]
+    end
   end
 end

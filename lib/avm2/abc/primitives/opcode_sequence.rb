@@ -6,41 +6,30 @@ module AVM2::ABC
       @root, @parent = options[:parent].root, options[:parent]
       @pos_cache    = {}
       @opcode_cache = {}
+
+      @raw_code = nil
     end
 
     def read(io)
-      sub_io = StringIO.new(io.read(@parent.code_length))
-      map    = Opcode::MAP
-
-      until sub_io.eof?
-        instruction = sub_io.read(1).unpack("C").at(0)
-
-        opcode = map[instruction]
-        if opcode.nil?
-          raise "Unknown opcode 0x#{instruction.to_s(16)}"
-        end
-
-        element = opcode.new(self)
-
-        @pos_cache[sub_io.pos - 1] = element
-        @opcode_cache[element]     = sub_io.pos - 1
-
-        element.read(sub_io)
-
-        self << element
-      end
-
-      each do |element|
-        element.resolve! if element.respond_to? :resolve!
-      end
+      @raw_code = io.read(@parent.code_length)
     end
 
     def write(io)
-      lookup!
+      if @raw_code
+        io.write @raw_code
+      else
+        lookup!
 
-      each do |opcode|
-        opcode.write(io)
+        each do |opcode|
+          opcode.write(io)
+        end
       end
+    end
+
+    def each(&block)
+      parse if @raw_code
+
+      super
     end
 
     # Offsets
@@ -83,7 +72,7 @@ module AVM2::ABC
     end
 
     def build_cfg
-      graph = Furnace::CFG::Graph.new
+      graph = CFG::Graph.new
 
       targets = []
 
@@ -97,7 +86,7 @@ module AVM2::ABC
       end
 
       if exceptions.any?
-        exception_node = Furnace::CFG::Node.new(graph, :exception, [])
+        exception_node = CFG::Node.new(graph, :exception, [])
         graph.nodes.add exception_node
 
         exceptions.each do |exception|
@@ -133,7 +122,7 @@ module AVM2::ABC
       graph.transfer({ })
 
       exceptions.each do |exception|
-        graph.edges.add Furnace::CFG::Edge.new(graph, nil, :exception, exception.target_offset)
+        graph.edges.add CFG::Edge.new(graph, nil, :exception, exception.target_offset)
       end
 
       graph
@@ -159,6 +148,35 @@ module AVM2::ABC
     end
 
     protected
+
+    def parse
+      sub_io = StringIO.new(@raw_code)
+      map    = Opcode::MAP
+
+      until sub_io.eof?
+        instruction = sub_io.read(1).unpack("C").at(0)
+
+        opcode = map[instruction]
+        if opcode.nil?
+          raise "Unknown opcode 0x#{instruction.to_s(16)}"
+        end
+
+        element = opcode.new(self)
+
+        @pos_cache[sub_io.pos - 1] = element
+        @opcode_cache[element]     = sub_io.pos - 1
+
+        element.read(sub_io)
+
+        self << element
+      end
+
+      @raw_code = nil
+
+      each do |element|
+        element.resolve! if element.respond_to? :resolve!
+      end
+    end
 
     def lookup!
       each do |element|
