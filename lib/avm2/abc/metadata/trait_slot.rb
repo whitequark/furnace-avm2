@@ -1,11 +1,13 @@
 module AVM2::ABC
   class TraitSlot < Record
-    vuint30 :slot_id
-    vuint30 :type_name
-    vuint30 :vindex
-    uint8   :vkind, :if => lambda { vindex != 0 }
+    vuint30   :idx
+    const_ref :type,   :multiname
+
+    vuint30   :value_idx
+    uint8     :value_kind, :if => lambda { value_idx != 0 }
 
     def to_astlet(trait)
+      AST::Node.new(:slot, [ idx, type.to_astlet ])
     end
   end
 end
