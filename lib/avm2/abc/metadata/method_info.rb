@@ -25,10 +25,11 @@ module AVM2::ABC
     nested      :options, :class => OptionInfo, :if => lambda { flags & HAS_OPTIONAL != 0 }
     const_array :param_names, :string, :initial_length => :param_count, :if => lambda { flags & HAS_PARAM_NAMES != 0 }
 
-    def to_astlet(name=nil)
+    def to_astlet(index, name=nil)
       root = AST::Node.new(:method)
       root.metadata = { origin: self }
 
+      root.children << index
       root.children << name || self.name
 
       if return_type

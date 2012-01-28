@@ -4,9 +4,7 @@ module AVM2::ABC
     root_ref :method
 
     def to_astlet(trait)
-      astlet = method.to_astlet(trait.name.to_astlet)
-      astlet.metadata[:label] = method_idx
-      astlet
+      method.to_astlet(method_idx, trait.name.to_astlet)
     end
   end
 end
