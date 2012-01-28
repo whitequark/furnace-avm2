@@ -1,5 +1,7 @@
 module AVM2::ABC
   class InstanceInfo < Record
+    include RecordWithTraits
+
     CLASS_SEALED       = 0x01
     CLASS_FINAL        = 0x02
     CLASS_INTERFACE    = 0x04

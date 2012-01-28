@@ -48,6 +48,10 @@ module AVM2::ABC
 
     abc_array_of :metadata, :vuint30, :plural => :metadata, :if => lambda { attributes & METADATA != 0 }
 
+    def method_missing(method, *args, &block)
+      data.send(method, *args, &block)
+    end
+
     def to_astlet
       data.to_astlet(self)
     end

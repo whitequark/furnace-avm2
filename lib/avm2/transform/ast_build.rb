@@ -5,8 +5,7 @@ module AVM2
                                 :if_le,  :if_lt,    :if_ne,        :if_nge,       :if_ngt,
                                 :if_nle, :if_nlt,   :if_strict_eq, :if_strict_ne, :if_true ]
 
-      CONST_OPERATORS = [ :push_byte,  :push_double, :push_false, :push_int,       :push_nan,
-                          :push_short, :push_string, :push_true,  :push_undefined, :push_null ]
+      CONST_OPERATORS = [ :integer, :double, :string, :false, :true, :nan, :undefined, :null ]
 
       def initialize(options)
         @validate = options[:validate] || false
