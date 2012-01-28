@@ -1,17 +1,18 @@
 PATH
-  remote: ../furnace
+  remote: .
   specs:
-    furnace (0.0.1)
+    furnace-avm2 (0.0.1)
+      furnace
+      trollop
 
 GEM
   remote: http://rubygems.org/
   specs:
+    furnace (0.0.3)
     trollop (1.16.2)
 
 PLATFORMS
-  java
   ruby
 
 DEPENDENCIES
-  furnace!
-  trollop
+  furnace-avm2!
