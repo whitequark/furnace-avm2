@@ -52,6 +52,9 @@ require "avm2/abc/metadata/trait_method"
 require "avm2/abc/metadata/trait_class"
 require "avm2/abc/metadata/trait_function"
 require "avm2/abc/metadata/trait_info"
+
+require "avm2/abc/metadata/record_with_traits"
+
 require "avm2/abc/metadata/instance_info"
 require "avm2/abc/metadata/klass_info"
 

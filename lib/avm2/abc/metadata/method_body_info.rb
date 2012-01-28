@@ -19,13 +19,14 @@ module AVM2::ABC
       end
     end
 
-    def build_ast
+    def code_to_ast
       pipeline = Furnace::Transform::Pipeline.new([
         AVM2::Transform::ASTBuild.new(validate: true),
-        #AVM2::Transform::ASTNormalize.new
+        AVM2::Transform::ASTNormalize.new
       ])
 
-      pipeline.run(code, self)
+      ast, = pipeline.run(code, self)
+      ast
     end
   end
 end

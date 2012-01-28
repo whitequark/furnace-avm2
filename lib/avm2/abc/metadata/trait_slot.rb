@@ -7,7 +7,7 @@ module AVM2::ABC
     uint8     :value_kind, :if => lambda { value_idx != 0 }
 
     def to_astlet(trait)
-      AST::Node.new(:slot, [ idx, type.to_astlet ])
+      AST::Node.new(:slot, [ trait.name.to_astlet, type.to_astlet, idx ])
     end
   end
 end
