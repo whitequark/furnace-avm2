@@ -1,8 +1,26 @@
 module AVM2::ABC
   module RecordWithTraits
     TraitInfo::XlatTable.keys.each do |trait_type|
-      define_method :"#{trait_type.to_s.downcase}_traits" do
+      basename = trait_type.to_s.downcase
+
+      define_method :"#{basename}_traits" do
         traits.select { |trait| trait.kind == trait_type }
+      end
+
+      define_method :"#{basename}_trait" do |name|
+        case name
+        when String
+          traits.find { |trait| trait.name.to_s == name }
+        when AST::Node
+          traits.find { |trait| trait.name.to_astlet == name }
+        else
+          traits.find { |trait| trait.name == name }
+        end
+      end
+
+      define_method :"#{basename}_trait!" do |name|
+        send(:"#{basename}_trait", name) or
+            raise "trait #{name} not found"
       end
     end
 
