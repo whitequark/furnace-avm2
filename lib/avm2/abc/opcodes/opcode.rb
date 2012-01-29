@@ -47,6 +47,8 @@ module AVM2::ABC
       MAP[encoding] = self
     end
 
+    define_property :ast_type
+
     define_property :consume_context, :accessor => :consumes_context
     define_property :consume,         :accessor => :consumes
     define_property :produce,         :accessor => :produces
