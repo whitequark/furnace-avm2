@@ -31,10 +31,20 @@ module AVM2
 
       # (if-* a b) -> (*' a b)
       IF_MAPPING = {
-        :eq    => [false, :equals],
-        :nge   => [true,  :greaterequals],
-        :true  => [false, :expand],
-        :false => [true,  :expand],
+        :eq       => [false, :==],
+        :ne       => [true,  :==],
+        :ge       => [false, :>=],
+        :nge      => [true,  :>=],
+        :gt       => [false, :>],
+        :ngt      => [true,  :>],
+        :le       => [false, :<=],
+        :nle      => [true,  :<=],
+        :lt       => [false, :<],
+        :nlt      => [true,  :<],
+        :stricteq => [false, :===],
+        :strictne => [true,  :===],
+        :true     => [false, :expand],
+        :false    => [true,  :expand],
       }
       IF_MAPPING.each do |cond, (reverse, comp)|
         define_method :"on_if_#{cond}" do |node|
