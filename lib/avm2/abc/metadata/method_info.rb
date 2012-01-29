@@ -27,9 +27,8 @@ module AVM2::ABC
 
     def to_astlet(index, name=nil)
       root = AST::Node.new(:method)
-      root.metadata = { origin: self }
+      root.metadata = { method: self, label: index }
 
-      root.children << index
       root.children << name || self.name
 
       if return_type

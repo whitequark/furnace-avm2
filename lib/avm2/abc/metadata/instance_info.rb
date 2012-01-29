@@ -24,6 +24,10 @@ module AVM2::ABC
 
     abc_array_of   :trait, :nested, :class => TraitInfo
 
+    def klass
+      root.klasses[root.instances.index(self)]
+    end
+
     def to_astlet
       if interface?
         root = AST::Node.new(:interface)
