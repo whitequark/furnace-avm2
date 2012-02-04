@@ -421,21 +421,16 @@ module Furnace::AVM2::Binary
         bit_shift += 7
       end while byte & 0x80 != 0
 
-      sign_bit = (1 << (bit_shift - 1))
+      sign_bit = (1 << 31)
       if signed && (value & sign_bit) != 0
-        value = -(value & ~sign_bit)
+        value = value | (-1 << 32)
       end
 
       value
     end
 
     def write_vint(io, value, signed)
-      if value < 0 && signed
-        value = -value
-        is_negative = true
-      else
-        is_negative = false
-      end
+      value = value & 0xffffffff
 
       bytes = []
 
@@ -445,8 +440,6 @@ module Furnace::AVM2::Binary
 
         if value != 0
           byte |= 0x80
-        elsif is_negative
-          byte |= 0x40
         end
 
         bytes.push(byte)
