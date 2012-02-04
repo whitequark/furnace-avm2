@@ -1,0 +1,11 @@
+require "furnace/cfg"
+require "furnace/ast"
+require "furnace/transform"
+
+require "furnace/graphviz"
+
+module Furnace::AVM2
+end
+
+require "furnace-avm2/abc"
+require "furnace-avm2/transform"
