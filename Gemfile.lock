@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    furnace-avm2 (0.0.3)
+    furnace-avm2 (0.0.4)
       furnace (>= 0.0.4)
       trollop
 

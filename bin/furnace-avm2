@@ -6,9 +6,11 @@ require "bundler/setup"
 $: << File.join(File.dirname(__FILE__), '..', 'lib')
 
 require "trollop"
-require "avm2"
+require "furnace-avm2"
 require "thread"
 require "benchmark"
+
+include Furnace
 
 opts = Trollop::options do
   version "furnace-as3 #{AVM2::VERSION}"
