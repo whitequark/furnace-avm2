@@ -38,7 +38,7 @@ module Furnace::AVM2::ABC
     end
 
     def self.mnemonic
-      @mnemonic ||= name.sub("AVM2::ABC::AS3", "")
+      @mnemonic ||= name.sub("Furnace::AVM2::ABC::AS3", "")
     end
 
     # Common definitions
