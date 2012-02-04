@@ -18,7 +18,7 @@ opts = Trollop::options do
   Usage: #{__FILE__} [options]
 EOS
 
-  opt :input,         "Input file",                                 :type => :string
+  opt :input,         "Input file",                                 :type => :string, :required => true
   opt :output,        "Output file",                                :type => :string
   opt :verbose,       "Be verbose",                                 :default => false
 
@@ -37,7 +37,6 @@ EOS
   opt :ast,           "Build AST",                                  :default => false
 end
 
-Trollop::die "Input file is required" unless opts[:input]
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
 
 abc = nil

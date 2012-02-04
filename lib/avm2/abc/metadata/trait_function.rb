@@ -4,6 +4,7 @@ module AVM2::ABC
     root_ref :method
 
     def to_astlet(trait)
+      :function
     end
   end
 end

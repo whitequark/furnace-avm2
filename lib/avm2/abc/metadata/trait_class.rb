@@ -4,6 +4,7 @@ module AVM2::ABC
     vuint30 :classi
 
     def to_astlet(trait)
+      :class
     end
   end
 end
