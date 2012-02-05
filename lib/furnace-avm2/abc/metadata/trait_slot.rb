@@ -38,9 +38,9 @@ module Furnace::AVM2::ABC
         when :UInt
           AST::Node.new(:integer, [ root.constant_pool.uints[value_idx - 1] ])
         when :Double
-          AST::Node.new(:integer, [ root.constant_pool.doubles[value_idx - 1] ])
+          AST::Node.new(:double, [ root.constant_pool.doubles[value_idx - 1] ])
         when :Utf8
-          AST::Node.new(:integer, [ root.constant_pool.strings[value_idx - 1] ])
+          AST::Node.new(:string, [ root.constant_pool.strings[value_idx - 1] ])
         when :True
           AST::Node.new(:true)
         when :False
