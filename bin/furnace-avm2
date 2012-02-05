@@ -147,7 +147,7 @@ opts[:threads].times do
         disasm[body, true] if opts[:disasm_after]
       rescue Exception => e
         if opts[:collect]
-          #puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
+          puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
           failed << body.method_idx
         else
           raise e

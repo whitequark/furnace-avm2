@@ -15,15 +15,15 @@ module Furnace::AVM2::ABC
     def resolve!
       sequence = @parent.code
 
-      @from   = sequence.opcode_at(@from_offset)
-      @to     = sequence.opcode_at(@to_offset)
-      @target = sequence.opcode_at(@target_offset)
+      @from   = sequence.opcode_at(from_offset)
+      @to     = sequence.opcode_at(to_offset)
+      @target = sequence.opcode_at(target_offset)
     end
 
     def lookup!
-      @from_offset   = @from.offset
-      @to_offset     = @to.offset
-      @target_offset = @target.offset
+      self.from_offset   = @from.offset
+      self.to_offset     = @to.offset
+      self.target_offset = @target.offset
     end
   end
 end

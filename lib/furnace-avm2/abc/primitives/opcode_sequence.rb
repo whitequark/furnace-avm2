@@ -26,7 +26,13 @@ module Furnace::AVM2::ABC
       end
     end
 
-    def each(&block)
+    def each
+      parse if @raw_code
+
+      super
+    end
+
+    def map
       parse if @raw_code
 
       super
@@ -175,6 +181,10 @@ module Furnace::AVM2::ABC
 
       each do |element|
         element.resolve! if element.respond_to? :resolve!
+      end
+
+      exceptions.each do |exception|
+        exception.resolve!
       end
     end
 
