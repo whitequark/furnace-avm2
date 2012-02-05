@@ -173,7 +173,9 @@ end
 if opts[:collect] && failed.any?
   puts "To skip #{failed.count} failed methods, append this command-line argument:"
   puts "  --except #{failed.join " "}"
-elsif opts[:output]
+end
+
+if opts[:output]
   File.open(opts[:output], "w") do |file|
     abc.write(file)
   end
