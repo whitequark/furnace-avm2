@@ -1,8 +1,8 @@
 PATH
   remote: .
   specs:
-    furnace-avm2 (0.0.4)
-      furnace (>= 0.0.4)
+    furnace-avm2 (0.0.7)
+      furnace (>= 0.0.5)
       trollop
 
 GEM

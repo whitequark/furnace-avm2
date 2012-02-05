@@ -24,6 +24,8 @@ EOS
   opt :output,        "Output file",                                :type => :string
   opt :verbose,       "Be verbose",                                 :default => false
 
+  opt :threads,       "Use <i> threads for processing",             :default => 1
+
   opt :only,          "Only operate on methods <i+>",               :type => :ints,   :short => '-O'
   opt :except,        "Operate on all methods except <i+>",         :type => :ints,   :short => '-E'
   opt :grep,          "Search <s> in method names",                 :type => :string, :short => '-G'
@@ -104,7 +106,7 @@ threads = []
 bodies  = abc.method_bodies.dup
 mutex   = Mutex.new
 
-5.times do
+opts[:threads].times do
   threads << Thread.new do
     loop do
       body = mutex.synchronize { bodies.pop }
@@ -129,8 +131,10 @@ mutex   = Mutex.new
         end
 
         if opts[:ast]
-          ast, = body.build_ast
+          ast, = body.code_to_ast
+          puts "Method #{body.method_idx}"
           puts ast.to_sexp
+          puts
         end
 
         if opts[:cfg]
