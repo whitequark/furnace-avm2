@@ -6,6 +6,10 @@ module Furnace::AVM2::ABC
 
     abc_array_of :trait, :nested, :class => TraitInfo
 
+    def initializer_body
+      root.method_bodies.find { |body| body.method_idx == initializer_idx }
+    end
+
     def to_astlet
       root = AST::Node.new(:klass)
 

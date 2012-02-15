@@ -28,6 +28,10 @@ module Furnace::AVM2::ABC
       root.klasses[root.instances.index(self)]
     end
 
+    def initializer_body
+      root.method_bodies.find { |body| body.method_idx == initializer_idx }
+    end
+
     def to_astlet
       if interface?
         root = AST::Node.new(:interface)
