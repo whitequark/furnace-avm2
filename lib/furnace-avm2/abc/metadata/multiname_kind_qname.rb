@@ -31,7 +31,7 @@ module Furnace::AVM2::ABC
       when :qname
         [ :q, (ns.name if ns), name ].compact
       when :multiname
-        [ :m, [ ns.name ], name ]
+        [ :m, [ :set, ns.name ], name ]
       else
         raise "unknown astpat type #{type}"
       end
