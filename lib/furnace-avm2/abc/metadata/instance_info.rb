@@ -53,6 +53,11 @@ module Furnace::AVM2::ABC
         root.children << AST::Node.new(:interfaces, interfaces.map(&:to_astlet))
       end
 
+      if initializer
+        root.children << AST::Node.new(:initializer,
+          [ initializer.to_astlet(initializer_idx, name.to_astlet) ])
+      end
+
       if traits.any?
         root.children << AST::Node.new(:traits, traits.map(&:to_astlet))
       end

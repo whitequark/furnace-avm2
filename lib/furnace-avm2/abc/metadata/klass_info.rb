@@ -6,12 +6,21 @@ module Furnace::AVM2::ABC
 
     abc_array_of :trait, :nested, :class => TraitInfo
 
+    def instance
+      root.instances[root.klasses.index(self)]
+    end
+
     def initializer_body
       root.method_bodies.find { |body| body.method_idx == initializer_idx }
     end
 
     def to_astlet
       root = AST::Node.new(:klass)
+
+      if initializer
+        root.children << AST::Node.new(:initializer,
+          [ initializer.to_astlet(initializer_idx, instance.name.to_astlet) ])
+      end
 
       if traits.any?
         root.children << AST::Node.new(:traits, traits.map(&:to_astlet))
