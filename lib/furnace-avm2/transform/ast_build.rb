@@ -59,7 +59,7 @@ module Furnace::AVM2
             end
           end
 
-          emit.(current)
+          expr.children << current
           produce.(expr)
         end
 
