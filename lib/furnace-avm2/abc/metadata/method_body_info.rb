@@ -20,13 +20,16 @@ module Furnace::AVM2::ABC
     end
 
     def code_to_ast
-      pipeline = Furnace::Transform::Pipeline.new([
-        Furnace::AVM2::Transform::ASTBuild.new(validate: true),
-        Furnace::AVM2::Transform::ASTNormalize.new
-      ])
+      unless @ast
+        pipeline = Furnace::Transform::Pipeline.new([
+          Furnace::AVM2::Transform::ASTBuild.new(validate: true),
+          Furnace::AVM2::Transform::ASTNormalize.new
+        ])
 
-      ast, = pipeline.run(code, self)
-      ast
+        @ast, = pipeline.run(code, self)
+      end
+
+      @ast
     end
   end
 end
