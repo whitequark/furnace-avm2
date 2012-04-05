@@ -37,6 +37,10 @@ module Furnace::AVM2::ABC
       end
     end
 
+    def collect_ns
+      [ ns ]
+    end
+
     def context_size
       0
     end

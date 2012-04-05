@@ -1,6 +1,6 @@
 module Furnace::AVM2::ABC
-  AST = Furnace::AST
-  CFG = Furnace::CFG
+  AST  = Furnace::AST
+  CFG  = Furnace::CFG
 end
 
 require_relative "binary/choice_definition"
@@ -41,17 +41,18 @@ require_relative "abc/metadata/multiname_kind_genericname"
 require_relative "abc/metadata/multiname_info"
 require_relative "abc/metadata/const_pool_info"
 
-require_relative "abc/metadata/option_detail"
-require_relative "abc/metadata/option_info"
-require_relative "abc/metadata/method_info"
-
-require_relative "abc/metadata/metadata_info"
+require_relative "abc/metadata/record_with_value"
 
 require_relative "abc/metadata/trait_slot"
 require_relative "abc/metadata/trait_method"
 require_relative "abc/metadata/trait_class"
 require_relative "abc/metadata/trait_function"
 require_relative "abc/metadata/trait_info"
+
+require_relative "abc/metadata/default_value"
+require_relative "abc/metadata/method_info"
+
+require_relative "abc/metadata/metadata_info"
 
 require_relative "abc/metadata/record_with_traits"
 
@@ -66,3 +67,9 @@ require_relative "abc/metadata/method_body_info"
 require_relative "abc/metadata/file"
 
 Furnace::AVM2::Binary::Record.codegen_each
+
+require_relative "abc/tokens/token_with_traits"
+
+Dir[File.join(File.dirname(__FILE__), "abc", "tokens", "*.rb")].each do |file|
+  require file
+end

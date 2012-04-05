@@ -1,0 +1,117 @@
+#!/usr/bin/env ruby
+
+require "rubygems"
+require "bundler/setup"
+
+$: << File.join(File.dirname(__FILE__), '..', 'lib')
+
+require "trollop"
+require "furnace-avm2"
+require "thread"
+
+include Furnace
+
+DEBUG_INFO = %w(names)
+
+opts = Trollop::options do
+  version "furnace-avm2 #{AVM2::VERSION} decompiler"
+  banner <<-EOS
+  furnace-avm2-decompiler is a decompiler for ActionScript3 bytecode.
+
+  Debugging information classes: #{DEBUG_INFO.join(", ")}.
+
+  Usage: #{__FILE__} [options]
+EOS
+
+  opt :input,         "Input file",                                 :type => :string, :required => true
+  opt :verbose,       "Be verbose",                                 :default => false
+  opt :debug,         "Show debugging information for <s+>.",       :type => :strings, :short => '-D'
+
+  opt :threads,       "Use <i> threads for processing",             :default => 1
+
+  opt :only,          "Only operate on classes <s+>",               :type => :strings, :short => '-O'
+  opt :except,        "Operate on all classes except <s+>",         :type => :strings, :short => '-E'
+  opt :grep,          "Search <s> (regexp) in class names",         :type => :string,  :short => '-G'
+
+  opt :decompile,     "Write ActionScript 3 code",                  :type => :boolean, :short => '-d'
+  opt :destructurize, "Write internal token structure",             :type => :boolean, :short => '-s'
+end
+
+Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
+
+decompile_options = {}
+
+(opts[:debug] || []).each do |opt|
+  Trollop::die "Unknown debug option #{opt}." unless DEBUG_INFO.include? opt
+
+  decompile_options[:"debug_#{opt}"] = true
+end
+
+shound_skip = ->(obj) {
+  (opts[:except]  && opts[:except].include?(obj.to_s)) ||
+     (opts[:only] && !opts[:only].include?(obj.to_s))
+}
+
+abc = nil
+File.open(opts[:input]) do |file|
+  abc = AVM2::ABC::File.new
+  abc.read(file)
+end
+
+if opts[:grep]
+  regexp = Regexp.new(opts[:grep], Regexp::IGNORECASE)
+
+  abc.instances.each do |inst|
+    if inst.name.to_s =~ regexp
+      if inst.interface?
+        print "Iface "
+      else
+        print "Class "
+      end
+
+      print inst.name.to_s.ljust(30)
+
+      if inst.super_name
+        print " extends #{inst.super_name.to_s}"
+      end
+
+      puts
+    end
+  end
+
+  exit
+end
+
+roots = {}
+
+abc.instances.each do |inst|
+  name = inst.name
+  next if shound_skip.(name)
+
+  roots[name.ns.to_s] ||= []
+  roots[name.ns.to_s] << inst.decompile(decompile_options)
+end
+
+abc.scripts.each do |script|
+  name = script.traits[0].name.ns
+  next if shound_skip.(name)
+
+  token = script.decompile(decompile_options)
+  next unless token
+
+  ns = name.to_s.sub(/(^|\.)[^.]+$/, '')
+  roots[ns] ||= []
+  roots[ns] << token
+end
+
+roots.values.flatten.each do |root|
+  if opts[:decompile]
+    puts root.to_text
+    puts
+  end
+
+  if opts[:destructurize]
+    puts root.to_structure
+    puts
+  end
+end

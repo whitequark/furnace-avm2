@@ -13,7 +13,7 @@ require "benchmark"
 include Furnace
 
 opts = Trollop::options do
-  version "furnace-as3 #{AVM2::VERSION}"
+  version "furnace-avm2 #{AVM2::VERSION}"
   banner <<-EOS
   furnace-avm2 is a processing tool which operates on ActionScript3 bytecode.
 

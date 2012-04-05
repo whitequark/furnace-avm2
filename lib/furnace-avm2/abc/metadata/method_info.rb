@@ -7,23 +7,24 @@ module Furnace::AVM2::ABC
     SET_DXNS        = 0x40
     HAS_PARAM_NAMES = 0x80
 
-    vuint30     :param_count, :value => lambda { param_types.count }
+    vuint30       :param_count, :value => lambda { param_types.count }
 
-    const_ref   :return_type, :multiname
-    const_array :param_types, :multiname, :initial_length => :param_count
+    const_ref     :return_type, :multiname
+    const_array   :param_types, :multiname, :initial_length => :param_count
 
-    const_ref   :name, :string
+    const_ref     :name, :string
 
-    uint8       :flags
-    flag        :needs_arguments,  :flags, NEED_ARGUMENTS
-    flag        :needs_activation, :flags, NEED_ACTIVATION
-    flag        :needs_rest,       :flags, NEED_REST
-    flag        :has_optional,     :flags, HAS_OPTIONAL
-    flag        :set_dxns,         :flags, SET_DXNS
-    flag        :has_param_names,  :flags, HAS_PARAM_NAMES
+    uint8         :flags
+    flag          :needs_arguments,  :flags, NEED_ARGUMENTS
+    flag          :needs_activation, :flags, NEED_ACTIVATION
+    flag          :needs_rest,       :flags, NEED_REST
+    flag          :has_defaults,     :flags, HAS_OPTIONAL
+    flag          :set_dxns,         :flags, SET_DXNS
+    flag          :has_param_names,  :flags, HAS_PARAM_NAMES
 
-    nested      :options, :class => OptionInfo, :if => lambda { flags & HAS_OPTIONAL != 0 }
-    const_array :param_names, :string, :initial_length => :param_count, :if => lambda { flags & HAS_PARAM_NAMES != 0 }
+    abc_array_of  :default, :nested, :class => DefaultValue, :if => :has_defaults?
+
+    const_array   :param_names, :string, :initial_length => :param_count, :if => :has_param_names?
 
     def to_astlet(index, name=nil)
       root = AST::Node.new(:method)
@@ -52,6 +53,12 @@ module Furnace::AVM2::ABC
       end
 
       root.normalize_hierarchy!
+    end
+
+    def collect_ns
+      ns = param_types.compact.map(&:collect_ns).reduce([], :+)
+      ns += return_type.collect_ns if return_type
+      ns
     end
   end
 end

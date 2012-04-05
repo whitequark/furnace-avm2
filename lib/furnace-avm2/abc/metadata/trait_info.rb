@@ -10,9 +10,9 @@ module Furnace::AVM2::ABC
       :Const    => 6
     }
 
-    FINAL    = 0x01
-    OVERRIDE = 0x02
-    METADATA = 0x04
+    TRAIT_FINAL    = 0x01
+    TRAIT_OVERRIDE = 0x02
+    TRAIT_METADATA = 0x04
 
     attr_accessor :kind_raw
 
@@ -34,6 +34,10 @@ module Furnace::AVM2::ABC
     const_ref  :name, :multiname
 
     attributes :attributes
+    flag       :final,      :attributes, TRAIT_FINAL
+    flag       :override,   :attributes, TRAIT_OVERRIDE
+    flag       :metadata,   :attributes, TRAIT_METADATA
+
     xlat_field :kind
 
     choice     :data, :selection => :kind do
@@ -46,7 +50,7 @@ module Furnace::AVM2::ABC
       variant :Const,    :nested, :class => TraitSlot
     end
 
-    abc_array_of :metadata, :vuint30, :plural => :metadata, :if => lambda { attributes & METADATA != 0 }
+    abc_array_of :metadata, :vuint30, :plural => :metadata, :if => :metadata?
 
     def method_missing(method, *args, &block)
       data.send(method, *args, &block)

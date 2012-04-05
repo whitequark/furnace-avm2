@@ -11,6 +11,10 @@ module Furnace::AVM2::ABC
       AST::Node.new(:m, [ ns_set.to_astlet, name ])
     end
 
+    def collect_ns
+      ns_set.ns
+    end
+
     def context_size
       0
     end

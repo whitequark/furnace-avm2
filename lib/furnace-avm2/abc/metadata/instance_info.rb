@@ -64,5 +64,23 @@ module Furnace::AVM2::ABC
 
       root.normalize_hierarchy!
     end
+
+    def collect_ns
+      ns = []
+      ns << super_name.ns if super_name
+      ns += initializer.collect_ns if initializer
+      interfaces.each   { |iface| ns << iface.ns_set.ns[0] } # stupid avm2
+      traits.each       { |trait| ns += trait.collect_ns }
+      klass.traits.each { |trait| ns += trait.collect_ns }
+      ns
+    end
+
+    def decompile(options={})
+      Furnace::AVM2::Tokens::PackageToken.new(self,
+            options.merge(
+                ns: collect_ns,
+                package_type: (interface? ? :interface : :class),
+                package_name: name))
+    end
   end
 end
