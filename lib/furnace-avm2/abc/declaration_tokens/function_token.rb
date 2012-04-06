@@ -11,7 +11,7 @@ module Furnace::AVM2::Tokens
         specifiers,
         FunctionNameToken.new(origin, options),
         *transform_attributes(origin, options),
-        (FunctionBodyToken.new(origin, options) unless options[:package_type] == :interface)
+        (FunctionBodyToken.new(origin.body, options) unless options[:package_type] == :interface)
       ], options)
     end
 

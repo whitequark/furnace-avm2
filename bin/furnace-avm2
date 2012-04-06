@@ -39,6 +39,7 @@ EOS
 
   opt :dce,           "Eliminate dead code",                        :default => false
   opt :ast,           "Build AST",                                  :default => false
+  opt :decompile,     "Decompile methods",                          :default => false
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
@@ -142,6 +143,12 @@ opts[:threads].times do
           File.open("method-#{body.method_idx}.dot", "w") do |dot|
             dot.write cfg.to_graphviz
           end
+        end
+
+        if opts[:decompile]
+          puts "Method #{body.method_idx}"
+          puts body.decompile.to_text.lstrip
+          puts
         end
 
         disasm[body, true] if opts[:disasm_after]

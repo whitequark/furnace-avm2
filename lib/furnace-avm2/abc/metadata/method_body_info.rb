@@ -31,5 +31,9 @@ module Furnace::AVM2::ABC
 
       @ast
     end
+
+    def decompile(options={})
+      Furnace::AVM2::Tokens::FunctionBodyToken.new(self, options)
+    end
   end
 end

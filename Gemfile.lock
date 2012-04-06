@@ -2,13 +2,13 @@ PATH
   remote: .
   specs:
     furnace-avm2 (0.0.9)
-      furnace (>= 0.0.7)
+      furnace (>= 0.0.8)
       trollop
 
 GEM
   remote: http://rubygems.org/
   specs:
-    furnace (0.0.7)
+    furnace (0.0.8)
     trollop (1.16.2)
 
 PLATFORMS
