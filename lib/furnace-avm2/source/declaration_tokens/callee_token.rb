@@ -12,7 +12,7 @@ module Furnace::AVM2::Tokens
       if options[:debug_funids]
         @children.unshift \
           CommentToken.new(origin,
-            "Function ##{origin.method_idx}",
+            "Function ##{options[:index]}",
           options)
       end
     end

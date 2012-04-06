@@ -69,20 +69,20 @@ require_relative "abc/metadata/file"
 
 Furnace::AVM2::Binary::Record.codegen_each
 
-require_relative "abc/declaration_tokens/token_with_traits"
+require_relative "source/declaration_tokens/token_with_traits"
 
-Dir[File.join(File.dirname(__FILE__), "abc", "declaration_tokens", "*.rb")].each do |file|
+Dir[File.join(File.dirname(__FILE__), "source", "declaration_tokens", "*.rb")].each do |file|
   require file
 end
 
-require_relative 'abc/implementation_tokens/is_toplevel'
-require_relative 'abc/implementation_tokens/is_embedded'
+require_relative 'source/implementation_tokens/is_toplevel'
+require_relative 'source/implementation_tokens/is_embedded'
 
-require_relative 'abc/implementation_tokens/is_simple'
-require_relative 'abc/implementation_tokens/is_complex'
+require_relative 'source/implementation_tokens/is_simple'
+require_relative 'source/implementation_tokens/is_complex'
 
-Dir[File.join(File.dirname(__FILE__), "abc", "implementation_tokens", "*.rb")].each do |file|
+Dir[File.join(File.dirname(__FILE__), "source", "implementation_tokens", "*.rb")].each do |file|
   require file
 end
 
-require_relative 'abc/decompiler'
+require_relative 'source/decompiler'
