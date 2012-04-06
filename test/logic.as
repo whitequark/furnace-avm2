@@ -12,7 +12,7 @@ package test {
     }
   }
   function a_and_b_and_c(a: Boolean, b:Boolean, c:Boolean, d:Boolean, e:Boolean) : Boolean {
-    return a && b && c;
+    return a && (b && c);
   }
   function P_a_and_b_p_and_c(a: Boolean, b:Boolean, c:Boolean, d:Boolean, e:Boolean) : Boolean {
     return (a && b) && c;

@@ -1,5 +1,8 @@
 module Furnace::AVM2::Tokens
   class VariableNameToken < Furnace::Code::TerminalToken
+    include IsEmbedded
+    include IsSimple
+
     def initialize(origin, name, options={})
       super(origin, options)
       @name = name

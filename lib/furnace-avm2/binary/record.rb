@@ -275,7 +275,7 @@ module Furnace::AVM2::Binary
 
     def read_vstring(io, options)
       length = read_vuint32(io, {})
-      io.read(length)
+      io.read(length).force_encoding('UTF-8')
     end
 
     def write_vstring(io, value, options)

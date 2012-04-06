@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3LShift < BitwiseOpcode
+  class AS3Lshift < BitwiseOpcode
     instruction 0xa5
 
     consume 2

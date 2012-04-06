@@ -1,5 +1,8 @@
 module Furnace::AVM2::Tokens
-  class VariableValueToken < Furnace::Code::TerminalToken
+  class ImmediateTypenameToken < Furnace::Code::TerminalToken
+    include IsEmbedded
+    include IsSimple
+
     def initialize(origin, value, options={})
       super(origin, options)
       @value = value

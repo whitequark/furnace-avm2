@@ -11,7 +11,7 @@ require "thread"
 
 include Furnace
 
-DEBUG_INFO = %w(names)
+DEBUG_INFO = %w(names funids)
 
 opts = Trollop::options do
   version "furnace-avm2 #{AVM2::VERSION} decompiler"

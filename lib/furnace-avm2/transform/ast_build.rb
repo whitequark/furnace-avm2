@@ -63,9 +63,18 @@ module Furnace::AVM2
           produce.(expr)
         end
 
-        finalize_complex_expr = lambda do |opcode, worklist, valid_types, expected_depth=nil|
+        finalize_complex_expr = lambda do |opcode, worklist, valid_types, expected_depth=nil, wrap_to=nil|
           while worklist.last == opcode.offset
             extend_complex_expr.(valid_types, expected_depth)
+
+            if wrap_to
+              node, *prepend = *wrap_to
+
+              expr, = consume.(1)
+              expr = AST::Node.new(node, [*prepend, expr])
+              produce.(expr)
+            end
+
             worklist.pop
           end
         end
@@ -88,7 +97,7 @@ module Furnace::AVM2
           end
 
           finalize_complex_expr.(opcode, shortjump, [ :and, :or ], 1)
-          finalize_complex_expr.(opcode, ternary, CONDITIONAL_OPERATORS)
+          finalize_complex_expr.(opcode, ternary, CONDITIONAL_OPERATORS, nil, [:ternary_if, false])
 
           if dup == 1 && (opcode.is_a?(ABC::AS3CoerceB) ||
                   opcode.is_a?(ABC::AS3IfTrue) || opcode.is_a?(ABC::AS3IfFalse))

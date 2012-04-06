@@ -77,6 +77,9 @@ end
 require_relative 'abc/implementation_tokens/is_toplevel'
 require_relative 'abc/implementation_tokens/is_embedded'
 
+require_relative 'abc/implementation_tokens/is_simple'
+require_relative 'abc/implementation_tokens/is_complex'
+
 Dir[File.join(File.dirname(__FILE__), "abc", "implementation_tokens", "*.rb")].each do |file|
   require file
 end

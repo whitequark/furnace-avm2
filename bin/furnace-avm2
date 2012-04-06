@@ -147,7 +147,7 @@ opts[:threads].times do
 
         if opts[:decompile]
           puts "Method #{body.method_idx}"
-          puts body.decompile.to_text.lstrip
+          puts body.decompile(ns: []).to_text.lstrip
           puts
         end
 

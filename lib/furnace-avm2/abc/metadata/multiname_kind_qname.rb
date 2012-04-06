@@ -12,7 +12,7 @@ module Furnace::AVM2::ABC
     end
 
     def to_astlet
-      node = AST::Node.new(:q)
+      node = AST::Node.new(:q, [])
 
       if ns && ns.name == ""
       elsif ns

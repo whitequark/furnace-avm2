@@ -38,5 +38,11 @@ module Furnace::AVM2::ABC
     def to_s
       data.to_s
     end
+
+    def to_astlet(*args)
+      node = data.to_astlet(*args)
+      node.metadata[:origin] = self
+      node
+    end
   end
 end

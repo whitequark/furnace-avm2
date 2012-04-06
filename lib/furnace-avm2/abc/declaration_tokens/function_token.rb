@@ -13,6 +13,13 @@ module Furnace::AVM2::Tokens
         *transform_attributes(origin, options),
         (FunctionBodyToken.new(origin.body, options) unless options[:package_type] == :interface)
       ], options)
+
+      if options[:debug_funids]
+        @children.unshift \
+          CommentToken.new(origin,
+            "Function ##{origin.method_idx}",
+          options)
+      end
     end
 
     def text_after
@@ -45,16 +52,18 @@ module Furnace::AVM2::Tokens
 
         ArgumentDeclarationToken.new(@origin, [
           VariableNameToken.new(origin, name, options),
-          (TypeToken.new(@origin, method.param_types[num], options) if method.param_types[num]),
+          (TypeToken.new(origin, [
+            MultinameToken.new(origin, method.param_types[num], options)
+          ], options) if method.param_types[num]),
           (AssignmentToken.new(origin, [
-            VariableValueToken.new(origin, default.printable_value, options)
+            ImmediateToken.new(origin, default.printable_value, options)
           ], options) if default && default.printable_value)
         ], options)
       end
 
       if method.needs_rest?
         args << ArgumentDeclarationToken.new(origin, [
-          RestVariableNameToken.new(origin, "rest", options)
+          RestArgumentToken.new(origin, "rest", options)
         ], options)
       end
 
@@ -62,7 +71,9 @@ module Furnace::AVM2::Tokens
 
       tokens << ArgumentsToken.new(origin, args, options)
       if method.return_type
-        tokens << TypeToken.new(origin, method.return_type, options)
+        tokens << TypeToken.new(origin, [
+          MultinameToken.new(origin, method.return_type, options)
+        ], options)
       end
 
       tokens

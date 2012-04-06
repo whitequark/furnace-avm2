@@ -1,5 +1,5 @@
 module Furnace::AVM2::Tokens
-  class AssignmentToken < Furnace::Code::SurroundedToken
+  class InitializationToken < Furnace::Code::SurroundedToken
     def text_before
       " = "
     end
