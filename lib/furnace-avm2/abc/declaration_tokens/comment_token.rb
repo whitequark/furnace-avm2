@@ -1,16 +1,20 @@
 module Furnace::AVM2::Tokens
   class CommentToken < Furnace::Code::TerminalToken
-    def initialize(origin, text, options={})
+    def initialize(origin, content, options={})
       super(origin, options)
-      @text = text
+      @content = content
     end
 
     def to_text
-      "/* #{@text} */\n"
+      if @content.is_a? Furnace::Code::Token
+        "/*\n#{@content.to_text.rstrip}\n */\n\n"
+      else
+        "/* #{@content} */\n"
+      end
     end
 
     def to_structure(options={})
-      structurize @text, options
+      structurize "/* ... */", options
     end
   end
 end

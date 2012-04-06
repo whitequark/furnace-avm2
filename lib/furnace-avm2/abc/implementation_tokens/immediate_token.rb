@@ -9,7 +9,7 @@ module Furnace::AVM2::Tokens
     end
 
     def to_text
-      @value
+      @value.to_s
     end
   end
 end

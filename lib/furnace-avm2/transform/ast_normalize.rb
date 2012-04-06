@@ -31,28 +31,48 @@ module Furnace::AVM2
 
       # (if-* a b) -> (*' a b)
       IF_MAPPING = {
-        :eq       => [false, 2, :==],
-        :ne       => [true,  2, :==],
-        :ge       => [false, 2, :>=],
-        :nge      => [true,  2, :>=],
-        :gt       => [false, 2, :>],
-        :ngt      => [true,  2, :>],
-        :le       => [false, 2, :<=],
-        :nle      => [true,  2, :<=],
-        :lt       => [false, 2, :<],
-        :nlt      => [true,  2, :<],
-        :stricteq => [false, 2, :===],
-        :strictne => [true,  2, :===],
-        :true     => [false, nil, :expand],
-        :false    => [true,  nil, :expand],
+        :eq        => [false, :==],
+        :ne        => [true,  :==],
+        :ge        => [false, :>=],
+        :nge       => [true,  :>=],
+        :gt        => [false, :>],
+        :ngt       => [true,  :>],
+        :le        => [false, :<=],
+        :nle       => [true,  :<=],
+        :lt        => [false, :<],
+        :nlt       => [true,  :<],
+        :strict_eq => [false, :===],
+        :strict_ne => [true,  :===],
+        :true      => [false, :expand],
+        :false     => [true,  :expand]
       }
-      IF_MAPPING.each do |cond, (reverse, first_arg, comp)|
+      IF_MAPPING.each do |cond, (reverse, comp)|
         define_method :"on_if_#{cond}" do |node|
           node.update(comp)
           node.parent.children[0] = !node.parent.children[0] if reverse
-          if first_arg
-            node.parent.children.concat node.children.slice!(first_arg..-1)
+
+          if node.parent.type == :ternary_if && comp == :expand
+            node.parent.update(:ternary_if_boolean)
           end
+        end
+      end
+
+      # (ternary-if * (op a b x y)) -> (ternary-if-boolean * (op a b) x y)
+      def on_ternary_if(node)
+        comparsion, op = node.children
+        node.children.concat op.children.slice!(2..-1)
+
+        on_ternary_if_boolean(node)
+      end
+
+      # (ternary-if-boolean true  (op a b) x y) -> (ternary (op a b) x y)
+      # (ternary-if-boolean false (op a b) x y) -> (ternary (op a b) y x)
+      def on_ternary_if_boolean(node)
+        comparsion, condition, if_true, if_false = node.children
+        if comparsion
+          node.update(:ternary, [ condition, if_true, if_false ])
+        else
+          node.update(:ternary, [ condition, if_false, if_true ])
         end
       end
 
@@ -68,25 +88,6 @@ module Furnace::AVM2
       end
       alias :on_and :fix_boolean
       alias :on_or  :fix_boolean
-
-      # (ternary-if true  a x y) -> (ternary-if a x y)
-      # (ternary-if false a x y) -> (ternary-if a y x)
-      def on_ternary_if(node)
-        comp, cond, if_true, if_false = node.children
-        if comp
-          node.children.replace([ cond, if_true, if_false ])
-        else
-          node.children.replace([ cond, if_false, if_true ])
-        end
-
-        node.children.map! do |child|
-          if child.type =~ /^(convert|coerce)/
-            child.children.first
-          else
-            child
-          end
-        end
-      end
 
       def remove_node(node)
         node.update(:remove)

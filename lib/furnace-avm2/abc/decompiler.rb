@@ -70,7 +70,7 @@ module Furnace::AVM2
       else
         catch(:unwind) do
           node = expression(@opcodes.first)
-          node = token(DiscardToken, [node]) unless node.toplevel?
+          node = token(StatementToken, [node]) unless node.toplevel?
           @nodes << node
 
           @opcodes.shift
@@ -336,7 +336,11 @@ module Furnace::AVM2
     alias :expr_rshift      :expr_arithmetic
     alias :expr_urshift     :expr_arithmetic
 
-    ## Properties
+    ## Properties and objects
+
+    This = Matcher.new do
+      [:get_local, 0]
+    end
 
     PropertyGlobal = Matcher.new do
       [any,
@@ -404,6 +408,8 @@ module Furnace::AVM2
       expr_do_property(opcode, CallToken)
     end
 
+    ## Object creation
+
     def expr_construct_property(opcode)
       expr_do_property(opcode, NewToken)
     end
@@ -416,9 +422,19 @@ module Furnace::AVM2
       ])
     end
 
+    def expr_construct_super(opcode)
+      subject, *args = opcode.children
+      if This.match subject
+        token(CallToken, [
+          token(SuperToken),
+          token(ArgumentsToken, exprs(args))
+        ])
+      end
+    end
+
     ## Control flow
 
-    def expr_ternary_if(opcode)
+    def expr_ternary(opcode)
       token(TernaryOperatorToken, parenthesize(exprs(opcode.children)))
     end
 
@@ -442,6 +458,12 @@ module Furnace::AVM2
       raise "no jumps yet :/"
     end
     alias :expr_jump_if :expr_jump
+
+    # Conversions
+
+    def expr_coerce_b(opcode)
+      expr(*opcode.children)
+    end
 
     private
 

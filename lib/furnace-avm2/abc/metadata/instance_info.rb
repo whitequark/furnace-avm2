@@ -1,6 +1,7 @@
 module Furnace::AVM2::ABC
   class InstanceInfo < Record
     include RecordWithTraits
+    include InitializerBody
 
     CLASS_SEALED       = 0x01
     CLASS_FINAL        = 0x02
@@ -26,10 +27,6 @@ module Furnace::AVM2::ABC
 
     def klass
       root.klasses[root.instances.index(self)]
-    end
-
-    def initializer_body
-      root.method_bodies.find { |body| body.method_idx == initializer_idx }
     end
 
     def to_astlet

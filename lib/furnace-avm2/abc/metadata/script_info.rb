@@ -1,5 +1,7 @@
 module Furnace::AVM2::ABC
   class ScriptInfo < Record
+    include InitializerBody
+
     root_ref     :initializer,  :method
 
     abc_array_of :trait, :nested, :class => TraitInfo

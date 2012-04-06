@@ -1,6 +1,7 @@
 module Furnace::AVM2::ABC
   class KlassInfo < Record
     include RecordWithTraits
+    include InitializerBody
 
     root_ref     :initializer, :method
 
@@ -8,10 +9,6 @@ module Furnace::AVM2::ABC
 
     def instance
       root.instances[root.klasses.index(self)]
-    end
-
-    def initializer_body
-      root.method_bodies.find { |body| body.method_idx == initializer_idx }
     end
 
     def to_astlet

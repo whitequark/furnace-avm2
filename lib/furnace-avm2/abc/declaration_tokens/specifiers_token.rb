@@ -2,7 +2,7 @@ module Furnace::AVM2::Tokens
   class SpecifiersToken < Furnace::Code::TerminalToken
     def specifiers
       list = []
-      list << "static"      if @options[:static]
+      list << "static" if @options[:static]
 
       if @origin.name.ns.name == ""
         list << "public"

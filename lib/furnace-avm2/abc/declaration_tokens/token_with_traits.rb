@@ -13,8 +13,15 @@ module Furnace::AVM2::Tokens
         tokens << Furnace::Code::NewlineToken.new(origin, options)
       end
 
-      if options[:type] == :class && !options[:static]
-        tokens << FunctionToken.new(origin, options.merge(type: :constructor))
+      if options[:environment] == :class
+        if options[:static]
+          tokens << CommentToken.new(origin, "Static initializer", options)
+          tokens << CommentToken.new(origin,
+            ConstructorToken.new(origin, options),
+          options)
+        else
+          tokens << ConstructorToken.new(origin, options)
+        end
       end
 
       tokens += methods.map { |trait| transform_trait trait, options }
@@ -25,11 +32,11 @@ module Furnace::AVM2::Tokens
     def transform_trait(trait, options)
       case trait.kind
       when :Method
-        FunctionToken.new(trait, options)
+        MethodToken.new(trait, options)
       when :Getter
-        FunctionToken.new(trait, options.merge(type: :getter))
+        MethodToken.new(trait, options.merge(type: :getter))
       when :Setter
-        FunctionToken.new(trait, options.merge(type: :setter))
+        MethodToken.new(trait, options.merge(type: :setter))
       when :Slot
         SlotToken.new(trait, options.merge(const: false))
       when :Const

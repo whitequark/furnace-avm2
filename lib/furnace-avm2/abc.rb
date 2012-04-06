@@ -42,6 +42,7 @@ require_relative "abc/metadata/multiname_info"
 require_relative "abc/metadata/const_pool_info"
 
 require_relative "abc/metadata/record_with_value"
+require_relative "abc/metadata/initializer_body"
 
 require_relative "abc/metadata/trait_slot"
 require_relative "abc/metadata/trait_method"

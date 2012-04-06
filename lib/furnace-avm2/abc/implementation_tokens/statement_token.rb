@@ -1,5 +1,5 @@
 module Furnace::AVM2::Tokens
-  class DiscardToken < Furnace::Code::SurroundedToken
+  class StatementToken < Furnace::Code::SurroundedToken
     include IsToplevel
 
     def text_after
