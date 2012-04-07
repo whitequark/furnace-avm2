@@ -15,7 +15,7 @@ module Furnace::AVM2
 
         node.update(:expand, [
           child,
-          AST::Node.new(:jump_target, [], node.metadata)
+          AST::Node.new(:nop, [], node.metadata)
         ], nil)
       end
 
@@ -79,24 +79,25 @@ module Furnace::AVM2
       # (&& (coerce-b ...) (coerce-b ...)) -> (&& ... ...)
       def fix_boolean(node)
         node.children.map! do |child|
-          if child.type == :coerce_b
+          if child.is_a?(AST::Node) &&
+                child.type == :coerce_b
             child.children.first
           else
             child
           end
         end
       end
-      alias :on_and :fix_boolean
-      alias :on_or  :fix_boolean
+      alias :on_and     :fix_boolean
+      alias :on_or      :fix_boolean
+      alias :on_jump_if :fix_boolean
 
-      def remove_node(node)
-        node.update(:remove)
+      def replace_with_nop(node)
+        node.update(:nop)
       end
-      alias :on_jump_target :remove_node
-      alias :on_nop         :remove_node
-      alias :on_debug       :remove_node
-      alias :on_debug_file  :remove_node
-      alias :on_debug_line  :remove_node
+      alias :on_label       :replace_with_nop
+      alias :on_debug       :replace_with_nop
+      alias :on_debug_file  :replace_with_nop
+      alias :on_debug_line  :replace_with_nop
     end
   end
 end

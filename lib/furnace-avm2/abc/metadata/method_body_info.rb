@@ -32,6 +32,17 @@ module Furnace::AVM2::ABC
       @ast
     end
 
+    def code_to_cfg
+      unless @cfg
+        pipeline = Furnace::Transform::Pipeline.new([
+          Furnace::AVM2::Transform::CFGBuild.new
+        ])
+
+        @cfg, = pipeline.run(code_to_ast, self)
+      end
+
+      @cfg
+    end
     def decompile(options={})
       Furnace::AVM2::Tokens::FunctionBodyToken.new(self, options)
     end

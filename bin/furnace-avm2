@@ -139,7 +139,7 @@ opts[:threads].times do
         end
 
         if opts[:cfg]
-          cfg = body.code.build_cfg
+          cfg = body.code_to_cfg
           File.open("method-#{body.method_idx}.dot", "w") do |dot|
             dot.write cfg.to_graphviz
           end
