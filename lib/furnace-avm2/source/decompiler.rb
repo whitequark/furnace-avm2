@@ -555,7 +555,7 @@ module Furnace::AVM2
     def get_name(subject, multiname)
       origin = multiname.metadata[:origin]
       case origin.kind
-      when :QName, :Multiname
+      when :QName, :QNameA, :Multiname, :MultinameA
         if subject
           token(AccessToken, [
             subject,
@@ -564,7 +564,7 @@ module Furnace::AVM2
         else
           token(PropertyNameToken, origin.name)
         end
-      when :MultinameL
+      when :MultinameL, :MultinameLA
         if subject
           token(IndexToken, [
             subject,
@@ -573,7 +573,7 @@ module Furnace::AVM2
         else
           token(CommentToken, "%%type #{origin} with no subject")
         end
-      when :RTQName
+      when :RTQName, :RTQNameLA
         token(RTNameToken, [
           expr(multiname.children.first),
           token(PropertyNameToken, origin.name)
