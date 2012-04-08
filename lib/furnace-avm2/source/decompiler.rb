@@ -351,6 +351,10 @@ module Furnace::AVM2
     alias :expr_rshift      :expr_arithmetic
     alias :expr_urshift     :expr_arithmetic
 
+    def expr_in(opcode)
+      token(InToken, exprs(opcode.children))
+    end
+
     ## Properties and objects
 
     This = Matcher.new do
@@ -383,6 +387,13 @@ module Furnace::AVM2
       get_name(expr(subject), multiname)
     end
 
+    def expr_get_super(opcode)
+      subject, multiname, = opcode.children
+      if This.match subject
+        get_name(token(SuperToken), multiname)
+      end
+    end
+
     def expr_set_property(opcode)
       if captures = PropertyGlobal.match(opcode)
         token(AssignmentToken, [
@@ -398,6 +409,16 @@ module Furnace::AVM2
       end
     end
     alias :expr_init_property :expr_set_property
+
+    def expr_set_super(opcode)
+      subject, multiname, value = opcode.children
+      if This.match subject
+        token(AssignmentToken, [
+          get_name(token(SuperToken), multiname),
+          expr(value)
+        ])
+      end
+    end
 
     def expr_delete_property(opcode)
       subject, multiname, = opcode.children
@@ -421,6 +442,16 @@ module Furnace::AVM2
 
     def expr_call_property(opcode)
       expr_do_property(opcode, CallToken)
+    end
+
+    def expr_call_super(opcode)
+      subject, multiname, *args = opcode.children
+      if This.match subject
+        token(CallToken, [
+          get_name(token(SuperToken), multiname),
+          token(ArgumentsToken, exprs(args))
+        ])
+      end
     end
 
     ## Object creation
@@ -453,13 +484,21 @@ module Furnace::AVM2
       token(TernaryOperatorToken, parenthesize(exprs(opcode.children)))
     end
 
+    def expr_call(opcode)
+      subject, *args = opcode.children
+      token(CallToken, [
+        expr(subject),
+        token(ArgumentsToken, exprs(args))
+      ])
+    end
+
     def expr_return(opcode)
       token(ReturnToken, exprs(opcode.children))
     end
     alias :expr_return_void  :expr_return
     alias :expr_return_value :expr_return
 
-    # Miscellanea
+    ## Types
 
     def expr_as_type_late(opcode)
       token(AsToken, exprs(opcode.children))
@@ -474,12 +513,24 @@ module Furnace::AVM2
     end
     alias :expr_coerce_a :expr_passthrough
     alias :expr_coerce_b :expr_passthrough
+    alias :expr_coerce_s :expr_passthrough
 
-    # Conversions
-
-    def expr_coerce_b(opcode)
-      expr(*opcode.children)
+    def expr_coerce(opcode)
+      typename, subject, = opcode.children
+      expr(subject)
     end
+
+    def expr_convert(opcode)
+      token(CallToken, [
+        token(ImmediateTypenameToken, CONVERT_COERCE_MAP[opcode.type]),
+        token(ArgumentsToken, exprs(opcode.children))
+      ])
+    end
+    alias :expr_convert_i :expr_convert
+    alias :expr_convert_u :expr_convert
+    alias :expr_convert_d :expr_convert
+    alias :expr_convert_s :expr_convert
+    alias :expr_convert_o :expr_convert
 
     private
 
