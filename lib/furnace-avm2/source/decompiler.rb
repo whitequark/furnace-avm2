@@ -512,6 +512,10 @@ module Furnace::AVM2
       token(IsToken, exprs(opcode.children))
     end
 
+    def expr_type_of(opcode)
+      token(TypeOfToken, exprs(opcode.children))
+    end
+
     def expr_passthrough(opcode)
       expr(*opcode.children)
     end
@@ -569,6 +573,11 @@ module Furnace::AVM2
         else
           token(CommentToken, "%%type #{origin} with no subject")
         end
+      when :RTQName
+        token(RTNameToken, [
+          expr(multiname.children.first),
+          token(PropertyNameToken, origin.name)
+        ])
       else
         token(CommentToken, "%%type #{origin}")
       end
