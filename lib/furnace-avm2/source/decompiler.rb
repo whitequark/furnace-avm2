@@ -81,9 +81,11 @@ module Furnace::AVM2
       nodes << CommentToken.new(@body, comment, @options)
 
     ensure
-      return token(ScopeToken, nodes,
-        continuation: options[:continuation],
-        function:     options[:function])
+      unless $! && !$!.is_a?(ExpressionNotRecognized)
+        return token(ScopeToken, nodes,
+          continuation: options[:continuation],
+          function:     options[:function])
+      end
     end
 
     # Expressions
@@ -486,12 +488,42 @@ module Furnace::AVM2
       token(TernaryOperatorToken, parenthesize_each(exprs(opcode.children)))
     end
 
+    # See /src/java/macromedia/asc/semantics/CodeGenerator.java
+    # If this looks stupid to you, that's because it IS stupid.
+    CallThisGlobal = Matcher.new do
+      [:get_global_scope]
+    end
+
+    CallThisLocal = Matcher.new do
+      [ either[:get_scope_object, :get_local], 0 ]
+    end
+
     def expr_call(opcode)
-      subject, *args = opcode.children
-      token(CallToken, [
+      subject, this, *args = opcode.children
+
+      subject_token = token(AccessToken, [
         parenthesize(expr(subject)),
-        token(ArgumentsToken, exprs(args))
+        token(PropertyNameToken, "call")
       ])
+
+      if CallThisGlobal.match(this) || CallThisLocal.match(this)
+        # FUCK YOU!
+        token(CallToken, [
+          subject_token,
+          token(ArgumentsToken, [
+            token(VariableNameToken, "this"),
+            *exprs(args)
+          ])
+        ])
+      else
+        token(CallToken, [
+          subject_token,
+          token(ArgumentsToken, exprs([
+            this,
+            *args
+          ]))
+        ])
+      end
     end
 
     def expr_return(opcode)
