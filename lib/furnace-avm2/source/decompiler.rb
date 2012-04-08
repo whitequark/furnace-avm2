@@ -498,6 +498,10 @@ module Furnace::AVM2
     alias :expr_return_void  :expr_return
     alias :expr_return_value :expr_return
 
+    def expr_throw(opcode)
+      token(ThrowToken, exprs(opcode.children))
+    end
+
     ## Types
 
     def expr_as_type_late(opcode)

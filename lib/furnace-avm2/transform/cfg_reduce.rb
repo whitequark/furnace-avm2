@@ -44,11 +44,26 @@ module Furnace::AVM2
               left_seq  = extended_block(left_root,  block, merge)
               right_seq = extended_block(right_root, block, merge)
 
-              if_node = AST::Node.new(:if, [
-                block.cfi.children[1],
-                left_seq,
-              ])
-              if_node.children << right_seq if right_seq.children.any?
+
+              if left_seq.children.empty? && right_seq.children.any?
+                if_node = AST::Node.new(:if, [
+                  AST::Node.new(:!, [ block.cfi.children[1] ]),
+                  right_seq
+                ])
+              else
+                if right_seq.children.empty?
+                  if_node = AST::Node.new(:if, [
+                    block.cfi.children[1],
+                    left_seq
+                  ])
+                else
+                  if_node = AST::Node.new(:if, [
+                    block.cfi.children[1],
+                    left_seq,
+                    right_seq
+                  ])
+                end
+              end
 
               nodes << if_node
 
