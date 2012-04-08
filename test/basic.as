@@ -1,7 +1,7 @@
 package test {
   class Literal {
     function test() {
-      call(1, 1, 200, 200);
+      call(1, 1, 200, 200, -1, -50, 32767, 32768, -32760, -500000);
     }
   }
 

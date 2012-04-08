@@ -3,7 +3,7 @@ module Furnace::AVM2::ABC
     instruction 0x24
 
     body do
-      uint8 :value
+      int8 :value
     end
 
     type :integer

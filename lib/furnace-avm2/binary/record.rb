@@ -186,6 +186,20 @@ module Furnace::AVM2::Binary
       1
     end
 
+    # int8
+
+    def read_int8(io, options)
+      io.read(1).unpack("c").at(0)
+    end
+
+    def write_int8(io, value, options)
+      io.write([value].pack("c"))
+    end
+
+    def length_int8(value, options)
+      1
+    end
+
     # uint16
 
     def read_uint16(io, options)

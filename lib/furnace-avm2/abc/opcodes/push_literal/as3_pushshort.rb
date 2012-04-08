@@ -3,7 +3,7 @@ module Furnace::AVM2::ABC
     instruction 0x25
 
     body do
-      vuint30 :value
+      vint32 :value
     end
 
     type :integer
