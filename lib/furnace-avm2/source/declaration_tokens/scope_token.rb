@@ -1,11 +1,19 @@
 module Furnace::AVM2::Tokens
   class ScopeToken < Furnace::Code::SurroundedToken
     def text_before
-      "{\n"
+      if @options[:function]
+        " {\n"
+      else
+        "{\n"
+      end
     end
 
     def text_after
-      "}\n"
+      if @options[:continuation]
+        "} "
+      else
+        "}\n"
+      end
     end
 
     def to_text

@@ -17,7 +17,7 @@ module Furnace::AVM2::Tokens
         if options[:static]
           tokens << CommentToken.new(origin, "Static initializer", options)
           tokens << CommentToken.new(origin,
-            ConstructorToken.new(origin, options),
+            ConstructorToken.new(origin, options.merge(commented: true)),
           options)
         else
           tokens << ConstructorToken.new(origin, options)

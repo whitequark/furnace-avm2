@@ -14,13 +14,18 @@ module Furnace::AVM2::ABC
     end
 
     def decompile(options={})
-      non_inits = traits.reject { |trait| trait.kind == :Class }
-      if non_inits.any?
-        Furnace::AVM2::Tokens::PackageToken.new(self,
-              options.merge(ns: collect_ns,
-                  package_type: :script,
-                  package_name: non_inits[0].name))
-      end
+      Furnace::AVM2::Tokens::PackageToken.new(self,
+            options.merge(ns: collect_ns,
+                package_type: :script,
+                package_name: non_init_traits[0].name))
+    end
+
+    def any_code?
+      non_init_traits.any?
+    end
+
+    def non_init_traits
+      traits.reject { |trait| trait.kind == :Class }
     end
   end
 end

@@ -19,32 +19,33 @@ module Furnace::AVM2::ABC
       end
     end
 
-    def code_to_ast
-      unless @ast
-        pipeline = Furnace::Transform::Pipeline.new([
-          Furnace::AVM2::Transform::ASTBuild.new(validate: true),
-          Furnace::AVM2::Transform::ASTNormalize.new
-        ])
+    def code_to_ast(options={})
+      pipeline = Furnace::Transform::Pipeline.new([
+        Furnace::AVM2::Transform::ASTBuild.new(options),
+        Furnace::AVM2::Transform::ASTNormalize.new
+      ])
 
-        @ast, = pipeline.run(code, self)
-      end
-
-      @ast
+      pipeline.run(code, self)
     end
 
     def code_to_cfg
-      unless @cfg
-        pipeline = Furnace::Transform::Pipeline.new([
-          Furnace::AVM2::Transform::CFGBuild.new
-        ])
+      pipeline = Furnace::Transform::Pipeline.new([
+        Furnace::AVM2::Transform::CFGBuild.new
+      ])
 
-        @cfg, = pipeline.run(code_to_ast, self)
-      end
-
-      @cfg
+      pipeline.run(*code_to_ast)
     end
+
+    def code_to_nf
+      pipeline = Furnace::Transform::Pipeline.new([
+        Furnace::AVM2::Transform::CFGReduce.new
+      ])
+
+      pipeline.run(*code_to_cfg)
+    end
+
     def decompile(options={})
-      Furnace::AVM2::Tokens::FunctionBodyToken.new(self, options)
+      Furnace::AVM2::Decompiler.new(self, options).decompile
     end
   end
 end

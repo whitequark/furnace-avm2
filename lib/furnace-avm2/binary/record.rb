@@ -1,5 +1,11 @@
 module Furnace::AVM2::Binary
   class Record
+    # This jruby compatibility hack allows descendants to use type
+    # as a name for the field.
+    if defined?(type)
+      undef :type
+    end
+
     class << self
       attr_reader :format, :codebase
 

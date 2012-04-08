@@ -7,7 +7,7 @@ module Furnace::AVM2::Tokens
 
       super(origin, [
         *transform_traits(origin, options.merge(static: false)),
-        FunctionBodyToken.new(origin.initializer_body, options)
+        Furnace::AVM2::Decompiler.new(origin.initializer_body, options).decompile
       ], options)
     end
   end

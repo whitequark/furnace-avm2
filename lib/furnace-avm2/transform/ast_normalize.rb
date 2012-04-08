@@ -3,10 +3,10 @@ module Furnace::AVM2
     class ASTNormalize
       include AST::Visitor
 
-      def transform(ast, method)
+      def transform(ast)
         visit ast
 
-        [ ast, method ]
+        ast
       end
 
       # (pop x) -> (jump-target) x

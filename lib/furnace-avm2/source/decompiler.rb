@@ -4,78 +4,94 @@ module Furnace::AVM2
     include Furnace::AVM2::ABC
     include Furnace::AVM2::Tokens
 
+    class ExpressionNotRecognized < StandardError
+      attr_reader :context, :opcode
+
+      def initialize(context, opcode)
+        @context, @opcode = context, opcode
+      end
+    end
+
     def initialize(body, options)
       @body, @method, @options = body, body.method, options
-
-      @locals   = Set.new([0]) + (1..@method.param_count).to_a
-      @spurious = Set.new
     end
 
     def decompile
-      @state   = :prologue
-      @nodes   = []
-
       begin
-        @opcodes = @body.code_to_ast.children
+        @locals   = Set.new([0]) + (1..@method.param_count).to_a
+        @spurious = Set.new
 
-        while @opcodes.any?
-          unless send :"on_#{@state}"
-            comment = "Well, this is embarassing.\n\n" +
-              "Stage `#{@state}' failed at:\n" +
-              "#{@error.inspect}\n"
+        @nf = @body.code_to_nf
 
-            if @opcodes.first != @error
-              comment << "\nOpcode at the top of stack:\n" +
-                "#{@opcodes.first.inspect}\n"
-            end
-
-            @nodes << CommentToken.new(@body, comment, @options)
-            break
-          end
-        end
+        stmt_block @nf, function: true
       rescue Exception => e
-        @nodes << CommentToken.new(@body,
-          "'Ouch!' cried I, then died.\n" \
-          "#{e.class}: #{e.message}\n" \
-          "#{e.backtrace[0..5].map { |l| "    #{l}\n"}.join}" \
-          "      ... et cetera\n",
-        @options)
-      end
+        comment = "'Ouch!' cried I, then died.\n" +
+          "#{e.class}: #{e.message}\n" +
+          "#{e.backtrace[0..5].map { |l| "    #{l}\n"}.join}" +
+          "      ... et cetera\n"
 
-      @nodes
+        token(ScopeToken, [
+          token(CommentToken, comment)
+        ], function: true)
+      end
     end
 
-    # Prologue
+    # Statements
 
     Prologue = Matcher.new do
       [:push_scope,
         [:get_local, 0]]
     end
 
-    def on_prologue
-      if Prologue.match(@opcodes.first)
-        @opcodes.shift
-        @state = :expression
-      else
-        @error = @opcodes.first
+    def stmt_block(block, options={})
+      nodes = []
+
+      block.children.each do |opcode|
+        if (opcode.type == :push_scope && Prologue.match(opcode))
+          # Ignore these
+          next
+        end
+
+        case opcode.type
+        when :if
+          condition, if_true, if_false = opcode.children
+
+          nodes << token(IfToken, handle_expression(condition),
+            stmt_block(if_true, continuation: !if_false.nil?))
+          nodes << token(ElseToken,
+            stmt_block(if_false)) if if_false
+
+        else
+          node = handle_expression(opcode)
+          node = token(StatementToken, [node]) unless node.toplevel?
+          nodes << node
+        end
       end
+
+    rescue ExpressionNotRecognized => e
+      comment = "Well, this is embarassing.\n\n" +
+        "Expression recognizer failed at:\n" +
+        "#{e.opcode.inspect}\n"
+
+      if e.context != e.opcode
+        comment << "\nOpcode at the top of stack:\n" +
+          "#{e.context.inspect}\n"
+      end
+
+      nodes << CommentToken.new(@body, comment, @options)
+
+    ensure
+      return token(ScopeToken, nodes,
+        continuation: options[:continuation],
+        function:     options[:function])
     end
 
     # Expressions
 
-    def on_expression
-      if [:nop, :jump_target].include? @opcodes.first.type
-        @opcodes.shift
-        true
-      else
-        catch(:unwind) do
-          node = expression(@opcodes.first)
-          node = token(StatementToken, [node]) unless node.toplevel?
-          @nodes << node
-
-          @opcodes.shift
-        end
-      end
+    def handle_expression(opcode)
+      expression(opcode)
+    rescue ExpressionNotRecognized => e
+      raise ExpressionNotRecognized.new(opcode, e.opcode)
     end
 
     def expression(opcode)
@@ -83,8 +99,7 @@ module Furnace::AVM2
       if respond_to?(handler) && node = send(handler, opcode)
         node
       else
-        @error = opcode
-        throw :unwind
+        raise ExpressionNotRecognized.new(nil, opcode)
       end
     end
     alias :expr :expression
@@ -454,10 +469,11 @@ module Furnace::AVM2
       token(IsToken, exprs(opcode.children))
     end
 
-    def expr_jump(opcode)
-      raise "no jumps yet :/"
+    def expr_passthrough(opcode)
+      expr(*opcode.children)
     end
-    alias :expr_jump_if :expr_jump
+    alias :expr_coerce_a :expr_passthrough
+    alias :expr_coerce_b :expr_passthrough
 
     # Conversions
 
@@ -468,7 +484,13 @@ module Furnace::AVM2
     private
 
     def token(klass, *args)
-      klass.new(@body, *args, @options)
+      if args.last.is_a? Hash
+        options = @options.merge(args.pop)
+      else
+        options = @options
+      end
+
+      klass.new(@body, *args, options)
     end
 
     def get_name(subject, multiname)

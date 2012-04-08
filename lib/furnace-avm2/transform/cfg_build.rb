@@ -3,7 +3,7 @@ module Furnace::AVM2
     class CFGBuild
       include AST::Visitor
 
-      def transform(ast, method)
+      def transform(ast)
         @ast = ast
         visit @ast
 
@@ -23,7 +23,7 @@ module Furnace::AVM2
 
           case node.type
           when :return_value, :return_void
-            cutoff(node, [nil])
+            cutoff(nil, [nil])
 
           when :jump
             @jumps << node.children[0]
@@ -47,7 +47,7 @@ module Furnace::AVM2
         @cfg.eliminate_unreachable!
         @cfg.merge_redundant!
 
-        [ @cfg, method ]
+        @cfg
       end
 
       # propagate labels

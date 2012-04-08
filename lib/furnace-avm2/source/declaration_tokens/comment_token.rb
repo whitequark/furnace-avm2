@@ -6,7 +6,9 @@ module Furnace::AVM2::Tokens
     end
 
     def to_text
-      if @content.is_a? Furnace::Code::Token
+      if @options[:commented]
+        " #{@content}\n"
+      elsif @content.is_a? Furnace::Code::Token
         "/*\n#{@content.to_text.rstrip}\n */\n\n"
       else
         "/* #{@content} */\n"

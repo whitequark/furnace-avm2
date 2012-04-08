@@ -80,12 +80,16 @@ module Furnace::AVM2
         end
 
         expand_conditionals = lambda do
+          expressions = []
+
           while stack.any? && CONDITIONAL_OPERATORS.include?(stack.last.type)
             conditional, = consume.(1)
 
             jump_node = AST::Node.new(:jump_if, [ true, conditional.metadata[:offset], conditional ])
-            emit.(jump_node)
+            expressions.unshift jump_node
           end
+
+          ast.children.concat expressions
         end
 
         code.each do |opcode|
@@ -143,7 +147,7 @@ module Furnace::AVM2
             end
           elsif opcode.is_a?(ABC::AS3Jump)
             if opcode.body.jump_offset == 0
-              node = AST::Node.new(:jump_target, [], label: opcode.offset)
+              node = AST::Node.new(:nop, [], label: opcode.offset)
               emit.(node)
             elsif stack.any? && !CONDITIONAL_OPERATORS.include?(stack.last.type)
               extend_complex_expr.(CONDITIONAL_OPERATORS)
@@ -207,7 +211,7 @@ module Furnace::AVM2
           end
         end
 
-        [ ast.normalize_hierarchy!, method ]
+        ast.normalize_hierarchy!
       end
     end
   end

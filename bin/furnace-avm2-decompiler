@@ -52,6 +52,8 @@ shound_skip = ->(obj) {
      (opts[:only] && !opts[:only].include?(obj.to_s))
 }
 
+$stderr.puts "Reading input data..."
+
 abc = nil
 File.open(opts[:input]) do |file|
   abc = AVM2::ABC::File.new
@@ -82,36 +84,58 @@ if opts[:grep]
   exit
 end
 
-roots = {}
+mutex = Mutex.new
 
-abc.instances.each do |inst|
-  name = inst.name
-  next if shound_skip.(name)
+roots      = {}
+workqueue  = abc.instances.dup + abc.scripts.select(&:any_code?)
+total_size = workqueue.size
 
-  roots[name.ns.to_s] ||= []
-  roots[name.ns.to_s] << inst.decompile(decompile_options)
-end
+last_percentage = 0
 
-abc.scripts.each do |script|
-  name = script.traits[0].name.ns
-  next if shound_skip.(name)
+$stderr.puts "Decompiling #{total_size} classes and packages..."
 
-  token = script.decompile(decompile_options)
-  next unless token
+opts[:threads].times.map do
+  Thread.new do
+    loop do
+      what = nil
+      mutex.synchronize do
+        what = workqueue.pop
 
-  ns = name.to_s.sub(/(^|\.)[^.]+$/, '')
-  roots[ns] ||= []
-  roots[ns] << token
-end
+        percentage = (total_size - workqueue.size) * 100 / total_size
+        if percentage >= last_percentage
+          $stderr.print " #{percentage}% (#{total_size - workqueue.size}) "
+          last_percentage += 10
+        end
+      end
 
-roots.values.flatten.each do |root|
-  if opts[:decompile]
-    puts root.to_text
-    puts
+      break if what.nil?
+
+      if what.is_a? AVM2::ABC::InstanceInfo
+        name = what.name
+        ns   = name.ns
+      else # ScriptInfo
+        name = what.traits[0].name.ns
+        ns   = name.to_s.sub(/(^|\.)[^.]+$/, '')
+      end
+      next if shound_skip.(name)
+
+      source = what.decompile(decompile_options)
+      next unless source
+
+      text = source.to_text
+
+      mutex.synchronize do
+        $stderr.print "."
+        roots[ns.to_s] ||= []
+        roots[ns.to_s] << text
+      end
+    end
   end
+end.each(&:join)
 
-  if opts[:destructurize]
-    puts root.to_structure
-    puts
-  end
+$stderr.puts
+
+roots.values.flatten.each do |code|
+  puts code
+  puts
 end

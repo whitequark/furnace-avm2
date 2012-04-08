@@ -6,7 +6,8 @@ module Furnace::AVM2::Tokens
       super(origin, [
         *header,
         *declaration(origin, options),
-        (FunctionBodyToken.new(@body, options) if @body)
+        (Furnace::AVM2::Decompiler.new(@body, options).decompile if @body),
+        Furnace::Code::NewlineToken.new(origin, options)
       ], options)
 
       if options[:debug_funids]

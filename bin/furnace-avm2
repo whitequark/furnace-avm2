@@ -39,6 +39,7 @@ EOS
 
   opt :dce,           "Eliminate dead code",                        :default => false
   opt :ast,           "Build AST",                                  :default => false
+  opt :nf,            "Build NF-AST",                               :default => false
   opt :decompile,     "Decompile methods",                          :default => false
 end
 
@@ -51,7 +52,6 @@ File.open(opts[:input]) do |file|
 end
 
 disasm = lambda do |body, after|
-  puts
   puts "Method #{body.method_idx}," <<
        " max stack #{body.max_stack}, local count #{body.local_count}"
   if after
@@ -69,6 +69,8 @@ disasm = lambda do |body, after|
            "catch(#{exception.exc_type} #{exception.var_name}) #{exception.target_offset}"
     end
   end
+
+  puts
 end
 
 failed = []
@@ -131,9 +133,11 @@ opts[:threads].times do
           dced << body.method_idx if body.code.eliminate_dead!
         end
 
+        disasm[body, true] if opts[:disasm_after]
+
         if opts[:ast]
-          ast, = body.code_to_ast
-          puts "Method #{body.method_idx}"
+          ast = body.code_to_ast
+          puts "Method #{body.method_idx}; AST"
           puts ast.to_sexp
           puts
         end
@@ -143,6 +147,27 @@ opts[:threads].times do
           File.open("method-#{body.method_idx}.dot", "w") do |dot|
             dot.write cfg.to_graphviz
           end
+
+          puts "Method #{body.method_idx}; dominators"
+          cfg.dominators.each do |node, dominating|
+            puts "#{node.label.inspect} => " +
+                 "#{dominating.map(&:label).map(&:inspect).join(", ")}"
+          end
+          puts
+
+          puts "Method #{body.method_idx}; loops"
+          cfg.identify_loops.each do |header, body|
+            puts "#{header.label.inspect} => " +
+                 "#{body.map(&:label).map(&:inspect).join(", ")}"
+          end
+          puts
+        end
+
+        if opts[:nf]
+          ast = body.code_to_nf
+          puts "Method #{body.method_idx}; NF-AST"
+          puts ast.to_sexp
+          puts
         end
 
         if opts[:decompile]
@@ -150,8 +175,6 @@ opts[:threads].times do
           puts body.decompile(ns: []).to_text.lstrip
           puts
         end
-
-        disasm[body, true] if opts[:disasm_after]
       rescue Exception => e
         if opts[:collect]
           puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
