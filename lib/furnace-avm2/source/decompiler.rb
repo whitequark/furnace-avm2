@@ -298,6 +298,8 @@ module Furnace::AVM2
       :<=          => :<=,
       :==          => :==,
       :===         => :===,
+      :!=          => :!=,
+      :"!=="       => :"!==",
 
       :bit_and     => :"&",
       :bit_or      => :"|",
@@ -310,7 +312,7 @@ module Furnace::AVM2
 
     def expr_arithmetic(opcode)
       if OPERATOR_MAP.include?(opcode.type)
-        insides = parenthesize(exprs(opcode.children))
+        insides = parenthesize_each(exprs(opcode.children))
 
         if insides.count == 1
           token(UnaryOperatorToken, insides, OPERATOR_MAP[opcode.type])
@@ -352,7 +354,7 @@ module Furnace::AVM2
     alias :expr_urshift     :expr_arithmetic
 
     def expr_in(opcode)
-      token(InToken, exprs(opcode.children))
+      token(InToken, parenthesize_each(exprs(opcode.children)))
     end
 
     ## Properties and objects
@@ -463,7 +465,7 @@ module Furnace::AVM2
     def expr_construct(opcode)
       type, *args = opcode.children
       token(NewToken, [
-        expr(type),
+        parenthesize(expr(type)),
         token(ArgumentsToken, exprs(args))
       ])
     end
@@ -481,13 +483,13 @@ module Furnace::AVM2
     ## Control flow
 
     def expr_ternary(opcode)
-      token(TernaryOperatorToken, parenthesize(exprs(opcode.children)))
+      token(TernaryOperatorToken, parenthesize_each(exprs(opcode.children)))
     end
 
     def expr_call(opcode)
       subject, *args = opcode.children
       token(CallToken, [
-        expr(subject),
+        parenthesize(expr(subject)),
         token(ArgumentsToken, exprs(args))
       ])
     end
@@ -505,11 +507,11 @@ module Furnace::AVM2
     ## Types
 
     def expr_as_type_late(opcode)
-      token(AsToken, exprs(opcode.children))
+      token(AsToken, parenthesize_each(exprs(opcode.children)))
     end
 
     def expr_is_type_late(opcode)
-      token(IsToken, exprs(opcode.children))
+      token(IsToken, parenthesize_each(exprs(opcode.children)))
     end
 
     def expr_type_of(opcode)
@@ -558,7 +560,7 @@ module Furnace::AVM2
       when :QName, :QNameA, :Multiname, :MultinameA
         if subject
           token(AccessToken, [
-            subject,
+            parenthesize(subject),
             token(PropertyNameToken, origin.name)
           ])
         else
@@ -567,15 +569,15 @@ module Furnace::AVM2
       when :MultinameL, :MultinameLA
         if subject
           token(IndexToken, [
-            subject,
+            parenthesize(subject),
             expr(multiname.children.last)
           ])
         else
           token(CommentToken, "%%type #{origin} with no subject")
         end
-      when :RTQName, :RTQNameLA
+      when :RTQName, :RTQNameA
         token(RTNameToken, [
-          expr(multiname.children.first),
+          parenthesize(expr(multiname.children.first)),
           token(PropertyNameToken, origin.name)
         ])
       else
@@ -584,12 +586,16 @@ module Furnace::AVM2
     end
 
     def parenthesize(what)
+      if what.complex?
+        token(ParenthesesToken, [what])
+      else
+        what
+      end
+    end
+
+    def parenthesize_each(what)
       what.map do |inside|
-        if inside.complex?
-          inside = token(ParenthesesToken, [inside])
-        else
-          inside
-        end
+        parenthesize(inside)
       end
     end
   end

@@ -19,7 +19,7 @@ module Furnace::AVM2
           break if upper_merge == block
 
           if @visited.include? block
-            raise "failsafe: block already visited"
+            raise "failsafe: block #{block.label} already visited"
           elsif block != @cfg.exit
             @visited.add block
           end
@@ -43,7 +43,6 @@ module Furnace::AVM2
 
               left_seq  = extended_block(left_root,  block, merge)
               right_seq = extended_block(right_root, block, merge)
-
 
               if left_seq.children.empty? && right_seq.children.any?
                 if_node = AST::Node.new(:if, [

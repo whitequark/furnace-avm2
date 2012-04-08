@@ -32,7 +32,7 @@ module Furnace::AVM2
       # (if-* a b) -> (*' a b)
       IF_MAPPING = {
         :eq        => [false, :==],
-        :ne        => [true,  :==],
+        :ne        => [false, :!=],
         :ge        => [false, :>=],
         :nge       => [true,  :>=],
         :gt        => [false, :>],
@@ -42,7 +42,7 @@ module Furnace::AVM2
         :lt        => [false, :<],
         :nlt       => [true,  :<],
         :strict_eq => [false, :===],
-        :strict_ne => [true,  :===],
+        :strict_ne => [false, :"!=="],
         :true      => [false, :expand],
         :false     => [true,  :expand]
       }
