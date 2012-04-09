@@ -550,6 +550,15 @@ module Furnace::AVM2
       token(TypeOfToken, exprs(opcode.children))
     end
 
+    def expr_apply_type(opcode)
+      base, *args = opcode.children
+      token(GenericTypeToken, [
+        expr(base),
+        token(GenericSpecializersToken,
+          exprs(args))
+      ])
+    end
+
     def expr_passthrough(opcode)
       expr(*opcode.children)
     end
