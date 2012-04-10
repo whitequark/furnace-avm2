@@ -18,8 +18,7 @@ module Furnace::AVM2
 
     def decompile
       begin
-        @locals   = Set.new([0]) + (1..@method.param_count).to_a
-        @spurious = Set.new
+        @locals = Set.new([0]) + (1..@method.param_count).to_a
 
         @nf = @body.code_to_nf
 
@@ -74,6 +73,8 @@ module Furnace::AVM2
 
         when :for_in
           value_reg, value_type, object_reg, body = opcode.children
+
+          @locals.add(value_reg)
 
           nodes << token(ForToken,
             token(InToken, [
@@ -191,7 +192,9 @@ module Furnace::AVM2
     ## Locals
 
     def local_name(index)
-      if index == 0
+      if index < 0
+        "sp#{-index}"
+      elsif index == 0
         "this"
       elsif index <= @method.param_count
         if @method.has_param_names?
@@ -207,11 +210,6 @@ module Furnace::AVM2
     def expr_get_local(opcode)
       index, = opcode.children
       token(VariableNameToken, local_name(index))
-    end
-
-    def expr_get_spurious(opcode)
-      index, = opcode.children
-      token(VariableNameToken, "sp#{index}")
     end
 
     CONVERT_COERCE_MAP = {
@@ -277,14 +275,6 @@ module Furnace::AVM2
       expr_set_var(local_name(index), value, !@locals.include?(index))
     ensure
       @locals << index
-    end
-
-    def expr_set_spurious(opcode)
-      index, value = opcode.children
-
-      expr_set_var("sp#{index}", value, !@spurious.include?(index))
-    ensure
-      @spurious << index
     end
 
     ## Arithmetics

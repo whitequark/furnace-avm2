@@ -172,11 +172,11 @@ module Furnace::AVM2
             if dup
               spurious += 1
 
-              save_node = AST::Node.new(:set_spurious, [ spurious, *consume.(1) ])
+              save_node = AST::Node.new(:set_local, [ -spurious, *consume.(1) ])
               emit.(save_node)
 
               (1 + dup).times do
-                load_node = AST::Node.new(:get_spurious, [ spurious ])
+                load_node = AST::Node.new(:get_local, [ -spurious ])
                 produce.(load_node)
               end
 
