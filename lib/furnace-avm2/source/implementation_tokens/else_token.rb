@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class ElseToken < Furnace::Code::NonterminalToken
-    include IsToplevel
 
     def initialize(origin, body, options={})
       super(origin, [body], options)

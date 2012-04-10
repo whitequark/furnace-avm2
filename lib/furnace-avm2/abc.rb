@@ -75,9 +75,6 @@ Dir[File.join(File.dirname(__FILE__), "source", "declaration_tokens", "*.rb")].e
   require file
 end
 
-require_relative 'source/implementation_tokens/is_toplevel'
-require_relative 'source/implementation_tokens/is_embedded'
-
 require_relative 'source/implementation_tokens/is_simple'
 require_relative 'source/implementation_tokens/is_complex'
 

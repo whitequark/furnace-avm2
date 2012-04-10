@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class IndexToken < Furnace::Code::NonterminalToken
-    include IsEmbedded
     include IsSimple
 
     def to_text

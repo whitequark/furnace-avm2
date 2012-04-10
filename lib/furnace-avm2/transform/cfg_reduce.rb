@@ -16,11 +16,31 @@ module Furnace::AVM2
         ast
       end
 
-      def extended_block(block, stopgap=nil, current_loop=nil)
+      def extended_block(block, stopgap=nil, loop_stack=[])
         nodes = []
 
         while block
-          break if block == stopgap
+          if @loops.include?(block) && loop_stack.include?(block)
+            # We have just arrived to loop head. Insert `continue'
+            # and exit.
+            check_nonlocal_loop(loop_stack, block) do |params|
+              nodes << AST::Node.new(:continue, params)
+            end
+            break
+          elsif @loop_tails.include?(block) &&
+                    loop_stack.include?(@loop_tails[block])
+            # We have just arrived to loop tail. Insert `break'
+            # and exit.
+            loop = @loop_tails[block]
+            check_nonlocal_loop(loop_stack, loop) do |params|
+              nodes << AST::Node.new(:break, params)
+            end
+            break
+          elsif block == stopgap
+            # We have just arrived to a merge point of `if'
+            # contidional. Exit.
+            break
+          end
 
           if @visited.include? block
             raise "failsafe: block #{block.label} already visited"
@@ -48,20 +68,20 @@ module Furnace::AVM2
 
               # Mark the loop tail so we could detect `break' and
               # `continue' statements.
-              @loop_tails[out_root] = in_root
+              @loop_tails[out_root] = block
 
               # If we reversed the roots or it was a (jump-if false),
               # then reverse the condition.
               expr = normalize_cti_expr(block, reverse)
 
-              body = extended_block(in_root, block, block)
+              body = extended_block(in_root, nil, [ block, *loop_stack ])
 
               # [(label name)]
               # We first parse the body and then add the label before
               # the loop body if anything in the body requires that label
               # to be present.
               if @loop_nonlocal.include?(block)
-                nodes << AST::Node.new(:label, [ "label#{block.label}" ])
+                nodes << AST::Node.new(:label, [ loop_label(block) ])
               end
 
               # (while (condition)
@@ -118,7 +138,7 @@ module Furnace::AVM2
               # Does this conditional have an `else' block?
               if completely_dominated?(right_root, block)
                 # Yes. Find a merge point.
-                merge = find_merge_point(block, left_root, right_root)
+                merge = find_merge_point(block, left_root, right_root, loop_stack)
 
                 # If the merge search did not yield a valid node, use
                 # stopgap for the current block to avoid runaway code
@@ -131,8 +151,8 @@ module Furnace::AVM2
                 # check for collision with innermost stopgap block.
                 nodes << AST::Node.new(:if, [
                   expr,
-                  extended_block(left_root,  merge || stopgap, current_loop),
-                  extended_block(right_root, merge || stopgap, current_loop)
+                  extended_block(left_root,  merge || stopgap, loop_stack),
+                  extended_block(right_root, merge || stopgap, loop_stack)
                 ])
 
                 block = merge
@@ -140,7 +160,7 @@ module Furnace::AVM2
                 # No. The "right root" is actually post-if code.
                 nodes << AST::Node.new(:if, [
                   expr,
-                  extended_block(left_root, right_root, current_loop)
+                  extended_block(left_root, right_root, loop_stack)
                 ])
 
                 block = right_root
@@ -173,24 +193,48 @@ module Furnace::AVM2
       # A merge point for blocks R (root), L (left) and D (right)
       # is first block found with BFS starting at {L,D} so that
       # it is dominated by R, but not L or D.
-      def find_merge_point(root, left, right)
+      def find_merge_point(root, left, right, loop_stack)
         worklist = Set[left, right]
+        visited  = Set[root, left, right]
 
         while worklist.any?
           node = worklist.first
           worklist.delete node
 
-          if @dom[node].include?(root) &&
+          visited.add node
+
+          if (@dom[node].include?(root) &&
               !(@dom[node].include?(left) ||
-                @dom[node].include?(right))
+                @dom[node].include?(right))) ||
+              loop_stack.include?(node)
             return node
           end
 
-          worklist.merge node.targets
+          node.targets.each do |target|
+            next if visited.include? target
+            worklist.add target
+          end
         end
 
         # The paths have diverged.
         nil
+      end
+
+      # Check if the control transfer is nonlocal according to the
+      # innermost loop and adjust @loop_nonlocal accordingly for labels
+      # to be inserted where appropriate.
+      def check_nonlocal_loop(loop_stack, block)
+        if loop_stack.first != block
+          @loop_nonlocal.add block
+
+          yield [loop_label(block)]
+        else
+          yield []
+        end
+      end
+
+      def loop_label(block)
+        "label#{block.label}"
       end
 
       def normalize_cti_expr(block, negate)

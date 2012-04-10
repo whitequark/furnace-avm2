@@ -6,7 +6,7 @@ module Furnace::AVM2::Tokens
     end
 
     def to_text
-      "#{@value}: "
+      "#{@value}"
     end
   end
 end

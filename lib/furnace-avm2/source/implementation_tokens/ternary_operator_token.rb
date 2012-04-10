@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class TernaryOperatorToken < Furnace::Code::NonterminalToken
-    include IsEmbedded
     include IsComplex
 
     def to_text

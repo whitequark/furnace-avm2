@@ -64,7 +64,7 @@ module Furnace::AVM2
         when :label
           name, = opcode.children
 
-          nodes << token(LabelToken, name)
+          nodes << token(LabelDeclarationToken, name)
 
         when :while
           condition, body = opcode.children
@@ -72,9 +72,18 @@ module Furnace::AVM2
           nodes << token(WhileToken, handle_expression(condition),
             stmt_block(body))
 
+        when :break
+          nodes << token(ReturnToken, exprs(opcode.children))
+
+        when :continue
+          nodes << token(ContinueToken, exprs(opcode.children))
+
+        when :return_value, :return_void
+          nodes << token(ReturnToken, exprs(opcode.children))
+
         else
           node = handle_expression(opcode)
-          node = token(StatementToken, [node]) unless node.toplevel?
+          node = token(StatementToken, [node])
           nodes << node
         end
       end
@@ -264,6 +273,26 @@ module Furnace::AVM2
     end
 
     ## Arithmetics
+
+    INPLACE_OPERATOR_MAP = {
+      :inc_local   => :"++",
+      :inc_local_i => :"++",
+      :dec_local   => :"--",
+      :dec_local_i => :"--",
+    }
+
+    def expr_inplace_arithmetic(opcode)
+      inside = expr(*opcode.children)
+
+      token(UnaryPostOperatorToken, [
+        inside,
+      ], INPLACE_OPERATOR_MAP[opcode.type], operator)
+    end
+
+    alias :expr_inc_local   :expr_inplace_arithmetic
+    alias :expr_inc_local_i :expr_inplace_arithmetic
+    alias :expr_dec_local   :expr_inplace_arithmetic
+    alias :expr_dec_local_i :expr_inplace_arithmetic
 
     PSEUDO_OPERATOR_MAP = {
       :increment   => [:"+", 1],
@@ -538,12 +567,6 @@ module Furnace::AVM2
         ])
       end
     end
-
-    def expr_return(opcode)
-      token(ReturnToken, exprs(opcode.children))
-    end
-    alias :expr_return_void  :expr_return
-    alias :expr_return_value :expr_return
 
     def expr_throw(opcode)
       token(ThrowToken, exprs(opcode.children))

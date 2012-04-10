@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class PropertyNameToken < Furnace::Code::TerminalToken
-    include IsEmbedded
     include IsSimple
 
     def initialize(origin, value, options={})

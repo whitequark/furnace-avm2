@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class ImmediateToken < Furnace::Code::TerminalToken
-    include IsEmbedded
     include IsSimple
 
     def initialize(origin, value, options={})

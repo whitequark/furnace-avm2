@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class GenericSpecializersToken < Furnace::Code::SeparatedToken
-    include IsEmbedded
     include IsSimple
 
     def text_before

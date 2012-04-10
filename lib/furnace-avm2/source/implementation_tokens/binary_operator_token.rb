@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class BinaryOperatorToken < Furnace::Code::SeparatedToken
-    include IsEmbedded
     include IsComplex
 
     def initialize(origin, children, operator, options={})

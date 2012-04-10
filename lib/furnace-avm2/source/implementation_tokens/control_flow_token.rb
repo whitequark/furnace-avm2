@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class ControlFlowToken < Furnace::Code::NonterminalToken
-    include IsToplevel
 
     def initialize(origin, condition, body, options={})
       super(origin, [condition, body], options)
