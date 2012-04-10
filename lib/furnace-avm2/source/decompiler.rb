@@ -72,6 +72,21 @@ module Furnace::AVM2
           nodes << token(WhileToken, handle_expression(condition),
             stmt_block(body))
 
+        when :for_in
+          value_reg, value_type, object_reg, body = opcode.children
+
+          nodes << token(ForToken,
+            token(InToken, [
+              token(LocalVariableToken, [
+                token(VariableNameToken, local_name(value_reg)),
+                token(TypeToken, [
+                  token(MultinameToken, value_type.metadata[:origin])
+                ]),
+              ]),
+              token(VariableNameToken, local_name(object_reg)),
+            ]),
+            stmt_block(body))
+
         when :break
           nodes << token(ReturnToken, exprs(opcode.children))
 

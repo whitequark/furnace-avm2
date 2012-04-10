@@ -184,7 +184,7 @@ module Furnace::AVM2
       # but excluding any back edges.
       def completely_dominated?(block, dominator)
         if @loops.include?(block)
-          (block.sources - @loops[block]) == [dominator]
+          (block.sources - @loops[block].to_a) == [dominator]
         else
           block.sources == [dominator]
         end

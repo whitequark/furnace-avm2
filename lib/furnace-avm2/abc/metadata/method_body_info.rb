@@ -38,7 +38,8 @@ module Furnace::AVM2::ABC
 
     def code_to_nf
       pipeline = Furnace::Transform::Pipeline.new([
-        Furnace::AVM2::Transform::CFGReduce.new
+        Furnace::AVM2::Transform::CFGReduce.new,
+        Furnace::AVM2::Transform::NFNormalize.new,
       ])
 
       pipeline.run(*code_to_cfg)
