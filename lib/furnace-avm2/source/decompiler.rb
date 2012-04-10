@@ -282,11 +282,9 @@ module Furnace::AVM2
     }
 
     def expr_inplace_arithmetic(opcode)
-      inside = expr(*opcode.children)
-
       token(UnaryPostOperatorToken, [
-        inside,
-      ], INPLACE_OPERATOR_MAP[opcode.type], operator)
+        token(VariableNameToken, local_name(*opcode.children)),
+      ], INPLACE_OPERATOR_MAP[opcode.type])
     end
 
     alias :expr_inc_local   :expr_inplace_arithmetic
