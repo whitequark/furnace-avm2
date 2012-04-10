@@ -1,6 +1,6 @@
 GIT
   remote: git://github.com/whitequark/furnace.git
-  revision: 0a8a3004fb9951519b8d958167761b50776de4ec
+  revision: 139ea6d5434cc2223a02da140926a700323c45a5
   specs:
     furnace (0.0.8)
 

@@ -61,6 +61,17 @@ module Furnace::AVM2
           nodes << token(ElseToken,
             stmt_block(if_false)) if if_false
 
+        when :label
+          name, = opcode.children
+
+          nodes << token(LabelToken, name)
+
+        when :while
+          condition, body = opcode.children
+
+          nodes << token(WhileToken, handle_expression(condition),
+            stmt_block(body))
+
         else
           node = handle_expression(opcode)
           node = token(StatementToken, [node]) unless node.toplevel?

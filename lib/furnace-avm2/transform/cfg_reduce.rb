@@ -7,14 +7,16 @@ module Furnace::AVM2
         @dom   = @cfg.dominators
         @loops = @cfg.identify_loops
 
-        @visited = Set.new
+        @visited       = Set.new
+        @loop_tails    = {}
+        @loop_nonlocal = Set.new
 
         ast, = extended_block(@cfg.entry)
 
         ast
       end
 
-      def extended_block(block, stopgap=nil)
+      def extended_block(block, stopgap=nil, current_loop=nil)
         nodes = []
 
         while block
@@ -34,17 +36,46 @@ module Furnace::AVM2
           if block.cti
             if @loops.include?(block)
               # we're trapped in a strange loop
-              reverse = block.cti.children[0]
+              reverse = !block.cti.children[0]
               in_root, out_root = block.targets
 
-              if @loops[block].include? out_root
+              # One of the branch targets should reside within
+              # the loop.
+              if !@loops[block].include?(in_root)
                 in_root, out_root = out_root, in_root
                 reverse = !reverse
               end
 
-              raise "loop" # not yet finished
+              # Mark the loop tail so we could detect `break' and
+              # `continue' statements.
+              @loop_tails[out_root] = in_root
+
+              # If we reversed the roots or it was a (jump-if false),
+              # then reverse the condition.
+              expr = normalize_cti_expr(block, reverse)
+
+              body = extended_block(in_root, block, block)
+
+              # [(label name)]
+              # We first parse the body and then add the label before
+              # the loop body if anything in the body requires that label
+              # to be present.
+              if @loop_nonlocal.include?(block)
+                nodes << AST::Node.new(:label, [ "label#{block.label}" ])
+              end
+
+              # (while (condition)
+              #   (body ...))
+              # (for-in '(var name) # to be done
+              #   (body ...))
+              nodes << AST::Node.new(:while, [
+                expr,
+                body
+              ])
+
+              block = out_root
             else
-              # this is a conditional
+              # this is an `if', `break' or `continue'
               reverse = !block.cti.children[0]
               left_root, right_root = block.targets
 
@@ -82,11 +113,7 @@ module Furnace::AVM2
 
               # If we reversed the roots or it was a (jump-if false),
               # then reverse the condition.
-              if reverse
-                expr = AST::Node.new(:!, [ block.cti.children[1] ])
-              else
-                expr = block.cti.children[1]
-              end
+              expr = normalize_cti_expr(block, reverse)
 
               # Does this conditional have an `else' block?
               if completely_dominated?(right_root, block)
@@ -104,15 +131,16 @@ module Furnace::AVM2
                 # check for collision with innermost stopgap block.
                 nodes << AST::Node.new(:if, [
                   expr,
-                  extended_block(left_root,  merge || stopgap),
-                  extended_block(right_root, merge || stopgap)
+                  extended_block(left_root,  merge || stopgap, current_loop),
+                  extended_block(right_root, merge || stopgap, current_loop)
                 ])
 
                 block = merge
               else
                 # No. The "right root" is actually post-if code.
                 nodes << AST::Node.new(:if, [
-                  expr, extended_block(left_root, right_root)
+                  expr,
+                  extended_block(left_root, right_root, current_loop)
                 ])
 
                 block = right_root
@@ -120,10 +148,10 @@ module Furnace::AVM2
             end
           elsif block.targets.count == 1
             block = block.targets.first
-          elsif block.targets.count == 0
+          elsif block == @cfg.exit
             break
           else
-            raise "targets > 1 and no cti"
+            raise "invalid target count (#{block.targets.count})"
           end
         end
 
@@ -163,6 +191,14 @@ module Furnace::AVM2
 
         # The paths have diverged.
         nil
+      end
+
+      def normalize_cti_expr(block, negate)
+        if negate
+          AST::Node.new(:!, [ block.cti.children[1] ])
+        else
+          block.cti.children[1]
+        end
       end
     end
   end

@@ -1,5 +1,7 @@
 module Furnace::AVM2
   module Transform
+    # I'm not exactly proud of this code, but it works... for now. I really should
+    # rework it if I want to expect it to work good.
     class ASTBuild
       CONDITIONAL_OPERATORS = [ :if_eq,  :if_false, :if_true,      :if_ge,        :if_gt,
                                 :if_le,  :if_lt,    :if_ne,        :if_nge,       :if_ngt,
