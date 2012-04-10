@@ -346,6 +346,8 @@ module Furnace::AVM2
     alias :"expr_<="        :expr_arithmetic
     alias :"expr_=="        :expr_arithmetic
     alias :"expr_==="       :expr_arithmetic
+    alias :"expr_!="        :expr_arithmetic
+    alias :"expr_!=="       :expr_arithmetic
 
     alias :expr_bit_and     :expr_arithmetic
     alias :expr_bit_or      :expr_arithmetic

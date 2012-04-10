@@ -69,8 +69,8 @@ module Furnace::AVM2
         node.metadata[:label] = label if label
       end
 
-      def cutoff(cfi, targets)
-        node = CFG::Node.new(@cfg, @pending_label, @pending_queue, cfi, targets)
+      def cutoff(cti, targets)
+        node = CFG::Node.new(@cfg, @pending_label, @pending_queue, cti, targets)
 
         if @cfg.nodes.empty?
           @cfg.entry = node

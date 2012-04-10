@@ -73,6 +73,42 @@ package test {
   }
 
   class Conditionals {
+    function els(param1:Object, param2:String, param3:String) : Boolean {
+      var _loc_4:Object = null;
+      if (param1 != null)
+      {
+          _loc_4 = param1[param2];
+          if (_loc_4 != null)
+          {
+              if (_loc_4[param3] != null)
+              {
+                  return true;
+              }
+              a();
+          }
+          b();
+      }
+      heys();
+      return false;
+    }
+
+    function els2(param1:Object, param2:String, param3:String) : Boolean {
+      var _loc_4:Object = null;
+      if (param1 != null)
+      {
+          _loc_4 = param1[param2];
+          if (_loc_4 != null)
+          {
+              if (_loc_4[param3] != null)
+              {
+                  return true;
+              }
+          }
+      }
+      heys();
+      return false;
+    }
+
     function b(a:Boolean) {
       if(a)
         return foo();
