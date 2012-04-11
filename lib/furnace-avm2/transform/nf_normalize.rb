@@ -18,13 +18,51 @@ module Furnace::AVM2
         end
       end
 
+      COERCE_MAP = {
+        :coerce_a => :any,
+        :coerce_b => :bool,
+        :coerce_s => :string,
+      }
+
+      def on_coerce_imm(node)
+        expr, = node.children
+        node.update(:coerce, [
+          COERCE_MAP[node.type],
+          expr
+        ])
+      end
+      alias :on_coerce_a :on_coerce_imm
+      alias :on_coerce_b :on_coerce_imm
+      alias :on_coerce_s :on_coerce_imm
+
+      CONVERT_MAP = {
+        :convert_i => :integer,
+        :convert_u => :unsigned,
+        :convert_d => :double,
+        :convert_s => :string,
+        :convert_o => :object,
+      }
+
+      def on_convert_imm(node)
+        expr, = node.children
+        node.update(:convert, [
+          CONVERT_MAP[node.type],
+          expr
+        ])
+      end
+      alias :on_convert_i :on_convert_imm
+      alias :on_convert_u :on_convert_imm
+      alias :on_convert_d :on_convert_imm
+      alias :on_convert_s :on_convert_imm
+      alias :on_convert_o :on_convert_imm
+
       ForInMatcher = AST::Matcher.new do
         [:while,
           [:has_next2, capture(:object_reg), capture(:index_reg)],
           [:begin,
             [:set_local, capture(:value_reg),
               [:coerce, capture(:value_type),
-                [:next_value,
+                [capture(:iterator),
                   [:get_local, backref(:object_reg)],
                   [:get_local, backref(:index_reg)]]]],
             capture_rest(:body)]]
@@ -36,13 +74,22 @@ module Furnace::AVM2
 
       ForInObjectMatcher = AST::Matcher.new do
         [:set_local, backref(:object_reg),
-          [:coerce_a,
+          [:coerce, any,
             capture(:root)]]
       end
 
       def on_while(node)
         if captures = ForInMatcher.match(node)
           parent = node.parent
+
+          case captures[:iterator]
+          when :next_name
+            type = :for_in
+          when :next_value
+            type = :for_each_in
+          else
+            return
+          end
 
           index_node = object_node = nil
 
@@ -62,7 +109,7 @@ module Furnace::AVM2
           index_node.update(:remove)
           object_node.update(:remove)
 
-          node.update(:for_in, [
+          node.update(type, [
             captures[:value_reg],
             captures[:value_type],
             captures[:object_reg],

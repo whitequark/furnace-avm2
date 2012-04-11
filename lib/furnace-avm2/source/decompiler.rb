@@ -71,12 +71,18 @@ module Furnace::AVM2
           nodes << token(WhileToken, handle_expression(condition),
             stmt_block(body))
 
-        when :for_in
+        when :for_in, :for_each_in
           value_reg, value_type, object_reg, body = opcode.children
 
           @locals.add(value_reg)
 
-          nodes << token(ForToken,
+          if opcode.type == :for_in
+            klass = ForToken
+          elsif opcode.type == :for_each_in
+            klass = ForEachToken
+          end
+
+          nodes << token(klass,
             token(InToken, [
               token(LocalVariableToken, [
                 token(VariableNameToken, local_name(value_reg)),
@@ -93,6 +99,9 @@ module Furnace::AVM2
 
         when :continue
           nodes << token(ContinueToken, exprs(opcode.children))
+
+        when :throw
+          nodes << token(ThrowToken, exprs(opcode.children))
 
         when :return_value, :return_void
           nodes << token(ReturnToken, exprs(opcode.children))
@@ -117,7 +126,7 @@ module Furnace::AVM2
       nodes << CommentToken.new(@body, comment, @options)
 
     ensure
-      unless $! && !$!.is_a?(ExpressionNotRecognized)
+      if $!.nil? || $!.is_a?(ExpressionNotRecognized)
         return token(ScopeToken, nodes,
           continuation: options[:continuation],
           function:     options[:function])
@@ -212,42 +221,35 @@ module Furnace::AVM2
       token(VariableNameToken, local_name(index))
     end
 
-    CONVERT_COERCE_MAP = {
-      :convert_i => 'int',
-      :convert_u => 'uint',
-      :convert_d => 'Number',
-      :convert_s => 'String',
-      :convert_o => 'Object',
-
-      :coerce_a  => '*',
-      :coerce_b  => 'Boolean',
-      :coerce_s  => 'String',
-    }
-
     IMMEDIATE_TYPE_MAP = {
+      :any       => '*',
       :integer   => 'int',
+      :unsigned  => 'uint',
       :string    => 'String',
       :double    => 'Number',
+      :object    => 'Object',
+      :bool      => 'Boolean',
       :true      => 'Boolean',
       :false     => 'Boolean',
     }
 
     def expr_set_var(name, value, declare)
-      if CONVERT_COERCE_MAP.include?(value.type)
-        inside = value.children.first
-        type   = token(TypeToken, [
-                   token(ImmediateTypenameToken, CONVERT_COERCE_MAP[value.type])
-                 ])
-      elsif IMMEDIATE_TYPE_MAP.include?(value.type)
+      if IMMEDIATE_TYPE_MAP.include?(value.type)
         inside = value
         type   = token(TypeToken, [
-                   token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[value.type])
-                 ])
-      elsif value.type == :coerce
+          token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[value.type])
+        ])
+      elsif value.type == :coerce || value.type == :convert
         inside_type, inside = value.children
-        type   = token(TypeToken, [
-                   token(MultinameToken, inside_type.metadata[:origin])
-                 ])
+        if IMMEDIATE_TYPE_MAP.include? inside_type
+          type = token(TypeToken, [
+            token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[inside_type])
+          ])
+        else
+          type = token(TypeToken, [
+            token(MultinameToken, inside_type.metadata[:origin])
+          ])
+        end
       else
         inside = value
         type   = nil
@@ -412,15 +414,7 @@ module Furnace::AVM2
 
     PropertyGlobal = Matcher.new do
       [any,
-        [:find_property,
-          capture(:multiname)],
-        backref(:multiname),
-        capture_rest(:arguments)]
-    end
-
-    PropertyStrict = Matcher.new do
-      [any,
-        [:find_property_strict,
+        [either[:find_property, :find_property_strict],
           capture(:multiname)],
         backref(:multiname),
         capture_rest(:arguments)]
@@ -432,8 +426,12 @@ module Furnace::AVM2
     end
 
     def expr_get_property(opcode)
-      subject, multiname, = opcode.children
-      get_name(expr(subject), multiname)
+      if captures = PropertyGlobal.match(opcode)
+        get_name(nil, captures[:multiname])
+      else
+        subject, multiname, = opcode.children
+        get_name(expr(subject), multiname)
+      end
     end
 
     def expr_get_super(opcode)
@@ -475,7 +473,7 @@ module Furnace::AVM2
     end
 
     def expr_do_property(opcode, klass)
-      if captures = PropertyStrict.match(opcode)
+      if captures = PropertyGlobal.match(opcode)
         token(klass, [
           get_name(nil, captures[:multiname]),
           token(ArgumentsToken, exprs(captures[:arguments]))
@@ -571,10 +569,6 @@ module Furnace::AVM2
       end
     end
 
-    def expr_throw(opcode)
-      token(ThrowToken, exprs(opcode.children))
-    end
-
     ## Types
 
     def expr_as_type_late(opcode)
@@ -598,29 +592,20 @@ module Furnace::AVM2
       ])
     end
 
-    def expr_passthrough(opcode)
-      expr(*opcode.children)
-    end
-    alias :expr_coerce_a :expr_passthrough
-    alias :expr_coerce_b :expr_passthrough
-    alias :expr_coerce_s :expr_passthrough
-
     def expr_coerce(opcode)
       typename, subject, = opcode.children
       expr(subject)
     end
 
     def expr_convert(opcode)
+      type, subject = opcode.children
       token(CallToken, [
-        token(ImmediateTypenameToken, CONVERT_COERCE_MAP[opcode.type]),
-        token(ArgumentsToken, exprs(opcode.children))
+        token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[type]),
+        token(ArgumentsToken, [
+          expr(subject)
+        ])
       ])
     end
-    alias :expr_convert_i :expr_convert
-    alias :expr_convert_u :expr_convert
-    alias :expr_convert_d :expr_convert
-    alias :expr_convert_s :expr_convert
-    alias :expr_convert_o :expr_convert
 
     private
 
