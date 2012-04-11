@@ -243,18 +243,19 @@ module Furnace::AVM2
       end
     end
 
+    XmlLiteralPreMatcher = Matcher.new do
+      [:coerce, [:q, "XML"], any]
+    end
+
     def expr_set_var(name, value, declare)
       if IMMEDIATE_TYPE_MAP.include?(value.type)
-        inside = value
-        type   = token(TypeToken, [
+        type = token(TypeToken, [
           token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[value.type])
         ])
       elsif value.type == :coerce || value.type == :convert
-        inside_type, inside = value.children
-        type = type_token(inside_type)
+        type = type_token(value.children.first)
       else
-        inside = value
-        type   = nil
+        type = nil
       end
 
       if declare
@@ -262,13 +263,13 @@ module Furnace::AVM2
           token(VariableNameToken, name),
           type,
           token(InitializationToken, [
-            expr(inside)
+            expr(value)
           ])
         ])
       else
         token(AssignmentToken, [
           token(VariableNameToken, name),
-          expr(inside)
+          expr(value)
         ])
       end
     end
@@ -608,11 +609,6 @@ module Furnace::AVM2
       ])
     end
 
-    def expr_coerce(opcode)
-      typename, subject, = opcode.children
-      expr(subject)
-    end
-
     def expr_convert(opcode)
       type, subject = opcode.children
       token(CallToken, [
@@ -621,6 +617,55 @@ module Furnace::AVM2
           expr(subject)
         ])
       ])
+    end
+
+    ## XML literals
+
+    # FFFUUUUUUUUUU~~~
+    XmlLiteralMatcher = Matcher.new do
+      [:coerce, [:q, "XML"],
+        [:construct,
+          either[
+            [:get_lex, [:q, "XML"]],
+            [:get_property,
+              [:find_property_strict, [:q, "XML"]], [:q, "XML"]]
+          ],
+          capture(:body),
+        ]
+      ]
+    end
+
+    def expr_coerce(opcode)
+      if captures = XmlLiteralMatcher.match(opcode)
+        # Oh, shit...
+        token(XmlLiteralToken,
+          xml_expr(captures[:body]))
+      else
+        typename, subject, = opcode.children
+        expr(subject)
+      end
+    end
+
+    def xml_expr(node)
+      if respond_to?(:"xml_#{node.type}")
+        send :"xml_#{node.type}", node
+      else
+        "{#{expr(node).to_text}}"
+      end
+    end
+
+    def xml_string(node)
+      node.children.first
+    end
+
+    def xml_add(node)
+      node.children.map do |child|
+        xml_expr child
+      end.join
+    end
+
+    def xml_esc_xattr(node)
+      xml_expr(node.children.first)
     end
 
     private

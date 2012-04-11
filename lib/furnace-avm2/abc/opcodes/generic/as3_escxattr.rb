@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3EscXAttr < Opcode
+  class AS3EscXattr < Opcode
     instruction 0x72
 
     consume 1
