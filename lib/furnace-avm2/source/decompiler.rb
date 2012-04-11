@@ -86,9 +86,7 @@ module Furnace::AVM2
             token(InToken, [
               token(LocalVariableToken, [
                 token(VariableNameToken, local_name(value_reg)),
-                token(TypeToken, [
-                  token(MultinameToken, value_type.metadata[:origin])
-                ]),
+                type_token(value_type)
               ]),
               token(VariableNameToken, local_name(object_reg)),
             ]),
@@ -233,6 +231,18 @@ module Furnace::AVM2
       :false     => 'Boolean',
     }
 
+    def type_token(type)
+      if IMMEDIATE_TYPE_MAP.include?(type)
+        token(TypeToken, [
+          token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[type])
+        ])
+      else
+        token(TypeToken, [
+          token(MultinameToken, type.metadata[:origin])
+        ])
+      end
+    end
+
     def expr_set_var(name, value, declare)
       if IMMEDIATE_TYPE_MAP.include?(value.type)
         inside = value
@@ -241,15 +251,7 @@ module Furnace::AVM2
         ])
       elsif value.type == :coerce || value.type == :convert
         inside_type, inside = value.children
-        if IMMEDIATE_TYPE_MAP.include? inside_type
-          type = token(TypeToken, [
-            token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[inside_type])
-          ])
-        else
-          type = token(TypeToken, [
-            token(MultinameToken, inside_type.metadata[:origin])
-          ])
-        end
+        type = type_token(inside_type)
       else
         inside = value
         type   = nil

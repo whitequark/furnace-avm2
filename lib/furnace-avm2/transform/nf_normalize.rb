@@ -61,7 +61,7 @@ module Furnace::AVM2
           [:has_next2, capture(:object_reg), capture(:index_reg)],
           [:begin,
             [:set_local, capture(:value_reg),
-              [:coerce, capture(:value_type),
+              [either[:coerce, :convert], capture(:value_type),
                 [capture(:iterator),
                   [:get_local, backref(:object_reg)],
                   [:get_local, backref(:index_reg)]]]],
@@ -74,8 +74,12 @@ module Furnace::AVM2
 
       ForInObjectMatcher = AST::Matcher.new do
         [:set_local, backref(:object_reg),
-          [:coerce, any,
+          [:coerce, :any,
             capture(:root)]]
+      end
+
+      SuperfluousContinueMatcher = AST::Matcher.new do
+        [:continue]
       end
 
       def on_while(node)
@@ -108,6 +112,10 @@ module Furnace::AVM2
 
           index_node.update(:remove)
           object_node.update(:remove)
+
+          if SuperfluousContinueMatcher.match captures[:body].last
+            captures[:body].slice! -1
+          end
 
           node.update(type, [
             captures[:value_reg],
