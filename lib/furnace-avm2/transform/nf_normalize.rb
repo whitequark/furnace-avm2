@@ -83,6 +83,10 @@ module Furnace::AVM2
       end
 
       def on_while(node)
+        if SuperfluousContinueMatcher.match node.children.last
+          node.children.slice! -1
+        end
+
         if captures = ForInMatcher.match(node)
           parent = node.parent
 
@@ -112,10 +116,6 @@ module Furnace::AVM2
 
           index_node.update(:remove)
           object_node.update(:remove)
-
-          if SuperfluousContinueMatcher.match captures[:body].last
-            captures[:body].slice! -1
-          end
 
           node.update(type, [
             captures[:value_reg],

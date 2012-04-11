@@ -86,8 +86,6 @@ module Furnace::AVM2
 
               # (while (condition)
               #   (body ...))
-              # (for-in '(var name) # to be done
-              #   (body ...))
               nodes << AST::Node.new(:while, [
                 expr,
                 body
