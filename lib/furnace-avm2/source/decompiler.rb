@@ -438,9 +438,16 @@ module Furnace::AVM2
 
     def expr_get_super(opcode)
       subject, multiname, = opcode.children
-      if This.match subject
-        get_name(token(SuperToken), multiname)
+
+      stmt = get_name(token(SuperToken), multiname)
+
+      unless This.match subject
+        stmt = token(SupplementaryCommentToken,
+          "subject != this: #{subject.inspect}",
+          [ stmt ])
       end
+
+      stmt
     end
 
     def expr_set_property(opcode)
@@ -461,12 +468,19 @@ module Furnace::AVM2
 
     def expr_set_super(opcode)
       subject, multiname, value = opcode.children
-      if This.match subject
-        token(AssignmentToken, [
-          get_name(token(SuperToken), multiname),
-          expr(value)
-        ])
+
+      stmt = token(AssignmentToken, [
+        get_name(token(SuperToken), multiname),
+        expr(value)
+      ])
+
+      unless This.match subject
+        stmt = token(SupplementaryCommentToken,
+          "subject != this: #{subject.inspect}",
+          [ stmt ])
       end
+
+      stmt
     end
 
     def expr_delete_property(opcode)

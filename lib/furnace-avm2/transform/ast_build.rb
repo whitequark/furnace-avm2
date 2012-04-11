@@ -139,7 +139,8 @@ module Furnace::AVM2
           elsif opcode.is_a?(ABC::AS3Dup)
             node = stack.last
 
-            if CONST_OPERATORS.include? node.type
+            if CONST_OPERATORS.include?(node.type) ||
+                  (node.type == :get_local && node.children.first == 0)
               dup_node = node.dup
               dup_node.metadata[:label] = opcode.offset
               produce.(dup_node)
