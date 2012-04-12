@@ -23,5 +23,54 @@ module Furnace::AVM2::ABC
     def root
       self
     end
+
+    def fix_names!
+      @name_set = Set.new(constant_pool.strings)
+
+      constant_pool.namespaces.each do |ns|
+        fix_name!(ns.name_idx, ns: true)
+      end
+
+      constant_pool.multinames.each do |multiname|
+        if [:QName, :QNameA,
+            :Multiname, :MultinameA,
+            :RTQName, :RTQMameA].include? multiname.kind
+          fix_name!(multiname.data.name_idx)
+        end
+      end
+    end
+
+    def fix_name!(name_idx, options={})
+      old_name = constant_pool.strings[name_idx]
+      return if ["", "*"].include? old_name
+
+      fixed_name = sanitize_name(old_name, options)
+
+      if old_name != fixed_name
+        index = 0
+        indexed_name = fixed_name
+        while @name_set.include? indexed_name
+          indexed_name = "#{fixed_name}_i#{index}"
+          index += 1
+        end
+
+        constant_pool.strings[name_idx] = indexed_name
+      end
+
+      puts "#{old_name} => #{indexed_name || fixed_name}"
+    end
+
+    def sanitize_name(name, options={})
+      if options[:ns]
+        name.split('.').map do |part|
+          sanitize_name(part)
+        end.reject do |part|
+          part.empty?
+        end.join('.')
+      else
+        name.gsub(/^[^a-zA-Z_$]+/, '').
+          gsub(/[^a-zA-Z_$0-9]+/, '')
+      end
+    end
   end
 end

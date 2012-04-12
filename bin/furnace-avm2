@@ -38,6 +38,7 @@ EOS
   opt :cfg,           "Emit CFG in Graphviz format for methods",    :default => false, :short => '-C'
 
   opt :dce,           "Eliminate dead code",                        :default => false
+  opt :fix_names,     "Remove invalid characters from names",       :default => true,  :short => '-q'
   opt :ast,           "Build AST",                                  :default => false
   opt :nf,            "Build NF-AST",                               :default => false
   opt :decompile,     "Decompile methods",                          :default => false
@@ -76,6 +77,10 @@ end
 failed = []
 dced = []
 smallest = nil
+
+if opts[:fix_names]
+  abc.fix_names!
+end
 
 if opts[:grep]
   regexp = Regexp.new(opts[:grep])

@@ -29,6 +29,17 @@ module Furnace::AVM2::ABC
             root.constant_pool.send(array)[index - 1]
           end
         end
+
+        define_method(:"#{name}=") do |value|
+          pool = root.constant_pool.send(array)
+          if value.nil?
+            send(:"#{field}=", 0)
+          elsif index = pool.index(value)
+            send(:"#{field}=", index + 1)
+          else
+            raise "cpool setter: no such object in cpool"
+          end
+        end
       end
     end
 

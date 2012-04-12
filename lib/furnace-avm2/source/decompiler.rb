@@ -439,9 +439,17 @@ module Furnace::AVM2
 
     PropertyGlobal = Matcher.new do
       [any,
-        [either[:find_property, :find_property_strict],
-          capture(:multiname)],
-        backref(:multiname),
+        either_multi[
+          [
+            [ either[:find_property, :find_property_strict],
+                  capture(:multiname)],
+            backref(:multiname),
+          ],
+          [
+            [:get_scope_object, 0],
+            capture(:multiname)
+          ],
+        ],
         capture_rest(:arguments)]
     end
 
