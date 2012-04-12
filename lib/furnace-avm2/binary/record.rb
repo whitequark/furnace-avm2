@@ -260,7 +260,7 @@ module Furnace::AVM2::Binary
     end
 
     def length_vint32(value, options)
-      length_vint(value)
+      length_vint(value, true)
     end
 
     # vuint32
@@ -270,11 +270,11 @@ module Furnace::AVM2::Binary
     end
 
     def write_vuint32(io, value, options)
-      write_vint(io, value, true)
+      write_vint(io, value, false)
     end
 
     def length_vuint32(value, options)
-      length_vint(value)
+      length_vint(value, false)
     end
 
     # vuint30
@@ -284,11 +284,11 @@ module Furnace::AVM2::Binary
     end
 
     def write_vuint30(io, value, options)
-      write_vint(io, value, true)
+      write_vint(io, value, false)
     end
 
     def length_vuint30(value, options)
-      length_vint(value)
+      length_vint(value, false)
     end
 
     # vstring
@@ -468,7 +468,9 @@ module Furnace::AVM2::Binary
       io.write bytes.pack("C*")
     end
 
-    def length_vint(value)
+    def length_vint(value, signed)
+      value = value & 0xffffffff
+
       length = 0
 
       begin
