@@ -60,8 +60,6 @@ module Furnace::AVM2::ABC
 
         constant_pool.strings[name_idx - 1] = indexed_name
       end
-
-      puts "#{old_name} => #{indexed_name || fixed_name}"
     end
 
     def sanitize_name(name, options={})
