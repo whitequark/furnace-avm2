@@ -5,7 +5,9 @@ module Furnace::AVM2::Tokens
         ns.name == "" || ns.name == "*"
       }
 
-      import_ns = options[:ns]
+      import_ns = options[:ns].reject { |ns|
+        ns == options[:package_name].ns
+      }
 
       super(origin, [
         (PackageNameToken.new(origin, options[:package_name].ns.name, options) if options[:package_name]),
