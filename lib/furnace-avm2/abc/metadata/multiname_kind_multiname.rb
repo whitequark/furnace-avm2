@@ -11,8 +11,17 @@ module Furnace::AVM2::ABC
       AST::Node.new(:m, [ ns_set.to_astlet, name ])
     end
 
-    def collect_ns
-      ns_set.ns
+    def collect_ns(options)
+      ns = ns_set.ns[0]
+      return if options[:no_ns].include?(ns)
+
+      names = options[:names]
+      if names[name].nil?
+        options[:ns].add ns
+        names[name] = ns
+      elsif names[name] != ns
+        options[:no_ns].add ns
+      end
     end
 
     def context_size

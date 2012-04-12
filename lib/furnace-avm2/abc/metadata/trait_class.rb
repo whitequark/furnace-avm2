@@ -7,8 +7,8 @@ module Furnace::AVM2::ABC
       AST::Node.new(:class, [trait.name.to_astlet, klass.instance.name.to_astlet])
     end
 
-    def collect_ns
-      []
+    def collect_ns(options)
+      # dummy
     end
   end
 end

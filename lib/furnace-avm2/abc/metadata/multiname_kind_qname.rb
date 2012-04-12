@@ -37,8 +37,16 @@ module Furnace::AVM2::ABC
       end
     end
 
-    def collect_ns
-      [ ns ]
+    def collect_ns(options)
+      return if options[:no_ns].include?(ns)
+
+      names = options[:names]
+      if names[name].nil?
+        options[:ns].add ns
+        names[name] = ns
+      elsif names[name] != ns
+        options[:no_ns].add ns
+      end
     end
 
     def context_size

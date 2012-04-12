@@ -1,15 +1,11 @@
 module Furnace::AVM2::Tokens
   class PackageToken < Furnace::Code::NonterminalToken
     def initialize(origin, options={})
-      options[:ns] = options[:ns].uniq.reject { |ns|
+      options[:ns] = options[:ns].reject { |ns|
         ns.name == "" || ns.name == "*"
       }
 
       import_ns = options[:ns]
-
-      if options[:package_name]
-        options[:ns] = (options[:ns] + [ options[:package_name].ns ]).uniq
-      end
 
       super(origin, [
         (PackageNameToken.new(origin, options[:package_name].ns.name, options) if options[:package_name]),

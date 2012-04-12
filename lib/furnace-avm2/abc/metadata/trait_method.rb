@@ -11,8 +11,8 @@ module Furnace::AVM2::ABC
       method.to_astlet(method_idx, trait.name.to_astlet)
     end
 
-    def collect_ns
-      method.collect_ns
+    def collect_ns(options)
+      method.collect_ns(options)
     end
   end
 end

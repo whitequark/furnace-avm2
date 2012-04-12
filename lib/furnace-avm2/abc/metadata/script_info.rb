@@ -7,17 +7,20 @@ module Furnace::AVM2::ABC
     abc_array_of :trait, :nested, :class => TraitInfo
 
     def collect_ns
-      ns = []
-      ns += initializer.collect_ns if initializer
-      traits.each { |trait| ns += trait.collect_ns }
-      ns
+      options = { ns: Set.new([ non_init_traits[0].name ]), no_ns: Set.new, names: {} }
+
+      initializer.collect_ns(options) if initializer
+      traits.each { |trait| trait.collect_ns(options) }
+
+      options
     end
 
     def decompile(options={})
       Furnace::AVM2::Tokens::PackageToken.new(self,
-            options.merge(ns: collect_ns,
-                package_type: :script,
-                package_name: non_init_traits[0].name))
+            options.merge(collect_ns).merge(
+              package_type: :script,
+              package_name: non_init_traits[0].name)
+            )
     end
 
     def any_code?

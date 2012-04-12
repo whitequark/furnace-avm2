@@ -55,10 +55,9 @@ module Furnace::AVM2::ABC
       root.normalize_hierarchy!
     end
 
-    def collect_ns
-      ns = param_types.compact.map(&:collect_ns).reduce([], :+)
-      ns += return_type.collect_ns if return_type
-      ns
+    def collect_ns(options)
+      param_types.compact.each { |type| type.collect_ns(options) }
+      return_type.collect_ns(options) if return_type
     end
   end
 end

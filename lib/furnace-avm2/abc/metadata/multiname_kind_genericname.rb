@@ -12,8 +12,9 @@ module Furnace::AVM2::ABC
       AST::Node.new(:generic, [ name.to_astlet, parameters.map(&:to_astlet) ])
     end
 
-    def collect_ns
-      [ *name.collect_ns, *parameters.map(&:collect_ns).reduce([], :+) ]
+    def collect_ns(options)
+      name.collect_ns(options)
+      parameters.each { |type| type.collect_ns(options) }
     end
   end
 end

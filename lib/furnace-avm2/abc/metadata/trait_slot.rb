@@ -14,9 +14,9 @@ module Furnace::AVM2::ABC
       AST::Node.new(:slot, [ (trait.name ? trait.name.to_astlet : nil), (type ? type.to_astlet : nil), value, idx ])
     end
 
-    def collect_ns
+    def collect_ns(options)
       if type
-        type.collect_ns
+        type.collect_ns(options)
       else
         []
       end
