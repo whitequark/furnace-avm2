@@ -7,8 +7,7 @@ module Furnace::AVM2::Tokens
         *header,
         *declaration(origin, options),
         (Furnace::AVM2::Decompiler.new(@body, options).decompile if @body),
-        (Furnace::Code::NewlineToken.new(origin, options) \
-                    unless options[:package_type] == :interface)
+        (Furnace::Code::NewlineToken.new(origin, options) if @body)
       ], options)
 
       if options[:debug_funids]
@@ -54,7 +53,7 @@ module Furnace::AVM2::Tokens
 
       if @method.needs_rest?
         args << ArgumentDeclarationToken.new(origin, [
-          RestArgumentToken.new(origin, "rest", options)
+          RestArgumentToken.new(origin, "local0", options)
         ], options)
       end
 
