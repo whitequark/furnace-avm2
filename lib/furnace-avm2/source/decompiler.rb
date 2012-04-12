@@ -616,7 +616,7 @@ module Furnace::AVM2
         token(CallToken, [
           subject_token,
           token(ArgumentsToken, [
-            token(VariableNameToken, "this"),
+            token(VariableNameToken, local_name(0)),
             *exprs(args)
           ])
         ])
