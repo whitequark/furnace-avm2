@@ -33,6 +33,8 @@ EOS
   opt :except,        "Operate on all classes except <s+>",         :type => :strings, :short => '-E'
   opt :grep,          "Search <s> (regexp) in class names",         :type => :string,  :short => '-G'
 
+  opt :no_output,     "Don't write out any code",                   :default => false
+
   opt :decompile,     "Write ActionScript 3 code",                  :type => :boolean, :short => '-d'
   opt :destructurize, "Write internal token structure",             :type => :boolean, :short => '-s'
 end
@@ -107,13 +109,17 @@ stick       = %w(| / - \\)
 stick_state = 0
 stick_timer = 0
 
-progress = lambda do
-  stick_timer += 1
-  if stick_timer % 10 == 0
-    $stderr.print "\e[KDecompiling... #{total_size - workqueue.size}/#{total_size} "
-    $stderr.print stick[stick_state]
-    $stderr.print "\e[0G"
-    stick_state = (stick_state + 1) % stick.count
+progress_thread = Thread.new do
+  loop do
+    stick_timer += 1
+    if stick_timer % 10 == 0
+      $stderr.print "\e[KDecompiling... #{total_size - workqueue.size}/#{total_size} "
+      $stderr.print stick[stick_state]
+      $stderr.print "\e[0G"
+      stick_state = (stick_state + 1) % stick.count
+    end
+
+    sleep
   end
 end
 
@@ -158,7 +164,7 @@ opts[:threads].times.map do
         roots[ns.to_s] ||= []
         roots[ns.to_s] << text
 
-        progress.()
+        progress_thread.wakeup
       end
     end
   end
@@ -179,7 +185,9 @@ end
 
 $stderr.puts "Time taken: #{"%.2f" % (end_time - start_time)}s"
 
-roots.values.flatten.each do |code|
-  puts code.gsub(/^\s+/, '')
-  puts
+unless opts[:no_output]
+  roots.values.flatten.each do |code|
+    puts code.gsub(/ +$/, '')
+    puts
+  end
 end
