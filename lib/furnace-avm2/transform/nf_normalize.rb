@@ -87,8 +87,9 @@ module Furnace::AVM2
       end
 
       def on_while(node)
-        if SuperfluousContinueMatcher.match node.children.last
-          node.children.slice! -1
+        *whatever, code = node.children
+        if SuperfluousContinueMatcher.match code.children.last
+          code.children.slice! -1
         end
 
         if captures = ForInMatcher.match(node)
