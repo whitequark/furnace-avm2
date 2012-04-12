@@ -19,8 +19,9 @@ module Furnace::AVM2::Tokens
           },
           (Furnace::Code::NewlineToken.new(origin, options) if import_ns.any?),
           (case options[:package_type]
-           when :class;  ClassToken.new(origin, options)
-           when :script; ScriptToken.new(origin, options)
+           when :class;     ClassToken.new(origin, options)
+           when :interface; ClassToken.new(origin, options)
+           when :script;    ScriptToken.new(origin, options)
            end)
         ], options)
       ], options)

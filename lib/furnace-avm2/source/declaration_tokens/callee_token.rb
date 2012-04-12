@@ -7,7 +7,8 @@ module Furnace::AVM2::Tokens
         *header,
         *declaration(origin, options),
         (Furnace::AVM2::Decompiler.new(@body, options).decompile if @body),
-        Furnace::Code::NewlineToken.new(origin, options)
+        (Furnace::Code::NewlineToken.new(origin, options) \
+                    unless options[:package_type] == :interface)
       ], options)
 
       if options[:debug_funids]

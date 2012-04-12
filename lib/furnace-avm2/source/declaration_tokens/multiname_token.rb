@@ -28,7 +28,8 @@ module Furnace::AVM2::Tokens
           if @multiname.ns_set.ns.count == 1
             qualified_name.(@multiname.ns_set.ns[0])
           else
-            "#{debug}%%Multiname"
+            "/* #{@multiname.to_astlet.to_sexp} */ " +
+                qualified_name.(@multiname.ns_set.ns[0])
           end
         else
           "#{debug}%%#{@multiname.kind}"
