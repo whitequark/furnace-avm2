@@ -3,7 +3,11 @@ module Furnace::AVM2::Tokens
     include TokenWithTraits
 
     def initialize(origin, options={})
-      options = options.merge(environment: :class)
+      if origin.interface?
+        options = options.merge(environment: :interface)
+      else
+        options = options.merge(environment: :class)
+      end
 
       super(origin, [
         ClassSpecifiersToken.new(origin, options),

@@ -7,7 +7,11 @@ module Furnace::AVM2::Tokens
     end
 
     def text_before
-      "implements "
+      if @options[:environment] == :interface
+        "extends "
+      else
+        "implements "
+      end
     end
 
     def text_between

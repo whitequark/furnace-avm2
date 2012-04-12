@@ -59,19 +59,24 @@ module Furnace::AVM2::ABC
         end
 
         constant_pool.strings[name_idx - 1] = indexed_name
+
+        puts "#{old_name} => #{fixed_name}"
       end
     end
 
     def sanitize_name(name, options={})
       if options[:ns]
+        return name if name.start_with? "http://"
+
         name.split('.').map do |part|
-          sanitize_name(part)
+          part.gsub(/^[^a-zA-Z_$]+/, '').
+            gsub(/[^a-zA-Z_$0-9:]+/, '')
         end.reject do |part|
           part.empty?
         end.join('.')
       else
         name.gsub(/^[^a-zA-Z_$]+/, '').
-          gsub(/[^a-zA-Z_$0-9]+/, '')
+          gsub(/[^a-zA-Z_$0-9:]+/, '')
       end
     end
 

@@ -172,15 +172,19 @@ end.each(&:join)
 
 end_time = Time.now
 
-$stderr.puts
+if stat[:total] > 0
+  $stderr.puts
 
-{ "Decompiled"           => :success,
-  "Partially decompiled" => :partial,
-  "Failed"               => :failed,
-}.each do |facet_name, facet|
-  $stderr.puts "#{facet_name.rjust(21)}: " \
-      "#{stat[facet]}/#{stat[:total]} " \
-      "(#{(stat[facet].to_f * 100 / stat[:total]).to_i}%)"
+  { "Decompiled"           => :success,
+    "Partially decompiled" => :partial,
+    "Failed"               => :failed,
+  }.each do |facet_name, facet|
+    $stderr.puts "#{facet_name.rjust(21)}: " \
+        "#{stat[facet]}/#{stat[:total]} " \
+        "(#{(stat[facet].to_f * 100 / stat[:total]).to_i}%)"
+  end
+else
+  $stderr.puts "No methods were processed."
 end
 
 $stderr.puts "Time taken: #{"%.2f" % (end_time - start_time)}s"
