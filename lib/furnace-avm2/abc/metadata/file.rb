@@ -45,7 +45,7 @@ module Furnace::AVM2::ABC
     end
 
     def fix_name!(name_idx, options={})
-      old_name = constant_pool.strings[name_idx]
+      old_name = constant_pool.strings[name_idx - 1]
       return if ["", "*"].include? old_name
 
       fixed_name = sanitize_name(old_name, options)
@@ -58,7 +58,7 @@ module Furnace::AVM2::ABC
           index += 1
         end
 
-        constant_pool.strings[name_idx] = indexed_name
+        constant_pool.strings[name_idx - 1] = indexed_name
       end
 
       puts "#{old_name} => #{indexed_name || fixed_name}"
