@@ -58,9 +58,9 @@ module Furnace::AVM2::ABC
           index += 1
         end
 
-        constant_pool.strings[name_idx - 1] = indexed_name
+        @name_set.add indexed_name
 
-        puts "#{old_name} => #{fixed_name}"
+        constant_pool.strings[name_idx - 1] = indexed_name
       end
     end
 
