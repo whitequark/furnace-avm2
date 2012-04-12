@@ -18,6 +18,10 @@ module Furnace::AVM2
         end
       end
 
+      def on_nop(node)
+        node.update(:remove)
+      end
+
       COERCE_MAP = {
         :coerce_a => :any,
         :coerce_b => :bool,
