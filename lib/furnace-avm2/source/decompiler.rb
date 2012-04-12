@@ -202,7 +202,11 @@ module Furnace::AVM2
       if index < 0
         "sp#{-index}"
       elsif index == 0
-        "this"
+        if @options[:static]
+          @options[:instance].name.name
+        else
+          "this"
+        end
       elsif index <= @method.param_count
         if @method.has_param_names?
           @method.param_names[index - 1]
