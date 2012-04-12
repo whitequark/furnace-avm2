@@ -23,7 +23,10 @@ module Furnace::AVM2
         @nf = @body.code_to_nf
 
         stmt_block @nf, function: true
+
       rescue Exception => e
+        @failed = true
+
         comment = "'Ouch!' cried I, then died.\n" +
           "#{e.class}: #{e.message}\n" +
           "#{e.backtrace[0..5].map { |l| "    #{l}\n"}.join}" +
@@ -32,6 +35,19 @@ module Furnace::AVM2
         token(ScopeToken, [
           token(CommentToken, comment)
         ], function: true)
+
+      ensure
+        if stat = @options[:stat]
+          stat[:total] += 1
+
+          if @failed
+            stat[:failed]  += 1
+          elsif @partial
+            stat[:partial] += 1
+          else
+            stat[:success] += 1
+          end
+        end
       end
     end
 
@@ -112,6 +128,8 @@ module Furnace::AVM2
       end
 
     rescue ExpressionNotRecognized => e
+      @partial = true
+
       comment = "Well, this is embarassing.\n\n" +
         "Expression recognizer failed at:\n" +
         "#{e.opcode.inspect}\n"

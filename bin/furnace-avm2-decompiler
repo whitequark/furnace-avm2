@@ -84,6 +84,8 @@ if opts[:grep]
   exit
 end
 
+start_time = Time.now
+
 mutex = Mutex.new
 
 roots      = {}
@@ -92,7 +94,28 @@ total_size = workqueue.size
 
 last_percentage = 0
 
-$stderr.puts "Decompiling #{total_size} classes and packages..."
+stat = {
+  total:   0,
+  success: 0,
+  partial: 0,
+  failed:  0,
+}
+
+$stderr.puts "Found #{total_size} classes and packages."
+
+stick       = %w(| / - \\)
+stick_state = 0
+stick_timer = 0
+
+progress = lambda do
+  stick_timer += 1
+  if stick_timer % 10 == 0
+    $stderr.print "\e[KDecompiling... #{total_size - workqueue.size}/#{total_size} "
+    $stderr.print stick[stick_state]
+    $stderr.print "\e[0G"
+    stick_state = (stick_state + 1) % stick.count
+  end
+end
 
 opts[:threads].times.map do
   Thread.new do
@@ -100,12 +123,6 @@ opts[:threads].times.map do
       what = nil
       mutex.synchronize do
         what = workqueue.pop
-
-        percentage = (total_size - workqueue.size) * 100 / total_size
-        if percentage >= last_percentage
-          $stderr.print " #{percentage}% (#{total_size - workqueue.size}) "
-          last_percentage += 10
-        end
       end
 
       break if what.nil?
@@ -119,23 +136,50 @@ opts[:threads].times.map do
       end
       next if shound_skip.(name)
 
-      source = what.decompile(decompile_options)
+      options = decompile_options.merge(
+        stat: {
+          total:   0,
+          success: 0,
+          partial: 0,
+          failed:  0,
+        }
+      )
+
+      source = what.decompile(options)
       next unless source
 
       text = source.to_text
 
       mutex.synchronize do
-        $stderr.print "."
+        options[:stat].each do |facet, value|
+          stat[facet] += value
+        end
+
         roots[ns.to_s] ||= []
         roots[ns.to_s] << text
+
+        progress.()
       end
     end
   end
 end.each(&:join)
 
+end_time = Time.now
+
 $stderr.puts
 
+{ "Decompiled"           => :success,
+  "Partially decompiled" => :partial,
+  "Failed"               => :failed,
+}.each do |facet_name, facet|
+  $stderr.puts "#{facet_name.rjust(21)}: " \
+      "#{stat[facet]}/#{stat[:total]} " \
+      "(#{(stat[facet].to_f * 100 / stat[:total]).to_i}%)"
+end
+
+$stderr.puts "Time taken: #{"%.2f" % (end_time - start_time)}s"
+
 roots.values.flatten.each do |code|
-  puts code
+  puts code.gsub(/^\s+/, '')
   puts
 end
