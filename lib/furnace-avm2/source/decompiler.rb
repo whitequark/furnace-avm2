@@ -53,77 +53,16 @@ module Furnace::AVM2
 
     # Statements
 
-    Prologue = Matcher.new do
-      [:push_scope,
-        [:get_local, 0]]
-    end
-
     def stmt_block(block, options={})
       nodes = []
 
       block.children.each do |opcode|
-        if (opcode.type == :push_scope && Prologue.match(opcode))
-          # Ignore these
-          next
-        end
-
-        case opcode.type
-        when :if
-          condition, if_true, if_false = opcode.children
-
-          nodes << token(IfToken, handle_expression(condition),
-            stmt_block(if_true, continuation: !if_false.nil?))
-          nodes << token(ElseToken,
-            stmt_block(if_false)) if if_false
-
-        when :label
-          name, = opcode.children
-
-          nodes << token(LabelDeclarationToken, name)
-
-        when :while
-          condition, body = opcode.children
-
-          nodes << token(WhileToken, handle_expression(condition),
-            stmt_block(body))
-
-        when :for_in, :for_each_in
-          value_reg, value_type, object_reg, body = opcode.children
-
-          @locals.add(value_reg)
-
-          if opcode.type == :for_in
-            klass = ForToken
-          elsif opcode.type == :for_each_in
-            klass = ForEachToken
-          end
-
-          nodes << token(klass,
-            token(InToken, [
-              token(LocalVariableToken, [
-                token(VariableNameToken, local_name(value_reg)),
-                type_token(value_type)
-              ]),
-              token(VariableNameToken, local_name(object_reg)),
-            ]),
-            stmt_block(body))
-
-        when :break
-          nodes << token(ReturnToken, exprs(opcode.children))
-
-        when :continue
-          nodes << token(ContinueToken, exprs(opcode.children))
-
-        when :throw
-          nodes << token(ThrowToken, exprs(opcode.children))
-
-        when :return_value, :return_void
-          nodes << token(ReturnToken, exprs(opcode.children))
-
+        if respond_to?(:"stmt_#{opcode.type}")
+          send :"stmt_#{opcode.type}", opcode, nodes
         else
-          node = handle_expression(opcode)
-          node = token(StatementToken, [node])
-          nodes << node
+          nodes << token(StatementToken, [
+            handle_expression(opcode)
+          ])
         end
       end
 
@@ -148,6 +87,81 @@ module Furnace::AVM2
           function:     options[:function])
       end
     end
+
+    Prologue = Matcher.new do
+      [:push_scope,
+        [:get_local, 0]]
+    end
+
+    def stmt_push_scope(opcode, nodes)
+      unless Prologue.match(opcode)
+        raise "invalid push_scope"
+      end
+    end
+
+    def stmt_if(opcode, nodes)
+      condition, if_true, if_false = opcode.children
+
+      nodes << token(IfToken, handle_expression(condition),
+        stmt_block(if_true, continuation: !if_false.nil?))
+      nodes << token(ElseToken,
+        stmt_block(if_false)) if if_false
+    end
+
+    def stmt_label(opcode, nodes)
+      name, = opcode.children
+
+      nodes << token(LabelDeclarationToken, name)
+    end
+
+    def stmt_while(opcode, nodes)
+      condition, body = opcode.children
+
+      nodes << token(WhileToken, handle_expression(condition),
+        stmt_block(body))
+    end
+
+    def stmt_for(opcode, nodes)
+      value_reg, value_type, object_reg, body = opcode.children
+
+      @locals.add(value_reg)
+
+      if opcode.type == :for_in
+        klass = ForToken
+      elsif opcode.type == :for_each_in
+        klass = ForEachToken
+      end
+
+      nodes << token(klass,
+        token(InToken, [
+          token(LocalVariableToken, [
+            token(VariableNameToken, local_name(value_reg)),
+            type_token(value_type)
+          ]),
+          token(VariableNameToken, local_name(object_reg)),
+        ]),
+        stmt_block(body))
+    end
+    alias :stmt_for_in      :stmt_for
+    alias :stmt_for_each_in :stmt_for
+
+    def stmt_break(opcode, nodes)
+      nodes << token(ReturnToken, exprs(opcode.children))
+    end
+
+    def stmt_continue(opcode, nodes)
+      nodes << token(ContinueToken, exprs(opcode.children))
+    end
+
+    def stmt_throw(opcode, nodes)
+      nodes << token(ThrowToken, exprs(opcode.children))
+    end
+
+    def stmt_return(opcode, nodes)
+      nodes << token(ReturnToken, exprs(opcode.children))
+    end
+    alias :stmt_return_value :stmt_return
+    alias :stmt_return_void  :stmt_return
 
     # Expressions
 

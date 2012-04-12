@@ -24,6 +24,10 @@ module Furnace::AVM2::ABC
       self
     end
 
+    def method_body_at(index)
+      @method_body_indexes[index]
+    end
+
     def fix_names!
       @name_set = Set.new(constant_pool.strings)
 
@@ -70,6 +74,15 @@ module Furnace::AVM2::ABC
       else
         name.gsub(/^[^a-zA-Z_$]+/, '').
           gsub(/[^a-zA-Z_$0-9]+/, '')
+      end
+    end
+
+    protected
+
+    def after_read(io)
+      @method_body_indexes = {}
+      method_bodies.each do |body|
+        @method_body_indexes[body.method_idx] = body
       end
     end
   end

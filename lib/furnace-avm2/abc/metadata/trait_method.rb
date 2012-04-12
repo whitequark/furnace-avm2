@@ -4,7 +4,7 @@ module Furnace::AVM2::ABC
     root_ref :method
 
     def body
-      root.method_bodies.find { |body| body.method_idx == method_idx }
+      root.method_body_at(method_idx)
     end
 
     def to_astlet(trait)
