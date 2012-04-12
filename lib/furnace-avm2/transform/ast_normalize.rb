@@ -42,7 +42,7 @@ module Furnace::AVM2
         :lt        => [false, :<],
         :nlt       => [true,  :<],
         :strict_eq => [false, :===],
-        :strict_ne => [false, :"!=="],
+        :strict_ne => [true,  :===], # Why? Because of (lookup-switch ...).
         :true      => [false, :expand],
         :false     => [true,  :expand]
       }
@@ -94,7 +94,6 @@ module Furnace::AVM2
       def replace_with_nop(node)
         node.update(:nop)
       end
-      alias :on_label       :replace_with_nop
       alias :on_debug       :replace_with_nop
       alias :on_debug_file  :replace_with_nop
       alias :on_debug_line  :replace_with_nop

@@ -54,7 +54,10 @@ module Furnace::AVM2
           end
 
           if block.cti
-            if @loops.include?(block)
+            if block.cti.type == :lookup_switch
+              # this is a switch
+
+            elsif @loops.include?(block)
               # we're trapped in a strange loop
               reverse = !block.cti.children[0]
               in_root, out_root = block.targets

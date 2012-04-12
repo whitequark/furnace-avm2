@@ -14,7 +14,7 @@ module Furnace::AVM2::ABC
     attr_accessor :default_target, :case_targets
 
     def parameters
-      [ body.default_offset ].concat(body.case_offsets)
+      [ @default_target.offset, @case_targets.map(&:offset) ]
     end
 
     def resolve!

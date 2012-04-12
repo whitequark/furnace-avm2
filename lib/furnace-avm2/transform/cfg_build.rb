@@ -5,14 +5,15 @@ module Furnace::AVM2
 
       def transform(ast)
         @ast = ast
+
+        @jumps = Set.new
+
         visit @ast
 
         @cfg = CFG::Graph.new
 
         @pending_label = nil
         @pending_queue = []
-
-        @jumps = []
 
         @ast.children.each_with_index do |node, index|
           @pending_label ||= node.metadata[:label]
@@ -22,16 +23,25 @@ module Furnace::AVM2
           next_label = next_node.metadata[:label] if next_node
 
           case node.type
+          when :label
+            @jumps.add node.children.first
+            node.update :nop
+
           when :return_value, :return_void
             cutoff(nil, [nil])
 
           when :jump
-            @jumps << node.children[0]
-            cutoff(nil, [node.children.delete_at(0)])
+            @jumps.add(node.children[0])
+            cutoff(nil, [ node.children.delete_at(0) ])
 
           when :jump_if
-            @jumps << node.children[1]
-            cutoff(node, [node.children.delete_at(1), next_label])
+            @jumps.add(node.children[1])
+            cutoff(node, [ node.children.delete_at(1), next_label ])
+
+          when :lookup_switch
+            jumps_to = [ node.children[0] ] + node.children[1]
+            @jumps.merge(jumps_to)
+            cutoff(node, jumps_to)
 
           else
             if @jumps.include? next_label
