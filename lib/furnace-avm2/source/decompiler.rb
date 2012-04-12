@@ -99,6 +99,10 @@ module Furnace::AVM2
       end
     end
 
+    def stmt_nop(opcode, nodes)
+      # ignore
+    end
+
     def stmt_if(opcode, nodes)
       condition, if_true, if_false = opcode.children
 
