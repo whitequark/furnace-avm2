@@ -46,13 +46,30 @@ module Furnace::AVM2
         :true      => [false, :expand],
         :false     => [true,  :expand]
       }
+
+      def transform_conditional(node, comp, reverse)
+        node.update(comp)
+        node.parent.children[0] = !node.parent.children[0] if reverse
+      end
+
       IF_MAPPING.each do |cond, (reverse, comp)|
         define_method :"on_if_#{cond}" do |node|
-          node.update(comp)
-          node.parent.children[0] = !node.parent.children[0] if reverse
-
-          if node.parent.type == :ternary_if && comp == :expand
+          if node.parent.type == :jump_if || comp != :expand
+            # Parent is a conditional, or this is an explicit comparsion.
+            transform_conditional(node, comp, reverse)
+          elsif node.parent.type == :ternary_if && node.index == 0 && comp == :expand
+            # Parent is a comparsion-less ternary operator, and this
+            # node is in condition position.
+            transform_conditional(node, comp, reverse)
             node.parent.update(:ternary_if_boolean)
+          else
+            # This is an implicit comparsion, and the immediate parent
+            # is not a conditional or a ternary operator. Turn this
+            # node into a ternary operator.
+            node.update(:ternary_if_boolean, [
+              !comp, *node.children
+            ])
+            on_ternary_if_boolean(node)
           end
         end
       end

@@ -102,8 +102,8 @@ module Furnace::AVM2
             puts "opcode: #{opcode.inspect}"
           end
 
-          finalize_complex_expr.(opcode, shortjump, [ :and, :or ], 1)
           finalize_complex_expr.(opcode, ternary, CONDITIONAL_OPERATORS, nil, [:ternary_if, false])
+          finalize_complex_expr.(opcode, shortjump, [ :and, :or ], 1)
 
           if dup == 1 && (opcode.is_a?(ABC::AS3CoerceB) ||
                   opcode.is_a?(ABC::AS3IfTrue) || opcode.is_a?(ABC::AS3IfFalse))
