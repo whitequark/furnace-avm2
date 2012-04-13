@@ -7,6 +7,7 @@ module Furnace::AVM2::Tokens
       list << "final"    if @origin.final? && !@options[:static]
       list << "override" if @origin.override? && !super_list.include?("private")
       list.concat super_list
+      list << "native"   if @origin.body.nil? && @options[:environment] != :interface
       list
     end
   end
