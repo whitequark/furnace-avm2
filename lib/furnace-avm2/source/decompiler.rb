@@ -41,6 +41,7 @@ module Furnace::AVM2
     def decompile
       begin
         @locals = Set.new([0]) + (1..@method.param_count).to_a
+        @scopes = []
 
         @nf = @body.code_to_nf
 
@@ -97,9 +98,11 @@ module Furnace::AVM2
         if respond_to?(:"stmt_#{opcode.type}")
           send :"stmt_#{opcode.type}", opcode, nodes
         else
-          nodes << token(StatementToken, [
-            handle_expression(opcode)
-          ])
+          catch(:skip) do
+            nodes << token(StatementToken, [
+              handle_expression(opcode)
+            ])
+          end
         end
       end
 
@@ -188,6 +191,22 @@ module Furnace::AVM2
     end
     alias :stmt_return_value :stmt_return
     alias :stmt_return_void  :stmt_return
+
+    def stmt_push_scope(opcode, nodes)
+      if @options[:global_code]
+        @scopes.push opcode.children.first
+      else
+        raise "pushscope in nonglobal code"
+      end
+    end
+
+    def stmt_pop_scope(opcode, nodes)
+      if @options[:global_code]
+        @scopes.pop
+      else
+        raise "popscope in nonglobal code"
+      end
+    end
 
     # Expressions
 
@@ -516,6 +535,11 @@ module Furnace::AVM2
             backref(:multiname),
           ],
           [
+            [:find_property_strict,
+              [:m, [:set, "*"], any]],
+            capture(:multiname)
+          ],
+          [
             [:get_scope_object, 0],
             capture(:multiname)
           ],
@@ -707,6 +731,10 @@ module Furnace::AVM2
         token(GenericSpecializersToken,
           exprs(args))
       ])
+    end
+
+    def expr_new_class(opcode)
+      throw :skip
     end
 
     def expr_convert(opcode)
