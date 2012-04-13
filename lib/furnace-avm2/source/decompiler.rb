@@ -322,16 +322,7 @@ module Furnace::AVM2
       [:coerce, [:q, "XML"], any]
     end
 
-    def expr_set_var(name, value, declare, type=nil)
-      if IMMEDIATE_TYPE_MAP.include?(value.type)
-        type = token(TypeToken, [
-          token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[value.type])
-        ])
-      elsif value.type == :coerce || value.type == :convert
-        type  = type_token(value.children.first)
-        value = value.children.last
-      end
-
+    def expr_set_var(name, value, type, declare)
       if declare
         token(LocalVariableToken, [
           token(VariableNameToken, name),
@@ -350,8 +341,16 @@ module Furnace::AVM2
 
     def expr_set_local(opcode)
       index, value = opcode.children
+      if IMMEDIATE_TYPE_MAP.include?(value.type)
+        type = token(TypeToken, [
+          token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[value.type])
+        ])
+      elsif value.type == :coerce || value.type == :convert
+        type  = type_token(value.children.first)
+        value = value.children.last
+      end
 
-      expr_set_var(local_name(index), value, !@locals.include?(index))
+      expr_set_var(local_name(index), value, type, !@locals.include?(index))
     ensure
       @locals.add index if index
     end
@@ -366,8 +365,10 @@ module Furnace::AVM2
     def expr_set_slot(opcode)
       if @has_closure && captures = ActivationSetSlot.match(opcode)
         index, value = captures.values_at(:index, :value)
-        expr_set_var(@slots[index].name.name, value,
-              !@locals.include?(index), @slots[index].type)
+
+        type = type_token(@slots[index].type.to_astlet)
+        expr_set_var(@slots[index].name.name, value, type,
+              !@locals.include?(index))
       end
     ensure
       @locals.add index if index
