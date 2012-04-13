@@ -13,6 +13,7 @@ module Furnace::AVM2::ABC
 
     def collect_ns(options)
       method.collect_ns(options)
+      body.collect_ns(options) if body
     end
   end
 end

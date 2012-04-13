@@ -12,5 +12,9 @@ module Furnace::AVM2::ABC
     def parameters
       [ body.property.to_astlet ]
     end
+
+    def collect_ns(options)
+      body.property.collect_ns(options)
+    end
   end
 end

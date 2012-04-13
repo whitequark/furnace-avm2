@@ -4,6 +4,10 @@ module Furnace::AVM2::ABC
       "(rt)::(rt)"
     end
 
+    def collect_ns(options)
+      # nothing
+    end
+
     def context_size
       2
     end

@@ -48,5 +48,11 @@ module Furnace::AVM2::ABC
     def decompile(options={})
       Furnace::AVM2::Decompiler.new(self, options).decompile
     end
+
+    def collect_ns(options)
+      code.each do |opcode|
+        opcode.collect_ns(options) if opcode.respond_to? :collect_ns
+      end
+    end
   end
 end
