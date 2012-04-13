@@ -7,7 +7,8 @@ module Furnace::AVM2::Tokens
 
       import_ns = options[:ns].reject { |ns|
         ns == options[:package_name].ns ||
-          ns.name == "__AS3__.vec"
+          ns.name == "__AS3__.vec" ||
+          ns.name !~ /^[A-Za-z0-9_$.]+$/
       }
 
       super(origin, [
