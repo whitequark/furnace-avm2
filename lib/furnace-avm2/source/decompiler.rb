@@ -364,7 +364,13 @@ module Furnace::AVM2
         type = token(TypeToken, [
           token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[value.type])
         ])
+      elsif XmlLiteralPreMatcher.match value
+        # XML literals work through expr_coerce
+        type  = type_token(value.children.first)
+        value = value
       elsif value.type == :coerce || value.type == :convert
+        # Don't emit spurious coercion; typed variables already
+        # imply it
         type  = type_token(value.children.first)
         value = value.children.last
       end
