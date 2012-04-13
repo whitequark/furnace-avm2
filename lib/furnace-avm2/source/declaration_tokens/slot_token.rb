@@ -2,6 +2,7 @@ module Furnace::AVM2::Tokens
   class SlotToken < Furnace::Code::SurroundedToken
     def initialize(origin, options={})
       super(origin, [
+        MetadataToken.new(origin, options),
         SpecifiersToken.new(origin, options),
         SlotNameToken.new(origin, options),
         (TypeToken.new(origin, [

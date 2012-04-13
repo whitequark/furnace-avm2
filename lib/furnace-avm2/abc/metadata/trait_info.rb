@@ -50,7 +50,7 @@ module Furnace::AVM2::ABC
       variant :Const,    :nested, :class => TraitSlot
     end
 
-    abc_array_of :metadata, :vuint30, :plural => :metadata, :if => :metadata?
+    root_array_of :metadata, :metadata, :plural => :metadata, :if => :metadata?
 
     def method_missing(method, *args, &block)
       data.send(method, *args, &block)
