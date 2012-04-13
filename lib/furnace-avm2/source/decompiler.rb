@@ -726,6 +726,10 @@ module Furnace::AVM2
       token(IsToken, parenthesize_each(exprs(opcode.children)))
     end
 
+    def expr_instance_of(opcode)
+      token(InstanceOfToken, parenthesize_each(exprs(opcode.children)))
+    end
+
     def expr_type_of(opcode)
       token(TypeOfToken, exprs(opcode.children))
     end
