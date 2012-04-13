@@ -207,6 +207,21 @@ package test {
     }
   }
 
+  class Closures {
+    function a() {
+      var a:int = 1;
+      var f = function(param) {
+        var b:int = 10;
+        return a + this.fuga() + hoge() + param;
+      };
+      var q = function() {
+        test123();
+      };
+      q();
+      return f;
+    }
+  }
+
   class Exceptions {
     function c() {
       try {

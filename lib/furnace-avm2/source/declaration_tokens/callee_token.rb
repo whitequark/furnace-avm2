@@ -7,7 +7,7 @@ module Furnace::AVM2::Tokens
         *header,
         *declaration(origin, options),
         (Furnace::AVM2::Decompiler.new(@body, options).decompile if @body),
-        (Furnace::Code::NewlineToken.new(origin, options) if @body)
+        (Furnace::Code::NewlineToken.new(origin, options) if @body && !options[:closure])
       ], options)
 
       if options[:debug_funids]

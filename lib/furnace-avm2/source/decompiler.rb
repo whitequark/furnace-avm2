@@ -16,11 +16,48 @@ module Furnace::AVM2
       @body, @method, @options = body, body.method, options
     end
 
+    ActivationPrologue = Matcher.new do
+      [:begin,
+        [:push_scope,
+          [:get_local, 0]],
+        [:set_local, -1,
+          [:new_activation]],
+        [:set_local, 1,
+          [:get_local, -1]],
+        [:push_scope,
+          [:get_local, -1]],
+        skip
+      ]
+    end
+
+    RegularPrologue = Matcher.new do
+      [:begin,
+        [:push_scope,
+          [:get_local, 0]],
+        skip
+      ]
+    end
+
     def decompile
       begin
         @locals = Set.new([0]) + (1..@method.param_count).to_a
 
         @nf = @body.code_to_nf
+
+        if ActivationPrologue.match @nf
+          @has_closure = true
+
+          @slots = {}
+          @body.traits.map do |trait|
+            @slots[trait.idx] = trait
+          end
+
+          @nf.children.slice! 0...4
+        elsif RegularPrologue.match @nf
+          @nf.children.slice! 0...1
+        else
+          # No prologue; probably a closure.
+        end
 
         stmt_block @nf, function: true
 
@@ -85,17 +122,6 @@ module Furnace::AVM2
         return token(ScopeToken, nodes,
           continuation: options[:continuation],
           function:     options[:function])
-      end
-    end
-
-    Prologue = Matcher.new do
-      [:push_scope,
-        [:get_local, 0]]
-    end
-
-    def stmt_push_scope(opcode, nodes)
-      unless Prologue.match(opcode)
-        raise "invalid push_scope"
       end
     end
 
@@ -255,6 +281,19 @@ module Furnace::AVM2
       token(VariableNameToken, local_name(index))
     end
 
+    ActivationGetSlot = Matcher.new do
+      [:get_slot,
+        capture(:index),
+        [:get_scope_object, 1]]
+    end
+
+    def expr_get_slot(opcode)
+      if @has_closure && captures = ActivationGetSlot.match(opcode)
+        index, = captures.values_at(:index)
+        token(VariableNameToken, @slots[index].name.name)
+      end
+    end
+
     IMMEDIATE_TYPE_MAP = {
       :any       => '*',
       :integer   => 'int',
@@ -283,7 +322,7 @@ module Furnace::AVM2
       [:coerce, [:q, "XML"], any]
     end
 
-    def expr_set_var(name, value, declare)
+    def expr_set_var(name, value, declare, type=nil)
       if IMMEDIATE_TYPE_MAP.include?(value.type)
         type = token(TypeToken, [
           token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[value.type])
@@ -291,8 +330,6 @@ module Furnace::AVM2
       elsif value.type == :coerce || value.type == :convert
         type  = type_token(value.children.first)
         value = value.children.last
-      else
-        type = nil
       end
 
       if declare
@@ -316,7 +353,24 @@ module Furnace::AVM2
 
       expr_set_var(local_name(index), value, !@locals.include?(index))
     ensure
-      @locals << index
+      @locals.add index if index
+    end
+
+    ActivationSetSlot = Matcher.new do
+      [:set_slot,
+        capture(:index),
+        [:get_scope_object, 1],
+        capture(:value)]
+    end
+
+    def expr_set_slot(opcode)
+      if @has_closure && captures = ActivationSetSlot.match(opcode)
+        index, value = captures.values_at(:index, :value)
+        expr_set_var(@slots[index].name.name, value,
+              !@locals.include?(index), @slots[index].type)
+      end
+    ensure
+      @locals.add index if index
     end
 
     ## Arithmetics
@@ -662,6 +716,16 @@ module Furnace::AVM2
           expr(subject)
         ])
       ])
+    end
+
+    ## Closures
+
+    def expr_new_function(opcode)
+      index, = opcode.children
+      body = @method.root.method_body_at(index)
+
+      token(ClosureToken,
+        body)
     end
 
     ## XML literals

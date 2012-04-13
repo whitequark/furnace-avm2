@@ -11,6 +11,8 @@ module Furnace::AVM2::Tokens
     def text_after
       if @options[:continuation]
         "} "
+      elsif @options[:closure]
+        "}"
       else
         "}\n"
       end
