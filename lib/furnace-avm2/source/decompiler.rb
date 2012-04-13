@@ -713,6 +713,10 @@ module Furnace::AVM2
       xml_expr(node.children.first)
     end
 
+    def xml_esc_xelem(node)
+      xml_expr(node.children.first)
+    end
+
     private
 
     def token(klass, *args)
