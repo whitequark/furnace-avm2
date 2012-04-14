@@ -64,9 +64,12 @@ module Furnace::AVM2
         [:while,
           [:has_next2, capture(:object_reg), capture(:index_reg)],
           [:begin,
-            [:set_local, capture(:value_reg),
-              [either[:coerce, :convert], capture(:value_type),
-                [capture(:iterator),
+            [ either_multi[
+                [ :set_local, capture(:value_reg) ],
+                [ :set_slot, capture(:value_reg), [:get_scope_object, 1] ],
+              ],
+              [ either[:coerce, :convert], capture(:value_type),
+                [ capture(:iterator),
                   [:get_local, backref(:object_reg)],
                   [:get_local, backref(:index_reg)]]]],
             capture_rest(:body)]]

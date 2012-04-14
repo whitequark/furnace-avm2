@@ -13,7 +13,8 @@ module Furnace::AVM2
     end
 
     def initialize(body, options)
-      @body, @method, @options = body, body.method, options
+      @body, @method, @options = body, body.method, options.dup
+      @closure = @options.delete(:closure)
     end
 
     ActivationPrologue = Matcher.new do
@@ -64,7 +65,9 @@ module Furnace::AVM2
 
         @global_slots = @options[:global_slots]
 
-        stmt_block @nf, function: !@options[:global_code]
+        stmt_block @nf,
+          function: !@options[:global_code],
+          closure:  @closure
 
       rescue Exception => e
         @failed = true
@@ -76,7 +79,8 @@ module Furnace::AVM2
 
         token(ScopeToken, [
           token(CommentToken, comment)
-        ], function: !@options[:global_code])
+        ], function: !@options[:global_code],
+           closure:  @closure)
 
       ensure
         if stat = @options[:stat]
@@ -126,9 +130,7 @@ module Furnace::AVM2
 
     ensure
       if $!.nil? || $!.is_a?(ExpressionNotRecognized)
-        return token(ScopeToken, nodes,
-          continuation: options[:continuation],
-          function:     options[:function])
+        return token(ScopeToken, nodes, options)
       end
     end
 
@@ -165,10 +167,16 @@ module Furnace::AVM2
         klass = ForEachToken
       end
 
+      if @closure_slots
+        name = token(VariableNameToken, @closure_slots[value_reg].name.name)
+      else
+        name = token(VariableNameToken, local_name(value_reg))
+      end
+
       nodes << token(klass,
         token(InToken, [
           token(LocalVariableToken, [
-            token(VariableNameToken, local_name(value_reg)),
+            name,
             type_token(value_type)
           ]),
           token(VariableNameToken, local_name(object_reg)),

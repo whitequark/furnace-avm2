@@ -6,11 +6,13 @@ module Furnace::AVM2::Tokens
       super(origin, [
         *header,
         *declaration(origin, options),
-        (Furnace::AVM2::Decompiler.new(@body, options).decompile if @body),
-        (Furnace::Code::NewlineToken.new(origin, options) if @body && !options[:closure])
+        (Furnace::AVM2::Decompiler.new(@body,
+                options).decompile if @body),
+        (Furnace::Code::NewlineToken.new(origin,
+                options) if @body && !options[:closure])
       ], options)
 
-      if options[:debug_funids]
+      if options[:debug_funids] && !options[:closure]
         @children.unshift \
           CommentToken.new(origin,
             "Function ##{options[:index]}",
@@ -60,7 +62,8 @@ module Furnace::AVM2::Tokens
       tokens = []
 
       tokens << ArgumentsToken.new(origin, args, options)
-      if @method.return_type
+
+      if @method.return_type && !options[:closure]
         tokens << TypeToken.new(origin, [
           MultinameToken.new(origin, @method.return_type, options)
         ], options)
