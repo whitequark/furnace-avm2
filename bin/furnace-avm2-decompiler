@@ -86,6 +86,17 @@ if opts[:grep]
   exit
 end
 
+global_slots = {}
+
+abc.scripts.each do |script|
+  (script.slot_traits + script.const_traits).each do |trait|
+    next if trait.idx == 0
+    global_slots[trait.idx] = trait
+  end
+end
+
+decompile_options[:global_slots] = global_slots
+
 start_time = Time.now
 
 mutex = Mutex.new

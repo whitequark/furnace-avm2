@@ -3,7 +3,7 @@ module Furnace::AVM2::Tokens
     include TokenWithTraits
 
     def initialize(origin, options={})
-      options = options.merge(environment: :script, global_context: origin)
+      options = options.merge(environment: :script)
 
       global_code = Furnace::AVM2::Decompiler.new(origin.initializer_body,
               options.merge(global_code: true)).decompile

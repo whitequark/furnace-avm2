@@ -60,12 +60,7 @@ module Furnace::AVM2
           end
         end
 
-        if global = @options[:global_context]
-          @global_slots = {}
-          global.slot_traits.each do |trait|
-            @global_slots[trait.idx] = trait
-          end
-        end
+        @global_slots = @options[:global_slots]
 
         stmt_block @nf, function: !@options[:global_code]
 
@@ -327,10 +322,15 @@ module Furnace::AVM2
         # treat as a local variable
         slot = @closure_slots[captures[:index]]
         token(VariableNameToken)
-      elsif @global_slots && captures = GlobalGetSlot.match(opcode)
+      elsif captures = GlobalGetSlot.match(opcode)
         # treat as a global property
-        slot = @global_slots[captures[:index]]
-        get_name(nil, slot.name.to_astlet)
+        if @global_slots
+          slot = @global_slots[captures[:index]]
+          get_name(nil, slot.name.to_astlet)
+        else
+          token(PropertyNameToken,
+            "$__GLOBAL_#{captures[:index]}")
+        end
       end
     end
 
@@ -430,13 +430,19 @@ module Furnace::AVM2
         @locals.add index
 
         expr
-      elsif @global_slots && captures = GlobalSetSlot.match(opcode)
+      elsif captures = GlobalSetSlot.match(opcode)
         # treat as a global property
         index, value = captures.values_at(:index, :value)
-        slot = @global_slots[index]
+
+        if @global_slots
+          slot = @global_slots[index]
+          name = get_name(nil, slot.name.to_astlet)
+        else
+          token(PropertyNameToken, "$__GLOBAL_#{index}")
+        end
 
         token(AssignmentToken, [
-          get_name(nil, slot.name.to_astlet),
+          name,
           expr(value)
         ])
       end
