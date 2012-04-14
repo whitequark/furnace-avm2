@@ -51,6 +51,8 @@ module Furnace::AVM2
             @closure_slots[trait.idx] = trait
           end
 
+          @closure_locals = Set.new
+
           @nf.children.slice! 0...4
         else
           if RegularPrologue.match @nf
@@ -424,10 +426,10 @@ module Furnace::AVM2
         index, value = captures.values_at(:index, :value)
         slot = @closure_slots[index]
 
-        type = type_token(slot.type.to_astlet)
+        type = type_token(slot.type.to_astlet) if slot.type
         expr = expr_set_var(slot.name.name, value, type,
-              !@locals.include?(index))
-        @locals.add index
+              !@closure_locals.include?(index))
+        @closure_locals.add index
 
         expr
       elsif captures = GlobalSetSlot.match(opcode)
