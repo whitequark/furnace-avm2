@@ -696,6 +696,7 @@ module Furnace::AVM2
     def expr_call_property(opcode)
       expr_do_property(opcode, CallToken)
     end
+    alias :expr_call_property_lex :expr_call_property
 
     def expr_call_super(opcode)
       subject, multiname, *args = opcode.children
