@@ -22,7 +22,7 @@ module Furnace::AVM2
           [:get_local, 0]],
         [:set_local, -1,
           [:new_activation]],
-        [:set_local, 1,
+        [:set_local, capture(:activation_local),
           [:get_local, -1]],
         [:push_scope,
           [:get_local, -1]],
@@ -45,8 +45,9 @@ module Furnace::AVM2
 
         @nf = @body.code_to_nf
 
-        if ActivationPrologue.match @nf
+        if captures = ActivationPrologue.match(@nf)
           @has_closure = true
+          @activation_local = captures[:activation_local]
 
           @slots = {}
           @body.traits.map do |trait|
@@ -54,10 +55,15 @@ module Furnace::AVM2
           end
 
           @nf.children.slice! 0...4
-        elsif RegularPrologue.match @nf
-          @nf.children.slice! 0...1
         else
-          # No prologue; probably a closure.
+          @has_closure = false
+          @activation_local = nil
+
+          if RegularPrologue.match @nf
+            @nf.children.slice! 0...1
+          else
+            # No prologue; probably a closure.
+          end
         end
 
         stmt_block @nf, function: true
