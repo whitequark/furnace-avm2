@@ -1,5 +1,7 @@
 module Furnace::AVM2::ABC
   class MethodBodyInfo < Record
+    include RecordWithTraits
+
     root_ref     :method
     vuint30      :max_stack
     vuint30      :local_count

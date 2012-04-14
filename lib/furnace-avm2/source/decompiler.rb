@@ -321,7 +321,7 @@ module Furnace::AVM2
       if @closure_slots && captures = ActivationGetSlot.match(opcode)
         # treat as a local variable
         slot = @closure_slots[captures[:index]]
-        token(VariableNameToken)
+        token(VariableNameToken, slot.name.name)
       elsif captures = GlobalGetSlot.match(opcode)
         # treat as a global property
         if @global_slots
