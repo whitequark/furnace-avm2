@@ -57,19 +57,21 @@ module Furnace::AVM2
           if node.parent.type == :jump_if || comp != :expand
             # Parent is a conditional, or this is an explicit comparsion.
             transform_conditional(node, comp, reverse)
-          elsif node.parent.type == :ternary_if && node.index == 0 && comp == :expand
+          elsif node.parent.type == :ternary_if && node.index == 0
             # Parent is a comparsion-less ternary operator, and this
             # node is in condition position.
             transform_conditional(node, comp, reverse)
             node.parent.update(:ternary_if_boolean)
-          else
-            # This is an implicit comparsion, and the immediate parent
-            # is not a conditional or a ternary operator. Turn this
-            # node into a ternary operator.
+          elsif node.children.count == 2
+            # This is an implicit comparsion, and it is not located in
+            # a condition position of a conditional or a ternary operator.
+            # Turn it into a ternary operator as of itself.
             node.update(:ternary_if_boolean, [
               !comp, *node.children
             ])
             on_ternary_if_boolean(node)
+          else
+            transform_conditional(node, comp, reverse)
           end
         end
       end
