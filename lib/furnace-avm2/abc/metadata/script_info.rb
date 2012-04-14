@@ -1,6 +1,7 @@
 module Furnace::AVM2::ABC
   class ScriptInfo < Record
     include InitializerBody
+    include RecordWithTraits
 
     root_ref     :initializer,  :method
 

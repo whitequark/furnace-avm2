@@ -3,7 +3,7 @@ module Furnace::AVM2::Tokens
     include TokenWithTraits
 
     def initialize(origin, options={})
-      options = options.merge(environment: :script)
+      options = options.merge(environment: :script, global_context: origin)
 
       super(origin, [
         *transform_traits(origin, options.merge(static: false)),

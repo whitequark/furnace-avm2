@@ -46,23 +46,24 @@ module Furnace::AVM2
         @nf = @body.code_to_nf
 
         if captures = ActivationPrologue.match(@nf)
-          @has_closure = true
-          @activation_local = captures[:activation_local]
-
-          @slots = {}
-          @body.traits.map do |trait|
-            @slots[trait.idx] = trait
+          @closure_slots = {}
+          @body.slot_traits.each do |trait|
+            @closure_slots[trait.idx] = trait
           end
 
           @nf.children.slice! 0...4
         else
-          @has_closure = false
-          @activation_local = nil
-
           if RegularPrologue.match @nf
             @nf.children.slice! 0...1
           else
             # No prologue; probably a closure.
+          end
+        end
+
+        if global = @options[:global_context]
+          @global_slots = {}
+          global.slot_traits.each do |trait|
+            @global_slots[trait.idx] = trait
           end
         end
 
@@ -312,10 +313,24 @@ module Furnace::AVM2
         [:get_scope_object, 1]]
     end
 
+    GlobalGetSlot = Matcher.new do
+      [:get_slot,
+        capture(:index),
+        either[
+          [:get_global_scope],    # normalized form
+          [:get_scope_object, 0]  # not emitted by ASC
+        ]]
+    end
+
     def expr_get_slot(opcode)
-      if @has_closure && captures = ActivationGetSlot.match(opcode)
-        index, = captures.values_at(:index)
-        token(VariableNameToken, @slots[index].name.name)
+      if @closure_slots && captures = ActivationGetSlot.match(opcode)
+        # treat as a local variable
+        slot = @closure_slots[captures[:index]]
+        token(VariableNameToken)
+      elsif @global_slots && captures = GlobalGetSlot.match(opcode)
+        # treat as a global property
+        slot = @global_slots[captures[:index]]
+        get_name(nil, slot.name.to_astlet)
       end
     end
 
@@ -393,16 +408,38 @@ module Furnace::AVM2
         capture(:value)]
     end
 
-    def expr_set_slot(opcode)
-      if @has_closure && captures = ActivationSetSlot.match(opcode)
-        index, value = captures.values_at(:index, :value)
+    GlobalSetSlot = Matcher.new do
+      [:set_slot,
+        capture(:index),
+        either[
+          [:get_global_scope],    # normalized form
+          [:get_scope_object, 0]  # not emitted by ASC
+        ],
+        capture(:value)]
+    end
 
-        type = type_token(@slots[index].type.to_astlet)
-        expr_set_var(@slots[index].name.name, value, type,
+    def expr_set_slot(opcode)
+      if @closure_slots && captures = ActivationSetSlot.match(opcode)
+        # treat as a local variable
+        index, value = captures.values_at(:index, :value)
+        slot = @closure_slots[index]
+
+        type = type_token(slot.type.to_astlet)
+        expr = expr_set_var(slot.name.name, value, type,
               !@locals.include?(index))
+        @locals.add index
+
+        expr
+      elsif @global_slots && captures = GlobalSetSlot.match(opcode)
+        # treat as a global property
+        index, value = captures.values_at(:index, :value)
+        slot = @global_slots[index]
+
+        token(AssignmentToken, [
+          get_name(nil, slot.name.to_astlet),
+          expr(value)
+        ])
       end
-    ensure
-      @locals.add index if index
     end
 
     ## Arithmetics
