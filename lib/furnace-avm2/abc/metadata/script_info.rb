@@ -8,7 +8,7 @@ module Furnace::AVM2::ABC
     abc_array_of :trait, :nested, :class => TraitInfo
 
     def collect_ns
-      options = { ns: Set.new([ non_init_traits[0].name ]), no_ns: Set.new, names: {} }
+      options = { ns: Set.new([ non_init_traits[0].name.ns ]), no_ns: Set.new, names: {} }
 
       initializer.collect_ns(options) if initializer
       traits.each { |trait| trait.collect_ns(options) }

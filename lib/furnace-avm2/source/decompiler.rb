@@ -67,7 +67,7 @@ module Furnace::AVM2
           end
         end
 
-        stmt_block @nf, function: true
+        stmt_block @nf, function: !@options[:global_code]
 
       rescue Exception => e
         @failed = true
@@ -79,7 +79,7 @@ module Furnace::AVM2
 
         token(ScopeToken, [
           token(CommentToken, comment)
-        ], function: true)
+        ], function: !@options[:global_code])
 
       ensure
         if stat = @options[:stat]
