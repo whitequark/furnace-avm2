@@ -161,7 +161,7 @@ module Furnace::AVM2::Binary
     end
 
     def inspect
-      to_hash.inspect
+      "AVM2Record(#{self.class.name.split("::").last})"
     end
 
     def byte_length

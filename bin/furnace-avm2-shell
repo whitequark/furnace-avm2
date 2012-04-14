@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+require "rubygems"
+
+$: << File.join(File.dirname(__FILE__), '..', 'lib')
+
+require "furnace-avm2"
+
+begin
+  gem "pry"
+  require "pry"
+rescue LoadError
+  puts "$ gem install pry"
+  exit 1
+end
+
+include Furnace
+
+def load_file(filename)
+  File.open(filename) do |file|
+    abc = AVM2::ABC::File.new
+    abc.read(file)
+    abc
+  end
+end
+
+# Interactive AVM2 console ready.
+# Begin with:
+# > abc = load_file("filename.abc")
+# Records can be examined via #to_hash.
+
+binding.pry
