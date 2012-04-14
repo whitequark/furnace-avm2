@@ -1,3 +1,5 @@
+require 'stringio'
+
 module Furnace::AVM2::ABC
   class OpcodeSequence < ::Array
     attr_reader :root, :parent
