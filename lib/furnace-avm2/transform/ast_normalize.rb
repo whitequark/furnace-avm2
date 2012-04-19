@@ -3,6 +3,10 @@ module Furnace::AVM2
     class ASTNormalize
       include AST::Visitor
 
+      def initialize(options={})
+        @options = options
+      end
+
       def transform(ast)
         visit ast
 
@@ -111,11 +115,21 @@ module Furnace::AVM2
       alias :on_jump_if :fix_boolean
 
       def replace_with_nop(node)
-        node.update(:nop)
+        if @options[:eliminate_nops]
+          node.update(:remove)
+        else
+          node.update(:nop)
+        end
       end
       alias :on_debug       :replace_with_nop
       alias :on_debug_file  :replace_with_nop
       alias :on_debug_line  :replace_with_nop
+
+      def on_nop(node)
+        if @options[:eliminate_nops]
+          node.update(:remove)
+        end
+      end
     end
   end
 end

@@ -21,10 +21,10 @@ module Furnace::AVM2::ABC
       end
     end
 
-    def code_to_ast(options={})
+    def code_to_ast(options={ eliminate_nops: true })
       pipeline = Furnace::Transform::Pipeline.new([
         Furnace::AVM2::Transform::ASTBuild.new(options),
-        Furnace::AVM2::Transform::ASTNormalize.new
+        Furnace::AVM2::Transform::ASTNormalize.new(options)
       ])
 
       pipeline.run(code, self)
@@ -35,7 +35,7 @@ module Furnace::AVM2::ABC
         Furnace::AVM2::Transform::CFGBuild.new
       ])
 
-      pipeline.run(*code_to_ast)
+      pipeline.run(*code_to_ast({}))
     end
 
     def code_to_nf
