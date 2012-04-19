@@ -1,19 +1,14 @@
-GIT
-  remote: git://github.com/whitequark/furnace.git
-  revision: cc3b779b1a2398334938b6d4306e9e26fbd0df81
-  specs:
-    furnace (0.1.0)
-
 PATH
   remote: .
   specs:
     furnace-avm2 (0.9.0)
-      furnace (>= 0.1.0)
+      furnace (>= 0.1.1)
       trollop
 
 GEM
   remote: http://rubygems.org/
   specs:
+    furnace (0.1.1)
     trollop (1.16.2)
 
 PLATFORMS
@@ -21,5 +16,4 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  furnace!
   furnace-avm2!
