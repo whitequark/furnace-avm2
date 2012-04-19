@@ -133,6 +133,7 @@ module Furnace::AVM2::ABC
       if exceptions.any?
         exception_node = CFG::Node.new(graph, :exception, [], nil,
             exceptions.map(&:target_offset))
+        graph.nodes.add exception_node
       end
 
       graph
@@ -142,8 +143,15 @@ module Furnace::AVM2::ABC
       cfg = build_cfg
       dead_opcodes = []
 
-      cfg.nodes.each do |node|
-        if node != cfg.entry && node.sources.empty?
+      worklist = cfg.nodes.dup
+      while worklist.any?
+        node = worklist.first
+        worklist.delete node
+
+        next if node == cfg.entry
+
+        if node.sources.count == 0 ||
+              node.sources == [node]
           dead_opcodes.concat node.insns
         end
       end
