@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3SubtractI < ArithmeticOpcode
+  class AS3SubtractI < Opcode
     instruction 0xc6
 
     consume 2

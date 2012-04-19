@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3NegateI < ArithmeticOpcode
+  class AS3NegateI < Opcode
     instruction 0xc4
 
     consume 1

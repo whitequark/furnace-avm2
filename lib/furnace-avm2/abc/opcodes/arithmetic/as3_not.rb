@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3Not < ArithmeticOpcode
+  class AS3Not < Opcode
     instruction 0x96
     ast_type :!
 

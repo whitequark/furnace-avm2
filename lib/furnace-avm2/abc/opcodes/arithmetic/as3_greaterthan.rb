@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3GreaterThan < ArithmeticOpcode
+  class AS3GreaterThan < Opcode
     instruction 0xaf
     ast_type :>
 

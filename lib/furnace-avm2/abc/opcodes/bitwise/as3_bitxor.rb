@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3BitXor < BitwiseOpcode
+  class AS3BitXor < Opcode
     instruction 0xaa
 
     consume 2

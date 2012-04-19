@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3Urshift < BitwiseOpcode
+  class AS3Urshift < Opcode
     instruction 0xa7
 
     consume 2

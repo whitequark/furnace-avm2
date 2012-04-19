@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3IncLocal < ArithmeticOpcode
+  class AS3IncLocal < Opcode
     instruction 0x92
 
     body do

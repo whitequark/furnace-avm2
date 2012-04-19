@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3ConvertI < TypeConversionOpcode
+  class AS3ConvertI < Opcode
     instruction 0x73
 
     consume 1

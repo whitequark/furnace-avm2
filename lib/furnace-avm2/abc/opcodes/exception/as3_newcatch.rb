@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3NewCatch < ExceptionOpcode
+  class AS3NewCatch < Opcode
     instruction 0x5a
 
     body do

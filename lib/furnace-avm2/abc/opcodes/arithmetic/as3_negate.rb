@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3Negate < ArithmeticOpcode
+  class AS3Negate < Opcode
     instruction 0x90
 
     consume 1

@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3DecrementI < ArithmeticOpcode
+  class AS3DecrementI < Opcode
     instruction 0xc1
 
     consume 1

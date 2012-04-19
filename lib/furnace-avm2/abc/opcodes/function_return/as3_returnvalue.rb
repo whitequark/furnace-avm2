@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3ReturnValue < FunctionReturnOpcode
+  class AS3ReturnValue < Opcode
     instruction 0x48
 
     consume 1

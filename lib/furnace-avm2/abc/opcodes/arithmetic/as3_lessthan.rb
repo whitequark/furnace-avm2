@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3LessThan < ArithmeticOpcode
+  class AS3LessThan < Opcode
     instruction 0xad
     ast_type :<
 

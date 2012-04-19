@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3ApplyType < TypeConversionOpcode
+  class AS3ApplyType < Opcode
     instruction 0x53
 
     body do

@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3ConvertO < TypeConversionOpcode
+  class AS3ConvertO < Opcode
     instruction 0x77
 
     consume 1

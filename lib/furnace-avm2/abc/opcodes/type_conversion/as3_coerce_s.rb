@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3CoerceS < TypeConversionOpcode
+  class AS3CoerceS < Opcode
     instruction 0x85
 
     consume 1
