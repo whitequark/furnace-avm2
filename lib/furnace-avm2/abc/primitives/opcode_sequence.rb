@@ -93,44 +93,46 @@ module Furnace::AVM2::ABC
         end
       end
 
-      if exceptions.any?
-        exception_node = CFG::Node.new(graph, :exception, [])
-        graph.nodes.add exception_node
+      pending_label = nil
+      pending_queue = []
 
-        exceptions.each do |exception|
-          targets << exception.target_offset
+      cutoff = lambda do |targets|
+        node = CFG::Node.new(graph, pending_label, pending_queue, nil, targets)
+
+        if graph.nodes.empty?
+          graph.entry = node
         end
+
+        graph.nodes.add node
+
+        pending_label = nil
+        pending_queue = []
       end
 
       each do |opcode|
         if targets.include? opcode
-          graph.transfer({ nil => opcode.offset })
+          cutoff.([ opcode.offset ])
         end
 
-        graph.expand opcode.offset, opcode
+        pending_label = opcode.offset if pending_label.nil?
+        pending_queue << opcode
 
         if opcode.is_a? ControlTransferOpcode
           if opcode.conditional
-            graph.transfer({ true  => opcode.target.offset,
-                             false => opcode.offset + opcode.byte_length })
+            cutoff.([ opcode.target.offset, opcode.offset + opcode.byte_length ])
           else
-            graph.transfer({ nil => opcode.target.offset })
+            cutoff.([ opcode.target.offset ])
           end
         elsif opcode.is_a? AS3LookupSwitch
-          map = { nil => opcode.default_target.offset }
-
-          opcode.case_targets.each_with_index do |target, index|
-            map[index] = target.offset
-          end
-
-          graph.transfer map
+          cutoff.(opcode.parameters.flatten)
         end
       end
 
-      graph.transfer({ })
+      cutoff.([])
 
-      exceptions.each do |exception|
-        graph.edges.add CFG::Edge.new(graph, nil, :exception, exception.target_offset)
+      if exceptions.any?
+        exception_node = CFG::Node.new(graph, :exception, [], nil,
+            exceptions.map(&:target_offset))
       end
 
       graph
@@ -141,8 +143,8 @@ module Furnace::AVM2::ABC
       dead_opcodes = []
 
       cfg.nodes.each do |node|
-        if node.label != 0 && node.entering_edges.count == 0
-          dead_opcodes.concat node.operations
+        if node != cfg.entry && node.sources.empty?
+          dead_opcodes.concat node.insns
         end
       end
 

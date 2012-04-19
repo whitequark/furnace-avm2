@@ -16,10 +16,6 @@ module Furnace::AVM2::ABC
       body.jump_offset = new_offset - offset - byte_length
     end
 
-    def target_offsets
-      [ target_offset ]
-    end
-
     def resolve!
       @target = @sequence.opcode_at(target_offset)
 
