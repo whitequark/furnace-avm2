@@ -29,7 +29,7 @@ module Furnace::AVM2::ABC
     def to_astpat(type=:qname)
       case type
       when :qname
-        [ :q, (ns.name if ns), name ].compact
+        [ :q, (ns.name if ns && !ns.name.empty?), name ].compact
       when :multiname
         [ :m, [ :set, ns.name ], name ]
       else
