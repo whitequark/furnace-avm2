@@ -139,8 +139,19 @@ module Furnace::AVM2
 
       nodes << token(IfToken, handle_expression(condition),
         stmt_block(if_true, continuation: !if_false.nil?))
-      nodes << token(ElseToken,
-        stmt_block(if_false)) if if_false
+
+      if if_false
+        first_child = if_false.children.first
+        if if_false.children.count == 1 &&
+              first_child.type == :if
+          nodes << token(ElseToken,
+            nil)
+          stmt_if(first_child, nodes)
+        else
+          nodes << token(ElseToken,
+            stmt_block(if_false))
+        end
+      end
     end
 
     def stmt_label(opcode, nodes)

@@ -10,8 +10,10 @@ module Furnace::AVM2::Tokens
       header = "else"
       if @body.is_a? ScopeToken
         "#{header} #{@body.to_text}"
-      else
+      elsif @body
         "#{header}\n#{indent @body.to_text}"
+      else
+        "#{header} "
       end
     end
 

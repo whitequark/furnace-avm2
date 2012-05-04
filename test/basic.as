@@ -73,6 +73,16 @@ package test {
   }
 
   class Conditionals {
+    function elsif(param1:Boolean, param2:Boolean) : Boolean {
+      if(param1) {
+        return true;
+      } else if(param2) {
+        return false;
+      } else {
+        return null;
+      }
+    }
+
     function els(param1:Object, param2:String, param3:String) : Boolean {
       var _loc_4:Object = null;
       if (param1 != null)
