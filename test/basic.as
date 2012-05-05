@@ -233,6 +233,29 @@ package test {
   }
 
   class Exceptions {
+    function e() {
+      if(a) {
+        try {
+          try {
+            a();
+          } catch(e) {
+            b();
+          }
+          hoge();
+        } finally {
+          piyo();
+        }
+      }
+    }
+    function d() {
+      if(a) {
+        try {
+          hoge();
+        } finally {
+          piyo();
+        }
+      }
+    }
     function c() {
       try {
         hoge();

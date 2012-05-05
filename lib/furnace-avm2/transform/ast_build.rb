@@ -83,7 +83,7 @@ module Furnace::AVM2
         @ast.children.concat expressions
       end
 
-      def transform(code, method)
+      def transform(code, body)
         @stack = []
         @ast   = AST::Node.new(:root)
 
@@ -206,7 +206,7 @@ module Furnace::AVM2
           end
         end
 
-        [ @ast.normalize_hierarchy!, method ]
+        [ @ast.normalize_hierarchy!, body ]
       end
     end
   end

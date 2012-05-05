@@ -7,10 +7,10 @@ module Furnace::AVM2
         @options = options
       end
 
-      def transform(ast, method)
+      def transform(ast, body)
         visit ast
 
-        [ ast, method ]
+        [ ast, body ]
       end
 
       # (pop x) -> (jump-target) x

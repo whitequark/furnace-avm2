@@ -32,6 +32,7 @@ module Furnace::AVM2::ABC
 
     def code_to_cfg
       pipeline = Furnace::Transform::Pipeline.new([
+        Furnace::AVM2::Transform::PropagateLabels.new,
         Furnace::AVM2::Transform::CFGBuild.new
       ])
 

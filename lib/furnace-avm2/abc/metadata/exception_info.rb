@@ -26,5 +26,9 @@ module Furnace::AVM2::ABC
       self.to_offset     = @to.offset
       self.target_offset = @target.offset
     end
+
+    def range
+      from_offset..to_offset
+    end
   end
 end
