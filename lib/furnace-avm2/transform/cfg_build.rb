@@ -3,7 +3,7 @@ module Furnace::AVM2
     class CFGBuild
       include AST::Visitor
 
-      def transform(ast)
+      def transform(ast, method)
         @ast = ast
 
         @jumps = Set.new
