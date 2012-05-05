@@ -3,8 +3,9 @@ module Furnace::AVM2::ABC
     vuint30   :from_offset
     vuint30   :to_offset
     vuint30   :target_offset
-    const_ref :exc_type, :string
-    const_ref :var_name, :string
+
+    const_ref :exception, :multiname
+    const_ref :variable,  :multiname
 
     attr_reader :from, :to, :target
 
