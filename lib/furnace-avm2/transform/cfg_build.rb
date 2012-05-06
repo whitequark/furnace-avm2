@@ -32,6 +32,10 @@ module Furnace::AVM2
         @pending_queue = []
 
         ast.children.each_with_index do |node, index|
+          if node.type == :label
+            cutoff(nil, [ node.metadata[:label] ])
+          end
+
           unless @pending_label
             @pending_label = node.metadata[:label]
 
@@ -48,7 +52,6 @@ module Furnace::AVM2
 
           case node.type
           when :label
-            @jumps.add node.children.first
             node.update :nop
 
           when :return_value, :return_void
