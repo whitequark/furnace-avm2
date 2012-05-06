@@ -1,6 +1,10 @@
 module Furnace::AVM2
   module Transform
     class CFGReduce
+      def initialize(options={})
+        @verbose = options[:verbose]
+      end
+
       def transform(cfg)
         @cfg   = cfg
 
@@ -13,13 +17,20 @@ module Furnace::AVM2
 
         ast, = extended_block(@cfg.entry)
 
+        @visited.add @cfg.exit
+        if @visited != @cfg.nodes
+          raise "failsafe: not all blocks visited"
+        end
+
         ast
       end
 
-      def extended_block(block, stopgap=nil, loop_stack=[])
+      def extended_block(block, stopgap=nil, loop_stack=[], nesting=0)
         nodes = []
 
         while block
+          log nesting, "BLOCK: #{block.inspect}"
+
           if @loops.include?(block) && loop_stack.include?(block)
             # We have just arrived to loop head. Insert `continue'
             # and exit.
@@ -58,6 +69,8 @@ module Furnace::AVM2
               # this is a switch
 
             elsif @loops.include?(block)
+              log nesting, "is a loop"
+
               # we're trapped in a strange loop
               reverse = !block.cti.children[0]
               in_root, out_root = block.targets
@@ -77,7 +90,7 @@ module Furnace::AVM2
               # then reverse the condition.
               expr = normalize_cti_expr(block, reverse)
 
-              body = extended_block(in_root, nil, [ block, *loop_stack ])
+              body = extended_block(in_root, nil, [ block ] + loop_stack, nesting + 1)
 
               # [(label name)]
               # We first parse the body and then add the label before
@@ -96,7 +109,9 @@ module Furnace::AVM2
 
               block = out_root
             else
-              # this is an `if', `break' or `continue'
+              log nesting, "is a conditional"
+
+              # this is an `if'.
               reverse = !block.cti.children[0]
               left_root, right_root = block.targets
 
@@ -138,8 +153,10 @@ module Furnace::AVM2
 
               # Does this conditional have an `else' block?
               if completely_dominated?(right_root, block)
-                # Yes. Find a merge point.
-                merge = find_merge_point(block, left_root, right_root, loop_stack)
+                # Yes. Find merge point.
+                # The function technically finds two merge points,
+                # but in case of two heads they're identical.
+                merge, a = find_merge_point([ left_root, right_root ])
 
                 # If the merge search did not yield a valid node, use
                 # stopgap for the current block to avoid runaway code
@@ -150,19 +167,23 @@ module Furnace::AVM2
                 # objects contained in arguments of recursive calls. As
                 # the `if's are fully nested when well-formed, we can only
                 # check for collision with innermost stopgap block.
-                nodes << AST::Node.new(:if, [
-                  expr,
-                  extended_block(left_root,  merge || stopgap, loop_stack),
-                  extended_block(right_root, merge || stopgap, loop_stack)
-                ])
+
+                log nesting, "left"
+                left_code  = extended_block(left_root,  merge || stopgap, loop_stack, nesting + 1)
+
+                log nesting, "right"
+                right_code = extended_block(right_root, merge || stopgap, loop_stack, nesting + 1)
+
+                nodes << AST::Node.new(:if, [ expr, left_code, right_code ])
 
                 block = merge
               else
                 # No. The "right root" is actually post-if code.
-                nodes << AST::Node.new(:if, [
-                  expr,
-                  extended_block(left_root, right_root, loop_stack)
-                ])
+
+                log nesting, "one-way"
+                code = extended_block(left_root, right_root, loop_stack, nesting + 1)
+
+                nodes << AST::Node.new(:if, [ expr, code ])
 
                 block = right_root
               end
@@ -191,34 +212,67 @@ module Furnace::AVM2
         end
       end
 
-      # A merge point for blocks R (root), L (left) and D (right)
-      # is first block found with BFS starting at {L,D} so that
-      # it is dominated by R, but not L or D.
-      def find_merge_point(root, left, right, loop_stack)
-        worklist = Set[left, right]
-        visited  = Set[root, left, right]
+      # Find a set of merge points for a set of partially diverged
+      # paths beginning from `heads'.
+      # E.g. here:
+      #
+      #      ----<---
+      #     /        \
+      #    A -------- B --
+      #    |\             \
+      #    | C ---- E - F--- <exit>
+      #    |      /
+      #     \- D -
+      #
+      # with A as the root and B, C and E as heads, the function reports
+      # following merge points: E for C and D, and nil for B.
+      # Note that back edge (denoted by < in the picture) is ignored.
+      def find_merge_point(heads)
+        seen  = Set[]
 
-        while worklist.any?
-          node = worklist.first
-          worklist.delete node
+        heads.map do |head|
+          # Trail is an ordered collection of nodes encountered during
+          # BFS. Order of nodes with same rank is irrelevant.
+          trail = []
 
-          visited.add node
+          worklist = Set[head]
+          visited  = Set[head]
+          while worklist.any?
+            node = worklist.first
+            worklist.delete node
 
-          if (@dom[node].include?(root) &&
-              !(@dom[node].include?(left) ||
-                @dom[node].include?(right))) ||
-              loop_stack.include?(node)
-            return node
+            visited.add node
+            trail.push node
+
+            # Nodes which are dominated by the current head aren't relevant
+            # for merge point search and will cause false positives.
+            unless @dom[node].include? head
+              seen.add node
+            end
+
+            node.targets.each do |target|
+              # Skip visited nodes.
+              if visited.include?(target)
+                next
+              end
+
+              # Skip back edges.
+              if @loops[target] && @loops[target].include?(node)
+                next
+              end
+
+              worklist.add target
+            end
           end
 
-          node.targets.each do |target|
-            next if visited.include? target
-            worklist.add target
+          trail
+        end.map do |(head, *trail)|
+          trail.find do |trail_elem|
+            seen.include?(trail_elem)
           end
+        end.map do |tail|
+          tail unless tail == @cfg.exit
         end
-
-        # The paths have diverged.
-        nil
       end
 
       # Check if the control transfer is nonlocal according to the
@@ -244,6 +298,12 @@ module Furnace::AVM2
         else
           block.cti.children[1]
         end
+      end
+
+      private
+
+      def log(nesting, what)
+        $stderr.puts "CFGr: #{"  " * nesting}#{what}" if @verbose
       end
     end
   end

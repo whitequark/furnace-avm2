@@ -63,7 +63,7 @@ module Furnace::AVM2
             cutoff(node, [ node.children.delete_at(1), next_label ])
 
           when :lookup_switch
-            @jumps_to = [ node.children[0] ] + node.children[1]
+            jumps_to = [ node.children[0] ] + node.children[1]
             @jumps.merge(jumps_to)
             cutoff(node, jumps_to)
 

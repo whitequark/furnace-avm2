@@ -140,14 +140,14 @@ opts[:threads].times do
         disasm[body, true] if opts[:disasm_after]
 
         if opts[:ast]
-          ast = body.code_to_ast
+          ast, = body.code_to_ast
           puts "Method #{body.method_idx}; AST"
           puts ast.to_sexp
           puts
         end
 
         if opts[:cfg]
-          cfg = body.code_to_cfg
+          cfg, = body.code_to_cfg
           File.open("method-#{body.method_idx}.dot", "w") do |dot|
             dot.write cfg.to_graphviz
           end
@@ -168,7 +168,7 @@ opts[:threads].times do
         end
 
         if opts[:nf]
-          ast = body.code_to_nf
+          ast, = body.code_to_nf
           puts "Method #{body.method_idx}; NF-AST"
           puts ast.to_sexp
           puts
