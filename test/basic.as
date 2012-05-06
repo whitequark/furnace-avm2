@@ -181,7 +181,7 @@ package test {
   }
 
   class Switch {
-    function proper_switch(q:int):Boolean {
+    function improper_switch(q:int):Boolean {
       switch(q) {
       case 0x10:
         hoge();
@@ -199,7 +199,28 @@ package test {
       return false;
     }
 
-    function improper_switch(q:int):Boolean {
+    function proper_switch(q:int):Boolean {
+      switch(q) {
+      case 1:
+        hoge();
+      break;
+      case 2:
+        fuga();
+      break;
+      case 3:
+        piyo();
+      break;
+      case 5:
+        bar();
+      break;
+      default:
+        baz();
+      break;
+      }
+      return false;
+    }
+
+    function fallthrough_switch(q:int):Boolean {
       switch(q) {
       case 0x10:
         hoge();
