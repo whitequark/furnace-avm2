@@ -102,7 +102,7 @@ start_time = Time.now
 mutex = Mutex.new
 
 roots      = {}
-workqueue  = abc.instances.dup + abc.scripts.select(&:any_code?)
+workqueue  = abc.instances + abc.scripts
 total_size = workqueue.size
 
 last_percentage = 0
@@ -148,8 +148,14 @@ opts[:threads].times.map do
         name = what.name
         ns   = name.ns
       else # ScriptInfo
-        name = what.traits[0].name.ns
-        ns   = name.to_s.sub(/(^|\.)[^.]+$/, '')
+        if what.has_name?
+          name = what.package_name.ns
+          ns   = name.to_s.sub(/(^|\.)[^.]+$/, '')
+        else
+          index = abc.scripts.index(what)
+          name  = "__global_name_#{index}"
+          ns    = "__global_ns_#{index}"
+        end
       end
       next if shound_skip.(name)
 
