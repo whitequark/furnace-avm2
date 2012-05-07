@@ -178,6 +178,14 @@ package test {
         frak();
       }
     }
+
+    function a() {
+      var i:int = 0;
+      while(i++ < 5) {
+        hello();
+      }
+      return i;
+    }
   }
 
   class Switch {
@@ -210,7 +218,7 @@ package test {
       case 3:
         piyo();
       break;
-      case 5:
+      case 4:
         bar();
       break;
       default:
