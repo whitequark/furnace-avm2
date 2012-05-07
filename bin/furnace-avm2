@@ -1,6 +1,10 @@
 #!/usr/bin/env ruby
 
 require "rubygems"
+begin
+  require "bundler/setup"
+rescue LoadError
+end
 
 $: << File.join(File.dirname(__FILE__), '..', 'lib')
 
