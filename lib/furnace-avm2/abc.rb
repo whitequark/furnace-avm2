@@ -16,6 +16,7 @@ require_relative "abc/opcodes/load_store_opcode"
 require_relative "abc/opcodes/push_literal_opcode"
 require_relative "abc/opcodes/control_transfer_opcode"
 require_relative "abc/opcodes/function_invocation_opcode"
+require_relative "abc/opcodes/function_return_opcode"
 require_relative "abc/opcodes/property_opcode"
 
 Dir[File.join(File.dirname(__FILE__), "abc", "opcodes", "*", "*.rb")].each do |file|

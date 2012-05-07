@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3ReturnVoid < Opcode
+  class AS3ReturnVoid < FunctionReturnOpcode
     instruction 0x47
 
     consume 0
