@@ -195,18 +195,19 @@ module Furnace::AVM2
             node.children.concat opcode.parameters
             node.children.concat parameters
 
-            # Spec does not require stack to be empty upon encountering return.
-            # If there's something left, it should have been here.
-            if opcode.is_a? ABC::FunctionReturnOpcode
-              while @stack.any?
-                emit(*consume(1))
-              end
-            end
-
             # All opcodes which produce 2 results--that is, dup and swap--
             # are already handled at the top.
             if opcode.produces == 0
               expand_conditionals()
+
+              # Spec does not require stack to be empty upon encountering return.
+              # If there's something left, it should have been here.
+              if opcode.is_a? ABC::FunctionReturnOpcode
+                while @stack.any?
+                  emit(*consume(1))
+                end
+              end
+
               emit(node)
             elsif opcode.produces == 1
               produce(node)
