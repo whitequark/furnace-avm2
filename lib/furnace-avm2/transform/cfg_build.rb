@@ -41,15 +41,12 @@ module Furnace::AVM2
             end
           end
 
-          @pending_queue << node if ![:nop, :jump].include? node.type
+          @pending_queue << node if ![:nop, :jump, :label].include? node.type
 
           next_node  = ast.children[index + 1]
           next_label = next_node.metadata[:label] if next_node
 
           case node.type
-          when :label
-            node.update :nop
-
           when :return_value, :return_void
             cutoff(nil, [nil])
 
