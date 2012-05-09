@@ -122,7 +122,7 @@ module Furnace::AVM2::ABC
     end
 
     def disassemble
-      "   #{offset.to_s.rjust(4, "0")}  #{self.class.mnemonic.rjust(20, " ")} #{disassemble_parameters} # params: #{parameters.inspect}"
+      "   #{offset.to_s.rjust(4, "0")}  #{self.class.mnemonic.rjust(20, " ")} #{disassemble_parameters}"
     end
     alias :inspect :disassemble
   end
