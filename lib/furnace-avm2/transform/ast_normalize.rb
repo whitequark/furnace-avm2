@@ -10,7 +10,7 @@ module Furnace::AVM2
       def transform(ast, body)
         visit ast
 
-        [ ast, body ]
+        ast
       end
 
       # (pop x) -> (jump-target) x
