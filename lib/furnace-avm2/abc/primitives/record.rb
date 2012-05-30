@@ -37,7 +37,27 @@ module Furnace::AVM2::ABC
           elsif index = pool.index(value)
             send(:"#{field}=", index + 1)
           else
-            raise "cpool setter: no such object in cpool"
+            format_entry = ConstPoolInfo.format.find { |f| f[1] == array }
+            if format_entry.nil?
+              raise "cpool setter: [BUG] no such cpool field"
+            end
+
+            klass = nil
+            case format_entry[2][:type]
+            when :vstring; klass = String
+            when :nested;  klass = format_entry[2][:class]
+            end
+
+            if klass.nil?
+              raise "cpool setter: [BUG] no checker for type #{format_entry[2][:type]}"
+            end
+
+            if value.class != klass
+              raise "cpool setter: trying to set wrong kind of value (#{value.class} instead of #{klass})"
+            end
+
+            pool.push value
+            send(:"#{field}=", pool.index(value) + 1)
           end
         end
       end
