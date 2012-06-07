@@ -725,7 +725,7 @@ module Furnace::AVM2
     ## Object creation
 
     def expr_construct_property(opcode)
-      expr_do_property(opcode, NewToken)
+      expr_do_property(opcode, NewToken, true)
     end
 
     def expr_construct(opcode)
