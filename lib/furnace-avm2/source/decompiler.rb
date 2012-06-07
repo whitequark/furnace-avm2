@@ -617,7 +617,10 @@ module Furnace::AVM2
             capture(:multiname)
           ],
           [
-            [:get_scope_object, 0],
+            either[
+              [:get_scope_object, 0],
+              [:get_global_scope]
+            ],
             capture(:multiname)
           ],
         ],
@@ -685,28 +688,27 @@ module Furnace::AVM2
       stmt
     end
 
-    def expr_delete_property(opcode)
-      subject, multiname, = opcode.children
-      token(DeleteToken, [get_name(expr(subject), multiname)])
-    end
-
-    def expr_do_property(opcode, klass)
+    def expr_do_property(opcode, klass, has_args)
       if captures = PropertyGlobal.match(opcode)
         token(klass, [
           get_name(nil, captures[:multiname]),
-          token(ArgumentsToken, exprs(captures[:arguments]))
+          (token(ArgumentsToken, exprs(captures[:arguments])) if has_args)
         ])
       else
         subject, multiname, *args = opcode.children
         token(klass, [
           get_name(expr(subject), multiname),
-          token(ArgumentsToken, exprs(args))
+          (token(ArgumentsToken, exprs(args)) if has_args)
         ])
       end
     end
 
+    def expr_delete_property(opcode)
+      expr_do_property(opcode, DeleteToken, false)
+    end
+
     def expr_call_property(opcode)
-      expr_do_property(opcode, CallToken)
+      expr_do_property(opcode, CallToken, true)
     end
     alias :expr_call_property_lex :expr_call_property
 
@@ -922,8 +924,13 @@ module Furnace::AVM2
             parenthesize(subject),
             expr(multiname.children.last)
           ])
+        elsif @scopes[0] == :this
+          token(IndexToken, [
+            token(VariableNameToken, "this"),
+            expr(multiname.children.last)
+          ])
         else
-          token(CommentToken, "%%type #{origin} with no subject")
+          token(CommentToken, "%%type #{origin} with no subject and non-this global-scope")
         end
       when :RTQName, :RTQNameA
         token(RTNameToken, [
