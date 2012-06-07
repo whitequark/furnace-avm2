@@ -400,7 +400,7 @@ module Furnace::AVM2
       else
         token(AssignmentToken, [
           token(VariableNameToken, name),
-          expr(value)
+          parenthesize(expr(value))
         ])
       end
     end
@@ -464,7 +464,7 @@ module Furnace::AVM2
 
           token(AssignmentToken, [
             name,
-            expr(value)
+            parenthesize(expr(value))
           ])
         end
       end
@@ -480,9 +480,9 @@ module Furnace::AVM2
     }
 
     def expr_inplace_arithmetic(opcode)
-      token(UnaryPostOperatorToken, [
+      token(UnaryPostOperatorToken,
         token(VariableNameToken, local_name(*opcode.children)),
-      ], INPLACE_OPERATOR_MAP[opcode.type])
+      INPLACE_OPERATOR_MAP[opcode.type])
     end
 
     alias :expr_inc_local   :expr_inplace_arithmetic
@@ -512,6 +512,25 @@ module Furnace::AVM2
     alias :expr_increment_i :expr_pseudo_arithmetic
     alias :expr_decrement   :expr_pseudo_arithmetic
     alias :expr_decrement_i :expr_pseudo_arithmetic
+
+    def expr_prepost_incdec_local(opcode)
+      index, = opcode.children
+      lvar = token(VariableNameToken, local_name(index))
+
+      if opcode.type == :post_increment_local
+        token(UnaryPostOperatorToken, lvar, "++")
+      elsif opcode.type == :post_decrement_local
+        token(UnaryPostOperatorToken, lvar, "--")
+      elsif opcode.type == :pre_increment_local
+        token(UnaryOperatorToken, lvar, "++")
+      elsif opcode.type == :pre_decrement_local
+        token(UnaryOperatorToken, lvar, "--")
+      end
+    end
+    alias :expr_post_increment_local :expr_prepost_incdec_local
+    alias :expr_post_decrement_local :expr_prepost_incdec_local
+    alias :expr_pre_increment_local  :expr_prepost_incdec_local
+    alias :expr_pre_decrement_local  :expr_prepost_incdec_local
 
     OPERATOR_MAP = {
       :and         => :"&&",
@@ -553,7 +572,7 @@ module Furnace::AVM2
         insides = parenthesize_each(exprs(opcode.children))
 
         if insides.count == 1
-          token(UnaryOperatorToken, insides, OPERATOR_MAP[opcode.type])
+          token(UnaryOperatorToken, insides.first, OPERATOR_MAP[opcode.type])
         elsif insides.count == 2
           token(BinaryOperatorToken, insides, OPERATOR_MAP[opcode.type])
         else
@@ -659,13 +678,13 @@ module Furnace::AVM2
       if captures = PropertyGlobal.match(opcode)
         token(AssignmentToken, [
           get_name(nil, captures[:multiname]),
-          expr(*captures[:arguments])
+          parenthesize(expr(*captures[:arguments]))
         ])
       else
         subject, multiname, value, = opcode.children
         token(AssignmentToken, [
           get_name(expr(subject), multiname),
-          expr(value)
+          parenthesize(expr(value))
         ])
       end
     end
@@ -676,7 +695,7 @@ module Furnace::AVM2
 
       stmt = token(AssignmentToken, [
         get_name(token(SuperToken), multiname),
-        expr(value)
+        parenthesize(expr(value))
       ])
 
       unless This.match subject

@@ -60,6 +60,29 @@ module Furnace::AVM2
       alias :on_convert_s :on_convert_imm
       alias :on_convert_o :on_convert_imm
 
+      LocalIncDecMatcher = AST::Matcher.new do
+        [:set_local, capture(:index),
+          [:convert, :integer,
+            [capture(:operator),
+              [:get_local, backref(:index)]]]]
+      end
+
+      IncDecOperatorMap = {
+        :pre_increment_i  => :pre_increment,
+        :pre_increment    => :pre_increment,
+        :post_increment_i => :post_increment,
+        :post_increment   => :post_increment,
+      }
+
+      def on_set_local(node)
+        if captures = LocalIncDecMatcher.match(node)
+          if IncDecOperatorMap.has_key? captures[:operator]
+            mapped = IncDecOperatorMap[captures[:operator]]
+            node.update(:"#{mapped}_local", [ captures[:index] ])
+          end
+        end
+      end
+
       ExpandedForInMatcher = AST::Matcher.new do
         [:if, [:has_next2, skip], skip]
       end

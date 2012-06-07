@@ -2,8 +2,8 @@ module Furnace::AVM2::Tokens
   class UnaryPostOperatorToken < Furnace::Code::SurroundedToken
     include IsSimple
 
-    def initialize(origin, children, operator, options={})
-      super(origin, children, options)
+    def initialize(origin, child, operator, options={})
+      super(origin, [ child ], options)
       @operator = operator
     end
 

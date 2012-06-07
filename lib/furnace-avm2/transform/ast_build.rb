@@ -1,13 +1,18 @@
 module Furnace::AVM2
-  module Transform
-    # I'm not exactly proud of this code, but it works... for now. I really should
+  module Transform    # I'm not exactly proud of this code, but it works... for now. I really should
     # rework it if I want to expect it to work good.
     class ASTBuild
       CONDITIONAL_OPERATORS = [ :if_eq,  :if_false, :if_true,      :if_ge,        :if_gt,
                                 :if_le,  :if_lt,    :if_ne,        :if_nge,       :if_ngt,
                                 :if_nle, :if_nlt,   :if_strict_eq, :if_strict_ne, :if_true ]
 
-      CONST_OPERATORS = [ :integer, :double, :string, :false, :true, :nan, :undefined, :null ]
+      PURE_OPERATORS = [ :integer, :double, :string, :false, :true, :nan, :undefined, :null,
+                         :find_property_strict ]
+
+      PRE_POST_OPERATORS = [ :increment, :increment_i, :decrement, :decrement_i ]
+
+      SHORT_ASSIGN_OPERATORS = [ :add, :add_i, :subtract, :subtract_i, :multiply, :multiply_i,
+                                 :divide, :modulo ]
 
       def initialize(options)
         @validate = options[:validate] || false
@@ -37,6 +42,10 @@ module Furnace::AVM2
         end
 
         @ast.children.push node
+      end
+
+      def unemit
+        @ast.children.delete(-1)
       end
 
       def extend_complex_expr(valid_types, expected_depth=nil)
@@ -139,7 +148,7 @@ module Furnace::AVM2
           elsif opcode.is_a?(ABC::AS3Dup)
             node = @stack.last
 
-            if CONST_OPERATORS.include?(node.type) ||
+            if PURE_OPERATORS.include?(node.type) ||
                   (node.type == :get_local && node.children.first == 0)
               dup_node = node.dup
               dup_node.metadata[:label] = opcode.offset
@@ -170,6 +179,30 @@ module Furnace::AVM2
           elsif opcode.is_a?(ABC::AS3Kill)
             # Ignore. SSA will handle that.
           else
+            node = AST::Node.new(opcode.ast_type, [], label: opcode.offset)
+
+            if dup == 1
+              top_opcode, = consume(1)
+              found = true
+
+              if PRE_POST_OPERATORS.include? top_opcode.type
+                top_opcode.update(:"pre_#{top_opcode.type}")
+              elsif PRE_POST_OPERATORS.include? node.type
+                node.update(:"post_#{node.type}")
+              elsif SHORT_ASSIGN_OPERATORS.include? top_opcode.type
+                # just push it through
+              else
+                found = false
+              end
+
+              if found
+                produce(AST::Node.new(:unemit))
+                dup = false
+              end
+
+              produce(top_opcode)
+            end
+
             if dup
               spurious += 1
 
@@ -184,8 +217,6 @@ module Furnace::AVM2
               dup = false
             end
 
-            node = AST::Node.new(opcode.ast_type, [], label: opcode.offset)
-
             parameters = consume(opcode.consumes)
             if opcode.consumes_context
               context = opcode.context(consume(opcode.consumes_context))
@@ -198,6 +229,13 @@ module Furnace::AVM2
             # All opcodes which produce 2 results--that is, dup and swap--
             # are already handled at the top.
             if opcode.produces == 0
+              # This was a fallthrough assignment.
+              if @stack.any? && @stack.last.type == :unemit
+                consume(1) # dump unemit
+                produce(node)
+                next
+              end
+
               expand_conditionals()
 
               # Spec does not require stack to be empty upon encountering return.
