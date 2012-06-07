@@ -21,7 +21,7 @@ module Furnace::AVM2
           exc_block.target_labels << exc.target_offset
           exc_block.cti.children <<
               AST::Node.new(:catch,
-                [ exc.exception.to_astlet,
+                [ (exc.exception.to_astlet if exc.exception),
                   exc.variable.to_astlet,
                   exc.target_offset ])
         end
