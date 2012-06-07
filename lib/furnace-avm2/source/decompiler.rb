@@ -613,7 +613,7 @@ module Furnace::AVM2
           ],
           [
             [:find_property_strict,
-              [:m, [:set, "*"], any]],
+              [:m, [:set, any], any]],
             capture(:multiname)
           ],
           [
