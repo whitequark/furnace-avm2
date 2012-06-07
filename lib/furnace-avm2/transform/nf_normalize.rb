@@ -60,6 +60,23 @@ module Furnace::AVM2
       alias :on_convert_s :on_convert_imm
       alias :on_convert_o :on_convert_imm
 
+      ExpandedForInMatcher = AST::Matcher.new do
+        [:if, [:has_next2, skip], skip]
+      end
+
+      # Loops can get expanded, but conditionals would never contain
+      # has-next2.
+      def on_if(node)
+        if ExpandedForInMatcher.match node
+          condition, body, rest = node.children
+
+          loop = AST::Node.new(:while, [ condition, body ])
+          on_while(loop, node.parent, node)
+
+          node.update(:expand, [ loop ] + rest.children)
+        end
+      end
+
       ForInMatcher = AST::Matcher.new do
         [:while,
           [:has_next2, capture(:object_reg), capture(:index_reg)],
@@ -89,15 +106,13 @@ module Furnace::AVM2
         [:continue]
       end
 
-      def on_while(node)
+      def on_while(node, parent=node.parent, enclosure=node)
         *whatever, code = node.children
         if SuperfluousContinueMatcher.match code.children.last
           code.children.slice! -1
         end
 
         if captures = ForInMatcher.match(node)
-          parent = node.parent
-
           case captures[:iterator]
           when :next_name
             type = :for_in
@@ -109,7 +124,7 @@ module Furnace::AVM2
 
           index_node = object_node = nil
 
-          loop_index = parent.children.index(node)
+          loop_index = parent.children.index(enclosure)
           parent.children[0..loop_index].reverse_each do |parent_node|
             if ForInIndexMatcher.match(parent_node, captures)
               index_node  = parent_node
