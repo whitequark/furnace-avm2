@@ -62,9 +62,19 @@ module Furnace::AVM2
 
       LocalIncDecMatcher = AST::Matcher.new do
         [:set_local, capture(:index),
-          [:convert, :integer,
-            [capture(:operator),
-              [:get_local, backref(:index)]]]]
+          either[
+            [:convert, any,
+              capture(:inner)],
+            capture(:inner)]]
+      end
+
+      LocalIncDecInnerMatcher = AST::Matcher.new do
+        [capture(:operator),
+          either[
+            [:convert, any,
+              [:get_local, backref(:index)]],
+            [:get_local, backref(:index)],
+          ]]
       end
 
       IncDecOperatorMap = {
@@ -75,7 +85,8 @@ module Furnace::AVM2
       }
 
       def on_set_local(node)
-        if captures = LocalIncDecMatcher.match(node)
+        if (outer_captures = LocalIncDecMatcher.match(node)) &&
+              (captures = LocalIncDecInnerMatcher.match(outer_captures[:inner], outer_captures))
           if IncDecOperatorMap.has_key? captures[:operator]
             mapped = IncDecOperatorMap[captures[:operator]]
             node.update(:"#{mapped}_local", [ captures[:index] ])

@@ -12,7 +12,8 @@ module Furnace::AVM2
       PRE_POST_OPERATORS = [ :increment, :increment_i, :decrement, :decrement_i ]
 
       SHORT_ASSIGN_OPERATORS = [ :add, :add_i, :subtract, :subtract_i, :multiply, :multiply_i,
-                                 :divide, :modulo ]
+                                 :divide, :modulo,
+                                 :set_local, :set_local_0, :set_local_1, :set_local_2, :set_local_3 ]
 
       def initialize(options)
         @validate = options[:validate] || false

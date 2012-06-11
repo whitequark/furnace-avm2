@@ -115,9 +115,13 @@ module Furnace::AVM2
           send :"stmt_#{opcode.type}", opcode, nodes
         else
           catch(:skip) do
-            nodes << token(StatementToken, [
+            @collected_vars = []
+            stmt = token(StatementToken, [
               handle_expression(opcode)
             ])
+
+            nodes.concat @collected_vars
+            nodes.push stmt
           end
         end
       end
@@ -242,12 +246,19 @@ module Furnace::AVM2
     # Expressions
 
     def handle_expression(opcode)
-      expression(opcode)
+      expression(opcode, true)
     rescue ExpressionNotRecognized => e
       raise ExpressionNotRecognized.new(opcode, e.opcode)
     end
 
-    def expression(opcode)
+    def expression(opcode, toplevel=false)
+      if toplevel
+        handler = :"expr_#{opcode.type}_toplevel"
+        if respond_to?(handler) && node = send(handler, opcode)
+          return node
+        end
+      end
+
       handler = :"expr_#{opcode.type}"
       if respond_to?(handler) && node = send(handler, opcode)
         node
@@ -388,16 +399,30 @@ module Furnace::AVM2
       [:coerce, [:q, "XML"], any]
     end
 
-    def expr_set_var(name, value, type, declare)
+    def expr_set_var(name, value, type, declare, toplevel)
       if declare
-        token(LocalVariableToken, [
-          token(VariableNameToken, name),
-          type,
+        declaration =
+          token(LocalVariableToken, [
+            token(VariableNameToken, name),
+            type
+          ])
+      end
+
+      if declare && toplevel
+        declaration.children <<
           token(InitializationToken, [
             expr(value)
           ])
-        ])
+
+        declaration
       else
+        if declare
+          @collected_vars <<
+            token(StatementToken, [
+              declaration
+            ])
+        end
+
         token(AssignmentToken, [
           token(VariableNameToken, name),
           parenthesize(expr(value))
@@ -405,7 +430,7 @@ module Furnace::AVM2
       end
     end
 
-    def expr_set_local(opcode)
+    def expr_set_local(opcode, toplevel=false)
       index, value = opcode.children
       if IMMEDIATE_TYPE_MAP.include?(value.type)
         type = token(TypeToken, [
@@ -422,9 +447,13 @@ module Furnace::AVM2
         value = value.children.last
       end
 
-      expr_set_var(local_name(index), value, type, !@locals.include?(index))
+      expr_set_var(local_name(index), value, type, !@locals.include?(index), toplevel)
     ensure
       @locals.add index if index
+    end
+
+    def expr_set_local_toplevel(opcode)
+      expr_set_local(opcode, true)
     end
 
     SetSlot = Matcher.new do
@@ -438,7 +467,7 @@ module Furnace::AVM2
       ]
     end
 
-    def expr_set_slot(opcode)
+    def expr_set_slot(opcode, toplevel=false)
       if captures = SetSlot.match(opcode)
         scope = @scopes[captures[:scope_pos] || 0]
         if @closure_slots && scope == :activation
@@ -448,7 +477,7 @@ module Furnace::AVM2
 
           type = type_token(slot.type.to_astlet) if slot.type
           expr = expr_set_var(slot.name.name, value, type,
-                !@closure_locals.include?(index))
+                !@closure_locals.include?(index), local)
           @closure_locals.add index
 
           expr
@@ -468,6 +497,10 @@ module Furnace::AVM2
           ])
         end
       end
+    end
+
+    def expr_set_slot_toplevel(opcode)
+      expr_set_slot(opcode, true)
     end
 
     ## Arithmetics
