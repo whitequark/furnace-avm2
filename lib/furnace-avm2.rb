@@ -1,7 +1,7 @@
 require "furnace/cfg"
 require "furnace/ast"
 require "furnace/code"
-require "furnace/transform"
+require "furnace/transform/pipeline"
 
 require "furnace/graphviz"
 
