@@ -24,7 +24,8 @@ module Furnace::AVM2::ABC
     def code_to_ast(options={ eliminate_nops: true })
       pipeline = Furnace::Transform::Pipeline.new([
         Furnace::AVM2::Transform::ASTBuild.new(options),
-        Furnace::AVM2::Transform::ASTNormalize.new(options)
+        Furnace::AVM2::Transform::ASTNormalize.new(options),
+        Furnace::AVM2::Transform::PropagateConstants.new,
       ])
 
       pipeline.run(code, self)

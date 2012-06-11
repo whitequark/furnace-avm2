@@ -109,8 +109,11 @@ module Furnace::AVM2
 
     def stmt_block(block, options={})
       nodes = []
+      last_index = 0
 
-      block.children.each do |opcode|
+      block.children.each_with_index do |opcode, index|
+        last_index = index
+
         if respond_to?(:"stmt_#{opcode.type}")
           send :"stmt_#{opcode.type}", opcode, nodes
         else
@@ -133,9 +136,9 @@ module Furnace::AVM2
         "Expression recognizer failed at:\n" +
         "#{e.opcode.inspect}\n"
 
-      if e.context != e.opcode
-        comment << "\nOpcode at the top of stack:\n" +
-          "#{e.context.inspect}\n"
+      comment << "\nRest of the code in this block:\n"
+      block.children[last_index..-1].each do |opcode|
+        comment << "#{opcode.inspect}\n"
       end
 
       nodes << CommentToken.new(@body, comment, @options)
