@@ -1,5 +1,6 @@
 module Furnace::AVM2
-  module Transform    # I'm not exactly proud of this code, but it works... for now. I really should
+  module Transform
+    # I'm not exactly proud of this code, but it works... for now. I really should
     # rework it if I want to expect it to work good.
     class ASTBuild
       CONDITIONAL_OPERATORS = [ :if_eq,  :if_false, :if_true,      :if_ge,        :if_gt,
@@ -93,6 +94,16 @@ module Furnace::AVM2
         @ast.children.concat expressions
       end
 
+      LocalIncDecInnerMatcher = AST::Matcher.new do
+        [ either[*PRE_POST_OPERATORS],
+          either[
+            [:convert, any,
+              [:get_local, any]],
+            [:get_local, any],
+          ]
+        ]
+      end
+
       def transform(code, body)
         @stack = []
         @ast   = AST::Node.new(:root)
@@ -178,7 +189,7 @@ module Furnace::AVM2
             node.children = consume(opcode.consumes)
             produce(node)
           elsif opcode.is_a?(ABC::AS3Kill)
-            # Ignore. SSA will handle that.
+            # Ignore.
           else
             node = AST::Node.new(opcode.ast_type, [], label: opcode.offset)
 
@@ -186,9 +197,9 @@ module Furnace::AVM2
               top_opcode, = consume(1)
               found = true
 
-              if PRE_POST_OPERATORS.include? top_opcode.type
+              if PRE_POST_OPERATORS.include?(top_opcode.type)
                 top_opcode.update(:"pre_#{top_opcode.type}")
-              elsif PRE_POST_OPERATORS.include? node.type
+              elsif PRE_POST_OPERATORS.include?(node.type)
                 node.update(:"post_#{node.type}")
               elsif SHORT_ASSIGN_OPERATORS.include? top_opcode.type
                 # just push it through

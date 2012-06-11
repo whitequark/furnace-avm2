@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3Modulo < Opcode
+  class AS3Modulo < ArithmeticOpcode
     instruction 0xa4
 
     consume 2

@@ -18,6 +18,8 @@ require_relative "abc/opcodes/control_transfer_opcode"
 require_relative "abc/opcodes/function_invocation_opcode"
 require_relative "abc/opcodes/function_return_opcode"
 require_relative "abc/opcodes/property_opcode"
+require_relative "abc/opcodes/type_conversion_opcode"
+require_relative "abc/opcodes/arithmetic_opcode"
 
 Dir[File.join(File.dirname(__FILE__), "abc", "opcodes", "*", "*.rb")].each do |file|
   require file

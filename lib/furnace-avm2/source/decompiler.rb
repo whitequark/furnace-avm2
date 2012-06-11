@@ -507,9 +507,7 @@ module Furnace::AVM2
 
     INPLACE_OPERATOR_MAP = {
       :inc_local   => :"++",
-      :inc_local_i => :"++",
       :dec_local   => :"--",
-      :dec_local_i => :"--",
     }
 
     def expr_inplace_arithmetic(opcode)
@@ -518,16 +516,12 @@ module Furnace::AVM2
       INPLACE_OPERATOR_MAP[opcode.type])
     end
 
-    alias :expr_inc_local   :expr_inplace_arithmetic
-    alias :expr_inc_local_i :expr_inplace_arithmetic
-    alias :expr_dec_local   :expr_inplace_arithmetic
-    alias :expr_dec_local_i :expr_inplace_arithmetic
+    alias :expr_inc_local :expr_inplace_arithmetic
+    alias :expr_dec_local :expr_inplace_arithmetic
 
     PSEUDO_OPERATOR_MAP = {
       :increment   => [:"+", 1],
-      :increment_i => [:"+", 1],
       :decrement   => [:"-", 1],
-      :decrement_i => [:"-", 1],
     }
 
     def expr_pseudo_arithmetic(opcode)
@@ -542,9 +536,7 @@ module Furnace::AVM2
     end
 
     alias :expr_increment   :expr_pseudo_arithmetic
-    alias :expr_increment_i :expr_pseudo_arithmetic
     alias :expr_decrement   :expr_pseudo_arithmetic
-    alias :expr_decrement_i :expr_pseudo_arithmetic
 
     def expr_prepost_incdec_local(opcode)
       index, = opcode.children
@@ -570,16 +562,12 @@ module Furnace::AVM2
       :or          => :"||",
 
       :add         => :"+",
-      :add_i       => :"+",
       :subtract    => :"-",
-      :subtract_i  => :"-",
       :multiply    => :"*",
-      :multiply_i  => :"*",
       :divide      => :"/",
       :modulo      => :"%",
       :multiply    => :"*",
       :negate      => :"-",
-      :negate_i    => :"-",
 
       :!           => :!,
       :>           => :>,
@@ -618,11 +606,8 @@ module Furnace::AVM2
     alias :expr_or          :expr_arithmetic
 
     alias :expr_add         :expr_arithmetic
-    alias :expr_add_i       :expr_arithmetic
     alias :expr_subtract    :expr_arithmetic
-    alias :expr_subtract_i  :expr_arithmetic
     alias :expr_multiply    :expr_arithmetic
-    alias :expr_multiply_i  :expr_arithmetic
     alias :expr_divide      :expr_arithmetic
     alias :expr_modulo      :expr_arithmetic
     alias :expr_negate      :expr_arithmetic
@@ -944,6 +929,11 @@ module Furnace::AVM2
 
     def xml_esc_xelem(node)
       xml_expr(node.children.first)
+    end
+
+    def expr_check_filter(node)
+      content, = node.children
+      expr(content)
     end
 
     private

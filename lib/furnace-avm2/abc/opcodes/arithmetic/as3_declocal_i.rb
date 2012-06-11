@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3DecLocalI < Opcode
+  class AS3DecLocalI < ArithmeticOpcode
     instruction 0xc3
 
     body do
@@ -10,5 +10,6 @@ module Furnace::AVM2::ABC
     produce 0
 
     type :integer
+    ast_type :dec_local
   end
 end

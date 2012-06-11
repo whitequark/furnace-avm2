@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3Decrement < Opcode
+  class AS3Decrement < ArithmeticOpcode
     instruction 0x93
 
     consume 1

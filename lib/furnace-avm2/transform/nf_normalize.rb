@@ -22,50 +22,14 @@ module Furnace::AVM2
         node.update(:remove)
       end
 
-      COERCE_MAP = {
-        :coerce_a => :any,
-        :coerce_b => :bool,
-        :coerce_s => :string,
-      }
-
-      def on_coerce_imm(node)
-        expr, = node.children
-        node.update(:coerce, [
-          COERCE_MAP[node.type],
-          expr
-        ])
-      end
-      alias :on_coerce_a :on_coerce_imm
-      alias :on_coerce_b :on_coerce_imm
-      alias :on_coerce_s :on_coerce_imm
-
-      CONVERT_MAP = {
-        :convert_i => :integer,
-        :convert_u => :unsigned,
-        :convert_d => :double,
-        :convert_s => :string,
-        :convert_o => :object,
-      }
-
-      def on_convert_imm(node)
-        expr, = node.children
-        node.update(:convert, [
-          CONVERT_MAP[node.type],
-          expr
-        ])
-      end
-      alias :on_convert_i :on_convert_imm
-      alias :on_convert_u :on_convert_imm
-      alias :on_convert_d :on_convert_imm
-      alias :on_convert_s :on_convert_imm
-      alias :on_convert_o :on_convert_imm
-
       LocalIncDecMatcher = AST::Matcher.new do
         [:set_local, capture(:index),
           either[
             [:convert, any,
               capture(:inner)],
-            capture(:inner)]]
+            capture(:inner)
+          ]
+        ]
       end
 
       LocalIncDecInnerMatcher = AST::Matcher.new do
@@ -74,22 +38,32 @@ module Furnace::AVM2
             [:convert, any,
               [:get_local, backref(:index)]],
             [:get_local, backref(:index)],
-          ]]
+            capture(:abnormal)
+          ]
+        ]
       end
 
-      IncDecOperatorMap = {
-        :pre_increment_i  => :pre_increment,
-        :pre_increment    => :pre_increment,
-        :post_increment_i => :post_increment,
-        :post_increment   => :post_increment,
-      }
+      IncDecOperators = [
+        :pre_increment, :post_increment,
+        :pre_decrement, :post_decrement
+      ]
 
       def on_set_local(node)
-        if (outer_captures = LocalIncDecMatcher.match(node)) &&
-              (captures = LocalIncDecInnerMatcher.match(outer_captures[:inner], outer_captures))
-          if IncDecOperatorMap.has_key? captures[:operator]
-            mapped = IncDecOperatorMap[captures[:operator]]
-            node.update(:"#{mapped}_local", [ captures[:index] ])
+        captures = {}
+        if LocalIncDecMatcher.match(node, captures) &&
+              LocalIncDecInnerMatcher.match(captures[:inner], captures)
+          if IncDecOperators.include? captures[:operator]
+            if captures[:abnormal]
+              node.update(:add, [
+                AST::Node.new(:set_local, [
+                  captures[:index],
+                  captures[:abnormal]
+                ]),
+                AST::Node.new(:integer, [ 1 ])
+              ])
+            else
+              node.update(:"#{captures[:operator]}_local", [ captures[:index] ])
+            end
           end
         end
       end

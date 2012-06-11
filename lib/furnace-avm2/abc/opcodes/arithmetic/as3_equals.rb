@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3Equals < Opcode
+  class AS3Equals < ArithmeticOpcode
     instruction 0xab
     ast_type :==
 

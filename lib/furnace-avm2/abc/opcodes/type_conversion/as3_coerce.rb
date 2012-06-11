@@ -1,5 +1,5 @@
 module Furnace::AVM2::ABC
-  class AS3Coerce < Opcode
+  class AS3Coerce < TypeConversionOpcode
     instruction 0x80
 
     body do
