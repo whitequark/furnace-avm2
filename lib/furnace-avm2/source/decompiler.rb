@@ -480,7 +480,7 @@ module Furnace::AVM2
 
           type = type_token(slot.type.to_astlet) if slot.type
           expr = expr_set_var(slot.name.name, value, type,
-                !@closure_locals.include?(index), local)
+                !@closure_locals.include?(index), toplevel)
           @closure_locals.add index
 
           expr
