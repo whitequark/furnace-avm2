@@ -381,7 +381,7 @@ module Furnace::AVM2
       :string    => 'String',
       :double    => 'Number',
       :object    => 'Object',
-      :bool      => 'Boolean',
+      :boolean   => 'Boolean',
       :true      => 'Boolean',
       :false     => 'Boolean',
     }
