@@ -188,8 +188,6 @@ module Furnace::AVM2
             node.metadata[:offset] = opcode.target_offset
             node.children = consume(opcode.consumes)
             produce(node)
-          elsif opcode.is_a?(ABC::AS3Kill)
-            # Ignore.
           else
             node = AST::Node.new(opcode.ast_type, [], label: opcode.offset)
 

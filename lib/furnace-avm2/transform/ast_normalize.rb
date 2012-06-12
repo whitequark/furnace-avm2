@@ -121,6 +121,7 @@ module Furnace::AVM2
           node.update(:nop)
         end
       end
+      alias :on_kill        :replace_with_nop
       alias :on_debug       :replace_with_nop
       alias :on_debug_file  :replace_with_nop
       alias :on_debug_line  :replace_with_nop
