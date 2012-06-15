@@ -146,7 +146,7 @@ module Furnace::AVM2
           return unless index_node && object_node
 
           index_node.update(:remove)
-          object_node.update(:remove)
+          object_node.update(:remove) if type != :for_each_in
 
           node.update(type, [
             captures[:value_reg],

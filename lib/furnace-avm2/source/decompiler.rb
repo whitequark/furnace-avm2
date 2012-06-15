@@ -17,63 +17,24 @@ module Furnace::AVM2
       @closure = @options.delete(:closure)
     end
 
-    ActivationPrologue = Matcher.new do
-      [:begin,
-        maybe[
-          [:push_scope,
-            [:get_local, 0]],
-        ],
-        [:set_local, -1,
-          [:new_activation]],
-        [:set_local, capture(:activation_local),
-          [:get_local, -1]],
-        [:push_scope,
-          [:get_local, -1]],
-        skip
-      ]
-    end
-
-    RegularPrologue = Matcher.new do
-      [:begin,
-        [:push_scope,
-          [:get_local, 0]],
-        skip
-      ]
-    end
-
     def decompile
       begin
         @locals = Set.new([0]) + (1..@method.param_count).to_a
         @scopes = []
+        @metascopes = []
 
-        @nf = @body.code_to_nf
+        @catch_locals = {}
 
-        if captures = ActivationPrologue.match(@nf)
-          @closure_slots = {}
-          @body.slot_traits.each do |trait|
-            @closure_slots[trait.idx] = trait
-          end
+        @closure_locals = Set.new
 
-          @closure_locals = Set.new
-
-          # Also a regular function
-          if RegularPrologue.match @nf
-            @scopes << :this
-            @nf.children.slice! 0...1
-          end
-
-          @scopes << :activation
-          @nf.children.slice! 0...3
-        elsif RegularPrologue.match @nf
-          @scopes << :this
-          @nf.children.slice! 0...1
-        else
-          # No prologue at all, probably closure-less closure
+        @closure_slots  = {}
+        @body.slot_traits.each do |trait|
+          @closure_slots[trait.idx] = trait
         end
 
         @global_slots = @options[:global_slots] || {}
 
-        stmt_block @nf,
+        stmt_block @body.code_to_nf,
           function: !@options[:global_code],
           closure:  @closure
 
@@ -193,10 +154,10 @@ module Furnace::AVM2
         klass = ForEachToken
       end
 
-      if @closure_slots
+      if @activation_local
         name = token(VariableNameToken, @closure_slots[value_reg].name.name)
       else
-        name = token(VariableNameToken, local_name(value_reg))
+        name = local_token(value_reg)
       end
 
       nodes << token(klass,
@@ -205,7 +166,7 @@ module Furnace::AVM2
             name,
             type_token(value_type)
           ]),
-          token(VariableNameToken, local_name(object_reg)),
+          local_token(object_reg),
         ]),
         stmt_block(body))
     end
@@ -230,19 +191,77 @@ module Furnace::AVM2
     alias :stmt_return_value :stmt_return
     alias :stmt_return_void  :stmt_return
 
+    def stmt_try(opcode, nodes)
+      body, *handlers = opcode.children
+
+      nodes << token(TryToken, [
+        stmt_block(body, continuation: true),
+      ])
+
+      handlers.each_with_index do |handler, index|
+        type, variable, body = handler.children
+        nodes << token(CatchToken,
+          token(CatchFilterToken, [
+            token(MultinameToken, variable.metadata[:origin]),
+            token(MultinameToken, type.metadata[:origin])
+          ]),
+          within_meta_scope {
+            stmt_block(body, continuation: index < handlers.size - 1)
+          }
+        )
+      end
+    end
+
+    def within_meta_scope
+      @metascopes.push @scopes
+      @scopes = []
+
+      yield
+    ensure
+      @scopes = @metascopes.pop
+    end
+
+    KnownPushScopeMatcher = AST::Matcher.new do
+      [:push_scope,
+        either[
+          [:get_local, capture(:get_local)],
+          [:set_local, capture(:set_activation_local),
+            [:new_activation]]
+        ]
+      ]
+    end
+
     def stmt_push_scope(opcode, nodes)
       if @options[:global_code]
         @scopes.push opcode.children.first
+      elsif captures = KnownPushScopeMatcher.match(opcode)
+        if captures[:get_local] == 0
+          @scopes << :this
+        elsif !@activation_local.nil? &&
+            captures[:get_local] == @activation_local
+          @scopes << :activation
+        elsif captures[:set_activation_local]
+          if @activation_local
+            raise "more than one activation per function is not supported"
+          end
+
+          @scopes << :activation
+          @activation_local = captures[:set_activation_local]
+        else
+          raise "abnormal matched pushscope in nonglobal code"
+        end
       else
-        raise "pushscope in nonglobal code"
+        raise "abnormal pushscope in nonglobal code"
       end
     end
 
     def stmt_pop_scope(opcode, nodes)
       if @options[:global_code]
         @scopes.pop
+      elsif @scopes.any?
+        @scopes.pop
       else
-        raise "popscope in nonglobal code"
+        raise "popscope with empty stack"
       end
     end
 
@@ -320,29 +339,29 @@ module Furnace::AVM2
 
     ## Locals
 
-    def local_name(index)
+    def local_token(index)
       if index < 0
-        "sp#{-index}"
+        token(VariableNameToken, "sp#{-index}")
       elsif index == 0
         if @options[:static]
-          @options[:instance].name.name
+          token(VariableNameToken, @options[:instance].name.name)
         else
-          "this"
+          token(ThisToken)
         end
       elsif index <= @method.param_count
         if @method.has_param_names?
-          @method.param_names[index - 1]
+          token(VariableNameToken, @method.param_names[index - 1])
         else
-          "param#{index - 1}"
+          token(VariableNameToken, "param#{index - 1}")
         end
       else
-        "local#{index - @method.param_count - 1}"
+        token(VariableNameToken, "local#{index - @method.param_count - 1}")
       end
     end
 
     def expr_get_local(opcode)
       index, = opcode.children
-      token(VariableNameToken, local_name(index))
+      local_token(index)
     end
 
     GetSlot = Matcher.new do
@@ -358,7 +377,14 @@ module Furnace::AVM2
     def expr_get_slot(opcode)
       if captures = GetSlot.match(opcode)
         scope = @scopes[captures[:scope_pos] || 0]
-        if @closure_slots && scope == :activation
+
+        if scope.is_a? Hash
+          # treat as an inline scope, probably from an eh
+          if scope[captures[:index]]
+            var = scope[captures[:index]]
+            token(VariableNameToken, var.metadata[:origin].name)
+          end
+        elsif @closure_slots && scope == :activation
           # treat as a local variable
           slot = @closure_slots[captures[:index]]
           token(VariableNameToken, slot.name.name)
@@ -402,11 +428,11 @@ module Furnace::AVM2
       [:coerce, [:q, "XML"], any]
     end
 
-    def expr_set_var(name, value, type, declare, toplevel)
+    def expr_set_var(var, value, type, declare, toplevel)
       if declare
         declaration =
           token(LocalVariableToken, [
-            token(VariableNameToken, name),
+            var,
             type
           ])
       end
@@ -427,7 +453,7 @@ module Furnace::AVM2
         end
 
         token(AssignmentToken, [
-          token(VariableNameToken, name),
+          var,
           parenthesize(expr(value))
         ])
       end
@@ -450,7 +476,7 @@ module Furnace::AVM2
         value = value.children.last
       end
 
-      expr_set_var(local_name(index), value, type, !@locals.include?(index), toplevel)
+      expr_set_var(local_token(index), value, type, !@locals.include?(index), toplevel)
     ensure
       @locals.add index if index
     end
@@ -464,22 +490,47 @@ module Furnace::AVM2
         capture(:index),
         either[
           [:get_scope_object, capture(:scope_pos)],
-          [:get_global_scope]
+          [:get_global_scope],
+          [:push_scope,
+            [:set_local, capture(:catch_local),
+              [:new_catch, capture(:catch_id)]]]
         ],
         capture(:value)
       ]
     end
 
+    ExceptionVariable = Matcher.new do
+      [:exception_variable, capture(:variable)]
+    end
+
     def expr_set_slot(opcode, toplevel=false)
       if captures = SetSlot.match(opcode)
         scope = @scopes[captures[:scope_pos] || 0]
-        if @closure_slots && scope == :activation
+
+        if captures[:catch_id]
+          stmt = nil
+
+          unless ExceptionVariable.match captures[:value], captures
+            stmt = token(SupplementaryCommentToken,
+              "Non-matching catch_id and catch id", [])
+          end
+
+          @catch_locals[captures[:catch_local]] = captures[:variable]
+
+          @scopes << {
+            captures[:index] => captures[:variable]
+          }
+
+          throw :skip unless stmt
+          stmt
+        elsif @closure_slots && scope == :activation
           # treat as a local variable
           index, value = captures.values_at(:index, :value)
           slot = @closure_slots[index]
 
           type = type_token(slot.type.to_astlet) if slot.type
-          expr = expr_set_var(slot.name.name, value, type,
+          expr = expr_set_var(token(VariableNameToken, slot.name.name),
+                value, type,
                 !@closure_locals.include?(index), toplevel)
           @closure_locals.add index
 
@@ -514,9 +565,11 @@ module Furnace::AVM2
     }
 
     def expr_inplace_arithmetic(opcode)
+      index, = opcode.children
+
       token(UnaryPostOperatorToken,
-        token(VariableNameToken, local_name(*opcode.children)),
-      INPLACE_OPERATOR_MAP[opcode.type])
+        local_token(index),
+        INPLACE_OPERATOR_MAP[opcode.type])
     end
 
     alias :expr_inc_local :expr_inplace_arithmetic
@@ -543,7 +596,7 @@ module Furnace::AVM2
 
     def expr_prepost_incdec_local(opcode)
       index, = opcode.children
-      lvar = token(VariableNameToken, local_name(index))
+      lvar = local_token(index)
 
       if opcode.type == :post_increment_local
         token(UnaryPostOperatorToken, lvar, "++")
@@ -815,7 +868,7 @@ module Furnace::AVM2
         token(CallToken, [
           subject_token,
           token(ArgumentsToken, [
-            token(VariableNameToken, local_name(0)),
+            local_token(0),
             *exprs(args)
           ])
         ])
@@ -971,7 +1024,7 @@ module Furnace::AVM2
           ])
         elsif @scopes[0] == :this
           token(IndexToken, [
-            token(VariableNameToken, "this"),
+            local_token(0),
             expr(multiname.children.last)
           ])
         else
@@ -981,6 +1034,11 @@ module Furnace::AVM2
         token(RTNameToken, [
           parenthesize(expr(multiname.children.first)),
           token(PropertyNameToken, origin.name)
+        ])
+      when :RTQNameL, :RTQNameLA
+        token(RTNameToken, [
+          parenthesize(expr(multiname.children.first)),
+          parenthesize(expr(multiname.children.last))
         ])
       else
         token(CommentToken, "%%type #{origin}")

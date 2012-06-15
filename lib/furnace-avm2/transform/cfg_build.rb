@@ -11,7 +11,7 @@ module Furnace::AVM2
           unless exc_block = @exceptions[exc.range]
             exc_block = CFG::Node.new(@cfg, "exc_#{index}")
 
-            dispatch_node = AST::Node.new(:exception_dispatch)
+            dispatch_node = AST::Node.new(:exception_dispatch, [], keep: true)
             exc_block.insns << dispatch_node
             exc_block.cti = dispatch_node
 

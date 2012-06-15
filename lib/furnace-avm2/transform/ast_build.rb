@@ -14,7 +14,8 @@ module Furnace::AVM2
 
       SHORT_ASSIGN_OPERATORS = [ :add, :add_i, :subtract, :subtract_i, :multiply, :multiply_i,
                                  :divide, :modulo,
-                                 :set_local, :set_local_0, :set_local_1, :set_local_2, :set_local_3 ]
+                                 :set_local, :set_local_0, :set_local_1, :set_local_2, :set_local_3,
+                                 :new_catch, :new_activation ]
 
       def initialize(options)
         @validate = options[:validate] || false
@@ -115,6 +116,13 @@ module Furnace::AVM2
         shortjump   = []
         ternary     = []
 
+        current_handler = nil
+
+        exceptions  = {}
+        body.exceptions.each_with_index do |exception, index|
+          exceptions[exception.target_offset] = [ index, exception ]
+        end
+
         code.each do |opcode|
           if @verbose
             puts "================================"
@@ -125,6 +133,17 @@ module Furnace::AVM2
 
           finalize_complex_expr(opcode, ternary, CONDITIONAL_OPERATORS, nil, [:ternary_if, false])
           finalize_complex_expr(opcode, shortjump, [ :and, :or ], 1)
+
+          if exceptions.has_key? opcode.offset
+            index, exception = exceptions[opcode.offset]
+
+            current_handler  = exception
+            if exception.variable
+              produce(AST::Node.new(:exception_variable, [ exception.variable.to_astlet ]))
+            else
+              produce(AST::Node.new(:exception_variable))
+            end
+          end
 
           if dup == 1 && (opcode.is_a?(ABC::AS3CoerceB) ||
                   opcode.is_a?(ABC::AS3IfTrue) || opcode.is_a?(ABC::AS3IfFalse))
@@ -172,6 +191,9 @@ module Furnace::AVM2
           elsif opcode.is_a?(ABC::AS3Jump)
             if opcode.body.jump_offset == 0
               node = AST::Node.new(:nop, [], label: opcode.offset)
+              emit(node)
+            elsif opcode.target.is_a? ABC::AS3Throw
+              node = AST::Node.new(:throw, [ consume(1) ], label: opcode.offset)
               emit(node)
             elsif @stack.any? && !CONDITIONAL_OPERATORS.include?(@stack.last.type)
               extend_complex_expr(CONDITIONAL_OPERATORS)
