@@ -16,7 +16,7 @@ module Furnace::AVM2::Tokens
         *, value = options[:property_values].find { |k,v| k == origin.name.to_astlet }
       end
 
-      if value.nil?
+      if value.nil? && origin.printable_value
         value = ImmediateToken.new(origin, origin.printable_value, options)
       end
 
