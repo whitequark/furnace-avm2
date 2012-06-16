@@ -10,10 +10,18 @@ module Furnace::AVM2::Tokens
         ], options) if origin.type)
       ], options)
 
-      if origin.printable_value
-        @children << InitializationToken.new(origin, [
-          ImmediateToken.new(origin, origin.printable_value, options)
-        ], @options)
+      value = nil
+
+      if options[:property_values]
+        *, value = options[:property_values].find { |k,v| k == origin.name.to_astlet }
+      end
+
+      if value.nil?
+        value = ImmediateToken.new(origin, origin.printable_value, options)
+      end
+
+      if value
+        @children << InitializationToken.new(origin, [ value ], @options)
       end
     end
 

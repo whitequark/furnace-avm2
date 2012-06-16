@@ -7,21 +7,22 @@ module Furnace::AVM2::Tokens
         [:Class, :Slot, :Const].include? trait.kind
       end
 
+      if options[:environment] == :class && options[:static]
+        if origin.initializer_body
+          properties = Furnace::AVM2::Decompiler.new(
+                origin.initializer_body, options).decompose_static_initializer
+          options = options.merge(property_values: properties)
+        end
+      end
+
       tokens += vars.map { |trait| transform_trait trait, options }
 
       if tokens.any?
         tokens << Furnace::Code::NewlineToken.new(origin, options)
       end
 
-      if options[:environment] == :class
-        if options[:static]
-          tokens << CommentToken.new(origin, "Static initializer", options)
-          tokens << CommentToken.new(origin,
-            ConstructorToken.new(origin, options.merge(commented: true)),
-          options)
-        else
-          tokens << ConstructorToken.new(origin, options)
-        end
+      if options[:environment] == :class && !options[:static]
+        tokens << ConstructorToken.new(origin, options)
       end
 
       tokens += methods.map { |trait| transform_trait trait, options }

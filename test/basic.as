@@ -1,5 +1,13 @@
 package test {
+  class A {
+    function A(test) {
+    }
+  }
+
   class Literal {
+    public static var a:A = new A();
+    public static const b:A = new A(1);
+
     function test() {
       call(1, 1, 200, 200, -1, -50, 32767, 32768, -32760, -500000);
     }

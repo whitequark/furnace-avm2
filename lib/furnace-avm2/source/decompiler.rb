@@ -66,6 +66,30 @@ module Furnace::AVM2
       end
     end
 
+    StaticProperty = Matcher.new do
+      [ either[:set_property, :init_property],
+        [:find_property, capture(:property)],
+        backref(:property),
+        capture(:value)
+      ]
+    end
+
+    def decompose_static_initializer
+      properties = {}
+
+      StaticProperty.find_all(@body.code_to_nf.children) do |match, captures|
+        begin
+          token = handle_expression(captures[:value])
+        rescue ExpressionNotRecognized => e
+          token = token(CommentToken, "Unrecognized static initializer:\n#{e.opcode.inspect}")
+        end
+
+        properties[captures[:property]] = token
+      end
+
+      properties
+    end
+
     # Statements
 
     def stmt_block(block, options={})
