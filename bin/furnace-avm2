@@ -163,6 +163,13 @@ opts[:threads].times do
           end
           puts
 
+          puts "Method #{body.method_idx}; postdominators"
+          cfg.postdominators.each do |node, dominating|
+            puts "#{node.label.inspect} => " +
+                 "#{dominating.map(&:label).map(&:inspect).join(", ")}"
+          end
+          puts
+
           puts "Method #{body.method_idx}; loops"
           cfg.identify_loops.each do |header, body|
             puts "#{header.label.inspect} => " +

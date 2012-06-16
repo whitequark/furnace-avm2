@@ -13,9 +13,12 @@ module Furnace::AVM2
         @dom   = @cfg.dominators
         @loops = @cfg.identify_loops
 
-        @visited       = Set.new
-        @loop_tails    = {}
-        @loop_nonlocal = Set.new
+        @visited        = Set.new
+        @loop_tails     = {}
+        @loop_nonlocal  = Set.new
+
+        @postcond_heads = Set.new
+        @postcond_tails = Set.new
 
         ast, = extended_block(@cfg.entry)
 
@@ -84,10 +87,12 @@ module Furnace::AVM2
           end
 
           log nesting, "BLOCK: #{block.inspect}"
+          log nesting, "stopgap: #{stopgap.inspect}"
 
           prev_block = block
 
-          if @loops.include?(block) && loop_stack.include?(block)
+          if (@loops.include?(block) || @postcond_tails.include?(block)) &&
+                    loop_stack.include?(block)
             # We have just arrived to loop head. Insert `continue'
             # and exit.
             check_nonlocal_loop(loop_stack, block) do |params|
@@ -103,6 +108,9 @@ module Furnace::AVM2
               current_nodes << AST::Node.new(:break, params)
             end
             break
+          elsif loop_stack.first == block && !@loops.include?(block)
+            # We have just arrived to do..while cti block. Exit.
+            break
           elsif block == stopgap
             # We have just arrived to a merge point of `if'
             # contidional. Exit.
@@ -115,22 +123,37 @@ module Furnace::AVM2
             @visited.add block
           end
 
-          block.insns.each do |insn|
-            next if insn == block.cti
-            current_nodes << insn
-          end
-
           if block.cti
             if block.cti.type == :lookup_switch
               # this is a switch
 
               raise "lookup-switch is not implemented"
-            elsif @loops.include?(block)
-              log nesting, "is a loop"
+            elsif @loops.include?(block) && !@postcond_heads.include?(block)
+              if block.insns.first == block.cti
+                log nesting, "is a while loop"
+
+                loop_node = :while
+                cti_block = block
+              else
+                log nesting, "is a do-while loop"
+
+                loop_node = :do_while
+                cti_block = nil
+
+                @loops[block].each do |loop_block|
+                  loop_block.targets.each do |target|
+                    # Find a back edge
+                    if @dom[loop_block].include? target
+                      raise "multiple back edges" unless cti_block.nil?
+                      cti_block = loop_block
+                    end
+                  end
+                end
+              end
 
               # we're trapped in a strange loop
-              reverse = !block.cti.children[0]
-              in_root, out_root = block.targets
+              reverse = !cti_block.cti.children[0]
+              in_root, out_root = cti_block.targets
 
               # One of the branch targets should reside within
               # the loop.
@@ -141,13 +164,30 @@ module Furnace::AVM2
 
               # Mark the loop tail so we could detect `break' and
               # `continue' statements.
-              @loop_tails[out_root] = block
+              @loop_tails[out_root] = cti_block
 
               # If we reversed the roots or it was a (jump-if false),
               # then reverse the condition.
-              expr = normalize_cti_expr(block, reverse)
+              expr = normalize_cti_expr(cti_block, reverse)
 
-              body = extended_block(in_root, nil, [ block ] + loop_stack, nesting + 1, current_exception)
+              # Remove the block from visited set if it's a do..while header,
+              # as it should be re-processed.
+              if loop_node == :do_while
+                @visited.delete block
+
+                @postcond_heads.add block
+                @postcond_tails.add cti_block
+              end
+
+              # Handle a special case: all code in the loop header and the loop
+              # is do..while.
+              if loop_node == :do_while && cti_block == block
+                body = AST::Node.new(:begin)
+
+                append_instructions(block, body.children)
+              else
+                body = extended_block(in_root, nil, [ cti_block ] + loop_stack, nesting + 1, current_exception)
+              end
 
               # [(label name)]
               # We first parse the body and then add the label before
@@ -157,18 +197,25 @@ module Furnace::AVM2
                 current_nodes << AST::Node.new(:label, [ loop_label(block) ])
               end
 
-              # (while (condition)
+              # (while|do-while (condition)
               #   (body ...))
-              current_nodes << AST::Node.new(:while, [
+              current_nodes << AST::Node.new(loop_node, [
                 expr,
                 body
               ])
+
+              # Add cti_block to visited for the do-while case.
+              if loop_node == :do_while
+                @visited.add cti_block
+              end
 
               block = out_root
             else
               log nesting, "is a conditional"
 
-              # this is an `if'.
+              append_instructions(block, current_nodes)
+
+              # This is an `if'.
               reverse = !block.cti.children[0]
               left_root, right_root = block.targets
 
@@ -192,7 +239,7 @@ module Furnace::AVM2
               # If the left root still isn't dominated by block,
               # then this is not a proper conditional.
               unless completely_dominated?(left_root, block)
-                raise "not-well-formed if"
+                raise "not well-formed if"
               end
 
               # If the right root is dominated by this block, which
@@ -247,6 +294,8 @@ module Furnace::AVM2
               end
             end
           elsif block.targets.count == 1
+            append_instructions(block, current_nodes)
+
             block = block.targets.first
           elsif block == @cfg.exit
             break
@@ -349,6 +398,13 @@ module Furnace::AVM2
           yield [loop_label(block)]
         else
           yield []
+        end
+      end
+
+      def append_instructions(block, nodes)
+        block.insns.each do |insn|
+          next if insn == block.cti
+          nodes << insn
         end
       end
 

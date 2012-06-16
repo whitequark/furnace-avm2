@@ -167,8 +167,30 @@ package test {
   }
 
   class Loops {
+    function f(f:Boolean) {
+      do {
+        f = tttest();
+        if(rand() > 0)
+          break;
+        bar();
+        if(rand() < 0)
+          continue;
+        foo();
+        if(k)
+          return;
+        end();
+      } while(f);
+    }
+
     function e(f:Boolean) {
-      do { f = tttest();
+      do {
+        f = tttest();
+        if(rand() > 0)
+          break;
+        bar();
+        if(rand() < 0)
+          continue;
+        foo();
       } while(f);
     }
 

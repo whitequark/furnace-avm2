@@ -163,8 +163,17 @@ module Furnace::AVM2
     def stmt_while(opcode, nodes)
       condition, body = opcode.children
 
-      nodes << token(WhileToken, handle_expression(condition),
+      nodes << token(WhileToken,
+        handle_expression(condition),
         stmt_block(body))
+    end
+
+    def stmt_do_while(opcode, nodes)
+      condition, body = opcode.children
+
+      nodes << token(DoWhileToken,
+        stmt_block(body, continuation: true),
+        handle_expression(condition))
     end
 
     def stmt_for(opcode, nodes)
@@ -198,7 +207,7 @@ module Furnace::AVM2
     alias :stmt_for_each_in :stmt_for
 
     def stmt_break(opcode, nodes)
-      nodes << token(ReturnToken, exprs(opcode.children))
+      nodes << token(BreakToken, exprs(opcode.children))
     end
 
     def stmt_continue(opcode, nodes)
