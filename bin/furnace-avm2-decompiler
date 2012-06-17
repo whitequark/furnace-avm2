@@ -173,6 +173,7 @@ opts[:threads].times.map do
 
       source = what.decompile(options)
       next unless source
+      next unless source.children.any?
 
       text = source.to_text
 

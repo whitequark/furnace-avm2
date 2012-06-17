@@ -11,19 +11,27 @@ module Furnace::AVM2::Tokens
           ns.name !~ /^[A-Za-z0-9_$.]+$/
       }
 
-      super(origin, [
-        (PackageNameToken.new(origin, options[:package_name].ns.name, options) if options[:package_name]),
-        ScopeToken.new(origin, [
+      case options[:package_type]
+      when :class, :interface
+        content = ClassToken.new(origin, options)
+      when :script
+        content = ScriptToken.new(origin, options)
+      end
+
+      scope = nil
+      if content.children.any?
+        scope = ScopeToken.new(origin, [
           *import_ns.map { |ns|
             ImportToken.new(origin, ns.name, options)
           },
           (Furnace::Code::NewlineToken.new(origin, options) if import_ns.any?),
-          (case options[:package_type]
-           when :class;     ClassToken.new(origin, options)
-           when :interface; ClassToken.new(origin, options)
-           when :script;    ScriptToken.new(origin, options)
-           end)
+          content
         ], options)
+      end
+
+      super(origin, [
+        (PackageNameToken.new(origin, options[:package_name].ns.name, options) if options[:package_name]),
+        scope,
       ], options)
     end
   end
