@@ -62,10 +62,14 @@ module Furnace::AVM2::ABC
     end
 
     def opcode_at(position)
+      parse if @raw_code
+
       @pos_cache[position]
     end
 
     def offset_of(opcode)
+      parse if @raw_code
+
       @opcode_cache[opcode]
     end
 

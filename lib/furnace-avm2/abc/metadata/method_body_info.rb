@@ -37,7 +37,7 @@ module Furnace::AVM2::ABC
         Furnace::AVM2::Transform::CFGBuild.new
       ])
 
-      pipeline.run(code_to_ast({}), self)
+      pipeline.run(*code_to_ast({}))
     end
 
     def code_to_nf

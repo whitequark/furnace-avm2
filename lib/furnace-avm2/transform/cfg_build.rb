@@ -1,13 +1,18 @@
 module Furnace::AVM2
   module Transform
     class CFGBuild
-      def transform(ast, body)
+      def transform(ast, body, finallies)
         @jumps      = Set.new
         @exceptions = {}
 
         @cfg = CFG::Graph.new
 
         body.exceptions.each_with_index do |exc, index|
+          if finallies.find { |f| f[:first_catch] == exc }
+            # The first catch in finally is a no-op
+            next
+          end
+
           unless exc_block = @exceptions[exc.range]
             exc_block = CFG::Node.new(@cfg, "exc_#{index}")
 
@@ -19,11 +24,18 @@ module Furnace::AVM2
           end
 
           exc_block.target_labels << exc.target_offset
-          exc_block.cti.children <<
-              AST::Node.new(:catch,
-                [ (exc.exception.to_astlet if exc.exception),
-                  exc.variable.to_astlet,
-                  exc.target_offset ])
+
+          if finallies.find { |f| f[:second_catch] == exc }
+            exc_block.cti.children <<
+                AST::Node.new(:finally,
+                  [ exc.target_offset ])
+          else
+            exc_block.cti.children <<
+                AST::Node.new(:catch,
+                  [ (exc.exception.to_astlet if exc.exception),
+                    exc.variable.to_astlet,
+                    exc.target_offset ])
+          end
         end
 
         @pending_label = nil

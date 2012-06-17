@@ -294,6 +294,20 @@ package test {
   }
 
   class Exceptions {
+    function f() {
+      if(a) {
+        try {
+          try {
+            a();
+          } catch(e) {
+            b();
+          }
+          hoge();
+        } catch(q: SecurityError) {
+          piyo();
+        }
+      }
+    }
     function e() {
       if(a) {
         try {

@@ -5,7 +5,7 @@ module Furnace::AVM2
     class PropagateConstants
       include AST::Visitor
 
-      def transform(ast)
+      def transform(ast, *stuff)
         @local_nonconst = Set.new
         @local_sets = {}
         @local_gets = Hash.new { |h,k| h[k] = [] }
@@ -26,7 +26,7 @@ module Furnace::AVM2
           end
         end
 
-        ast
+        [ ast, *stuff ]
       end
 
       def on_set_local(node)

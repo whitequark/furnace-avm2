@@ -48,15 +48,23 @@ module Furnace::AVM2
 
             root, *tails = find_merge_point([ block ] + exception.targets)
             exception.targets.zip(tails).each_with_index do |(target, tail), index|
-              exception, var = catches[index].children
-
-              log nesting, "catch #{exception.inspect} #{var.inspect}"
-
+              log nesting, "handler #{catches[index].inspect}"
               handler = extended_block(target, tail, loop_stack, nesting + 1, nil)
-              handlers.push AST::Node.new(:catch, [
-                exception, var,
-                handler
-              ], catches[index].metadata)
+
+              node = catches[index]
+              if node.type == :catch
+                exception, var = node.children
+                handlers.push AST::Node.new(:catch, [
+                  exception, var,
+                  handler
+                ], node.metadata)
+              elsif node.type == :finally
+                handlers.push AST::Node.new(:finally, [
+                  handler
+                ], node.metadata)
+              else
+                raise "unknown handler type #{node.type}"
+              end
             end
 
             [ AST::Node.new(:try, [

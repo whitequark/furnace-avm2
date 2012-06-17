@@ -3,10 +3,10 @@ module Furnace::AVM2
     class PropagateLabels
       include AST::Visitor
 
-      def transform(ast, body)
+      def transform(ast, *stuff)
         visit ast      # propagate labels
 
-        [ast, body]
+        [ ast, *stuff ]
       end
 
       def on_any(node)

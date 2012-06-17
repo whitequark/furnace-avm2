@@ -232,16 +232,24 @@ module Furnace::AVM2
       ])
 
       handlers.each_with_index do |handler, index|
-        type, variable, body = handler.children
-        nodes << token(CatchToken,
-          token(CatchFilterToken, [
-            token(MultinameToken, variable.metadata[:origin]),
-            token(MultinameToken, type.metadata[:origin])
-          ]),
-          within_meta_scope {
-            stmt_block(body, continuation: index < handlers.size - 1)
-          }
-        )
+        block = within_meta_scope do
+          stmt_block(handler.children.last, continuation: index < handlers.size - 1)
+        end
+
+        if handler.type == :catch
+          type, variable, = handler.children
+          nodes << token(CatchToken,
+            token(CatchFilterToken, [
+              token(MultinameToken, variable.metadata[:origin]),
+              token(MultinameToken, type.metadata[:origin])
+            ]),
+            block
+          )
+        elsif handler.type == :finally
+          nodes << token(FinallyToken, block)
+        else
+          raise "unknown handler type #{handler.type}"
+        end
       end
     end
 

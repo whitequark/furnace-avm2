@@ -117,10 +117,53 @@ module Furnace::AVM2
         ternary     = []
 
         current_handler = nil
+        current_finally = nil
+
+        finallies   = {}
+        body.exceptions.each_with_index do |exception, index|
+          first, second = exception, body.exceptions[index + 1]
+          next unless second
+
+          if first.from_offset == second.from_offset &&
+                second.to_offset > first.to_offset &&
+                first.target_offset > second.from_offset &&
+                first.target_offset < second.to_offset &&
+                first.to.is_a?(ABC::AS3Jump) &&
+                first.to.target.is_a?(ABC::AS3PushByte)
+            entry    = first.to.target.next.target
+            epilogue = nil
+
+            cursor = entry.next
+            while cursor
+              if cursor.is_a?(ABC::AS3LookupSwitch) &&
+                    cursor.body.default_offset == 8 &&
+                    cursor.body.case_count == 0
+                epilogue = cursor
+                break
+              end
+
+              cursor = cursor.next
+            end
+
+            raise "cannot find finally epilogue" if epilogue.nil?
+
+            finallies[first.to_offset] = {
+              first_catch:      first,
+              second_catch:     second,
+              skip_intervals:   [ first.target_offset...second.target_offset,
+                                  (second.target_offset + 4)...entry.offset ],
+              begin_offset:     first.to.offset,
+              entry_offset:     entry.offset,
+              epilogue_offset:  epilogue.offset,
+              end_offset:       epilogue.offset + epilogue.byte_length,
+            }
+          end
+        end
 
         exceptions  = {}
         body.exceptions.each_with_index do |exception, index|
-          exceptions[exception.target_offset] = [ index, exception ]
+          next if finallies.find { |k,f| f[:first_catch] == exception }
+          exceptions[exception.target_offset] = exception
         end
 
         code.each do |opcode|
@@ -134,8 +177,28 @@ module Furnace::AVM2
           finalize_complex_expr(opcode, ternary, CONDITIONAL_OPERATORS, nil, [:ternary_if, false])
           finalize_complex_expr(opcode, shortjump, [ :and, :or ], 1)
 
+          if finallies.has_key? opcode.offset
+            current_finally = finallies[opcode.offset]
+          end
+
+          if current_finally
+            if current_finally[:begin_offset] == opcode.offset
+              puts "FINALLY: begin" if @verbose
+              emit(AST::Node.new(:jump, [ current_finally[:end_offset] ], label: opcode.offset))
+              next
+            elsif current_finally[:skip_intervals].find { |si| si.include? opcode.offset }
+              puts "FINALLY: skip" if @verbose
+              next
+            elsif current_finally[:epilogue_offset] == opcode.offset
+              puts "FINALLY: epilogue" if @verbose
+              emit(AST::Node.new(:nop, [], label: opcode.offset))
+              @stack.clear
+              next
+            end
+          end
+
           if exceptions.has_key? opcode.offset
-            index, exception = exceptions[opcode.offset]
+            exception = exceptions[opcode.offset]
 
             current_handler  = exception
             if exception.variable
@@ -285,7 +348,7 @@ module Furnace::AVM2
           end
         end
 
-        [ @ast.normalize_hierarchy!, body ]
+        [ @ast.normalize_hierarchy!, body, finallies.values ]
       end
     end
   end
