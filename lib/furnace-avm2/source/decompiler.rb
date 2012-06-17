@@ -238,13 +238,17 @@ module Furnace::AVM2
 
         if handler.type == :catch
           type, variable, = handler.children
-          nodes << token(CatchToken,
-            token(CatchFilterToken, [
+
+          if type
+            filter_node = token(CatchFilterToken, [
               token(MultinameToken, variable.metadata[:origin]),
               token(MultinameToken, type.metadata[:origin])
-            ]),
-            block
-          )
+            ])
+          else
+            filter_node = token(MultinameToken, variable.metadata[:origin])
+          end
+
+          nodes << token(CatchToken, filter_node, block)
         elsif handler.type == :finally
           nodes << token(FinallyToken, block)
         else
