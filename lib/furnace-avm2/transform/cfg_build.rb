@@ -78,7 +78,7 @@ module Furnace::AVM2
           else
             *, next_exception_block = exception_block_for(next_label)
 
-            if @jumps.include?(next_label) || next_node.type == :label
+            if @jumps.include?(next_label) || (next_node && next_node.type == :label)
               cutoff(nil, [next_label])
             elsif @pending_exc_block != next_exception_block
               cutoff(nil, [next_label])
