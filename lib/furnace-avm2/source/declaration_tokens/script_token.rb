@@ -12,6 +12,13 @@ module Furnace::AVM2::Tokens
         *transform_traits(origin, options.merge(static: false)),
         (global_code if global_code.children.any?)
       ], options)
+
+      if options[:debug_funids] && global_code.children.any?
+        @children.unshift \
+          CommentToken.new(origin,
+            "Function ##{origin.initializer_idx}",
+          options)
+      end
     end
   end
 end
