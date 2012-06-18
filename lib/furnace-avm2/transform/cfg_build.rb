@@ -80,6 +80,8 @@ module Furnace::AVM2
 
             if @jumps.include?(next_label) || (next_node && next_node.type == :label)
               cutoff(nil, [next_label])
+            elsif body.exceptions.find { |ex| ex.target_offset == next_label }
+              cutoff(nil, [next_label])
             elsif @pending_exc_block != next_exception_block
               cutoff(nil, [next_label])
             end
