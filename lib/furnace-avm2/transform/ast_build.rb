@@ -88,7 +88,12 @@ module Furnace::AVM2
         while @stack.any? && CONDITIONAL_OPERATORS.include?(@stack.last.type)
           conditional, = consume(1)
 
-          jump_node = AST::Node.new(:jump_if, [ true, conditional.metadata[:offset], conditional ])
+          jump_node = AST::Node.new(:jump_if, [
+            true,
+            conditional.metadata[:offset],
+            conditional
+          ], label: conditional.metadata[:label])
+
           expressions.unshift jump_node
         end
 
