@@ -211,11 +211,17 @@ module Furnace::AVM2
     alias :stmt_for_each_in :stmt_for
 
     def stmt_break(opcode, nodes)
-      nodes << token(BreakToken, exprs(opcode.children))
+      label, = opcode.children
+      nodes << token(BreakToken, [
+        (token(LabelNameToken, label) if label)
+      ])
     end
 
     def stmt_continue(opcode, nodes)
-      nodes << token(ContinueToken, exprs(opcode.children))
+      label, = opcode.children
+      nodes << token(ContinueToken, [
+        (token(LabelNameToken, label) if label)
+      ])
     end
 
     def stmt_throw(opcode, nodes)

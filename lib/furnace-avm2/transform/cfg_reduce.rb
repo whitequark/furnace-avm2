@@ -76,6 +76,16 @@ module Furnace::AVM2
         end
       end
 
+      def is_loop_head?(block, loop_stack)
+        (@loops.include?(block) || @postcond_tails.include?(block)) &&
+                    loop_stack.include?(block)
+      end
+
+      def is_loop_tail?(block, loop_stack)
+        @loop_tails.include?(block) &&
+                    loop_stack.include?(@loop_tails[block])
+      end
+
       def extended_block(block, stopgap=nil, loop_stack=[], nesting=0, upper_exc=nil)
         nodes = []
         prev_block = nil
@@ -99,16 +109,14 @@ module Furnace::AVM2
 
           prev_block = block
 
-          if (@loops.include?(block) || @postcond_tails.include?(block)) &&
-                    loop_stack.include?(block)
+          if is_loop_head?(block, loop_stack)
             # We have just arrived to loop head. Insert `continue'
             # and exit.
             check_nonlocal_loop(loop_stack, block) do |params|
               current_nodes << AST::Node.new(:continue, params)
             end
             break
-          elsif @loop_tails.include?(block) &&
-                    loop_stack.include?(@loop_tails[block])
+          elsif is_loop_tail?(block, loop_stack)
             # We have just arrived to loop tail. Insert `break'
             # and exit.
             loop = @loop_tails[block]
@@ -291,7 +299,12 @@ module Furnace::AVM2
 
               # If the left root still isn't dominated by block,
               # then this is not a proper conditional.
-              unless completely_dominated?(left_root, block)
+              # If the left root leads to a loop head or tail, then
+              # the code will not be generated for that root, and
+              # its dominance is irrelevant.
+              if !completely_dominated?(left_root, block) &&
+                    !(is_loop_head?(left_root, loop_stack) ||
+                      is_loop_tail?(left_root, loop_stack))
                 raise "not well-formed if"
               end
 
