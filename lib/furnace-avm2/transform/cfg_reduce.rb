@@ -96,18 +96,9 @@ module Furnace::AVM2
         while block
           log nesting, "EX: #{(current_exception.label if current_exception) || '-'} " <<
                        "NEW-EX: #{(block.exception.label if block.exception) || '-'}"
-          if block.exception != current_exception
-            nodes.concat possibly_wrap_eh(prev_block, current_nodes, current_exception, loop_stack, nesting)
-
-            current_exception = block.exception
-            current_nodes     = []
-            exception_changed = true
-          end
 
           log nesting, "BLOCK: #{block.inspect}"
           log nesting, "stopgap: #{stopgap.inspect}"
-
-          prev_block = block
 
           if is_loop_head?(block, loop_stack)
             # We have just arrived to loop head. Insert `continue'
@@ -132,6 +123,16 @@ module Furnace::AVM2
             # contidional. Exit.
             break
           end
+
+          if block.exception != current_exception
+            nodes.concat possibly_wrap_eh(prev_block, current_nodes, current_exception, loop_stack, nesting)
+
+            current_exception = block.exception
+            current_nodes     = []
+            exception_changed = true
+          end
+
+          prev_block = block
 
           if @visited.include? block
             raise "failsafe: block #{block.label} already visited"
