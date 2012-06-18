@@ -270,6 +270,18 @@ module Furnace::AVM2
               # not have edges coming to it even from other blocks
               # dominated by this block.
 
+              # A special case: empty if().
+              if left_root == right_root
+                current_nodes << AST::Node.new(:if, [
+                  block.cti.children[1],
+                  AST::Node.new(:begin)
+                ])
+
+                block = left_root
+
+                next
+              end
+
               # If the left root isn't dominated by block,
               # then it can't be `if' branch.
               if !completely_dominated?(left_root, block)
