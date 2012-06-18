@@ -78,10 +78,16 @@ module Furnace::AVM2
         if ExpandedForInMatcher.match node
           condition, body, rest = node.children
 
+          body.children << AST::Node.new(:break)
+
           loop = AST::Node.new(:while, [ condition, body ])
           on_while(loop, node.parent, node)
 
-          node.update(:expand, [ loop ] + rest.children)
+          if rest
+            node.update(:expand, [ loop ] + rest.children)
+          else
+            node.update(:expand, [ loop ])
+          end
         end
       end
 
