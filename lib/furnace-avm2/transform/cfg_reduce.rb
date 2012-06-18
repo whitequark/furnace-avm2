@@ -122,6 +122,9 @@ module Furnace::AVM2
             # We have just arrived to a merge point of `if'
             # contidional. Exit.
             break
+          elsif block == @cfg.exit
+            # We have just arrived to exit node.
+            break
           end
 
           if block.exception != current_exception
@@ -132,13 +135,12 @@ module Furnace::AVM2
             exception_changed = true
           end
 
-          prev_block = block
-
           if @visited.include? block
             raise "failsafe: block #{block.label} already visited"
-          elsif block != @cfg.exit
-            @visited.add block
           end
+
+          prev_block = block
+          @visited.add block
 
           if block.cti
             if block.cti.type == :lookup_switch
@@ -389,8 +391,6 @@ module Furnace::AVM2
             append_instructions(block, current_nodes)
 
             block = block.targets.first
-          elsif block == @cfg.exit
-            break
           else
             raise "invalid target count (#{block.targets.count})"
           end
