@@ -34,7 +34,7 @@ EOS
   opt :grep,          "Search <s> in method names",                 :type => :string, :short => '-G'
 
   opt :collect,       "Collect failed methods instead of exiting",  :default => false
-  opt :smallest,      "Find method with smallest body",             :default => false
+  opt :sort_by_size,  "Sort methods by body size",                  :default => false
 
   opt :disasm_before, "Disassemble methods before transforming",    :default => false, :short => '-B'
   opt :disasm_after,  "Disassemble methods after transforming",     :default => false, :short => '-A'
@@ -79,7 +79,7 @@ end
 
 failed = []
 dced = []
-smallest = nil
+by_body_size = {}
 
 if opts[:fix_names]
   abc.fix_names!
@@ -131,10 +131,8 @@ opts[:threads].times do
       begin
         disasm[body, false] if opts[:disasm_before]
 
-        if opts[:smallest]
-          if smallest.nil? || smallest.code_length > body.code_length
-            smallest = body
-          end
+        if opts[:sort_by_size]
+          by_body_size[body] = body.code_length
         end
 
         if opts[:dce]
@@ -211,8 +209,13 @@ if opts[:verbose]
   end
 end
 
-if opts[:smallest]
-  puts "Smallest method is #{smallest.method_idx} with #{smallest.code_length} bytes"
+if opts[:sort_by_size]
+  puts "Methods by body size:"
+  by_body_size.
+      sort_by { |(body, size)| size }.
+      each do |(body, size)|
+    puts "#{size}\tmethod ##{body.method_idx}"
+  end
 end
 
 if opts[:collect] && failed.any?
