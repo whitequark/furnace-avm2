@@ -134,6 +134,10 @@ module Furnace::AVM2
       end
     end
 
+    def stmt_begin(opcode, nodes)
+      nodes << stmt_block(opcode)
+    end
+
     def stmt_if(opcode, nodes)
       condition, if_true, if_false = opcode.children
 
@@ -255,6 +259,23 @@ module Furnace::AVM2
           raise "unknown handler type #{handler.type}"
         end
       end
+    end
+
+    def stmt_switch(opcode, nodes)
+      condition, body = opcode.children
+
+      nodes << token(SwitchToken,
+        handle_expression(condition),
+        stmt_block(body))
+    end
+
+    def stmt_default(opcode, nodes)
+      nodes << token(CaseToken, nil)
+    end
+
+    def stmt_case(opcode, nodes)
+      value, = opcode.children
+      nodes << token(CaseToken, handle_expression(value))
     end
 
     def within_meta_scope

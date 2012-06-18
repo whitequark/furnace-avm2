@@ -133,9 +133,42 @@ module Furnace::AVM2
 
           if block.cti
             if block.cti.type == :lookup_switch
-              # this is a switch
+              log nesting, "is a switch"
 
-              raise "lookup-switch is not implemented"
+              case_branches = block.targets
+              case_merges   = find_merge_point(block.targets)
+
+              cases = case_branches.zip(case_merges).map do |branch, merge|
+                extended_block(branch, merge, loop_stack, nesting + 1, current_exception)
+              end
+
+              node = AST::Node.new(:begin)
+
+              cases.each_with_index.map do |branch, index|
+                if index == 0
+                  header = AST::Node.new(:default)
+                else
+                  header = AST::Node.new(:case, [
+                    AST::Node.new(:integer, [ index - 1 ])
+                  ])
+                end
+
+                branch.children << AST::Node.new(:break)
+
+                node.children += [
+                  header,
+                  branch,
+                ]
+              end
+
+              current_nodes << AST::Node.new(:switch, [
+                block.cti.children.last,
+                node
+              ])
+
+              # Follow to merge point of the default branch and switch root.
+              # This is the best guess we can do.
+              block = find_merge_point([ block.targets[0], block ]).first
             elsif @loops.include?(block) && !@postcond_heads.include?(block)
               if block.insns.first == block.cti
                 log nesting, "is a while loop"
