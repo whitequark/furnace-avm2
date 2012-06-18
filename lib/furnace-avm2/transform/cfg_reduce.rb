@@ -144,7 +144,12 @@ module Furnace::AVM2
             if block.cti.type == :lookup_switch
               log nesting, "is a switch"
 
-              case_branches = block.targets
+              # Group cases pointing to the same blocks of code.
+              aliases = Hash[block.targets.each_index.
+                    group_by { |index| block.targets[index] }.values.
+                    map { |(main, *others)| [ main, others ] }]
+
+              case_branches = block.targets.values_at(*aliases.keys)
               case_merges   = find_merge_point(block.targets)
 
               cases = case_branches.zip(case_merges).map do |branch, merge|
@@ -153,21 +158,23 @@ module Furnace::AVM2
 
               node = AST::Node.new(:begin)
 
-              cases.each_with_index.map do |branch, index|
-                if index == 0
-                  header = AST::Node.new(:default)
-                else
-                  header = AST::Node.new(:case, [
-                    AST::Node.new(:integer, [ index - 1 ])
-                  ])
+              cases.each_with_index.map do |branch, main_index|
+                headers = []
+
+                [ main_index, *aliases[main_index] ].each do |index|
+                  if index == 0
+                    headers << AST::Node.new(:default)
+                  else
+                    headers << AST::Node.new(:case, [
+                      AST::Node.new(:integer, [ index - 1 ])
+                    ])
+                  end
                 end
 
                 branch.children << AST::Node.new(:break)
 
-                node.children += [
-                  header,
-                  branch,
-                ]
+                node.children += headers
+                node.children << branch
               end
 
               current_nodes << AST::Node.new(:switch, [
