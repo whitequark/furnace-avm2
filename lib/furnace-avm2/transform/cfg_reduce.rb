@@ -47,9 +47,9 @@ module Furnace::AVM2
             handlers = []
 
             root, *tails = find_merge_point([ block ] + exception.targets)
-            exception.targets.zip(tails).each_with_index do |(target, tail), index|
+            exception.targets.each_with_index do |target, index|
               log nesting, "handler #{catches[index].inspect}"
-              handler = extended_block(target, tail, loop_stack, nesting + 1, nil)
+              handler = extended_block(target, root, loop_stack, nesting + 1, nil)
 
               node = catches[index]
               if node.type == :catch

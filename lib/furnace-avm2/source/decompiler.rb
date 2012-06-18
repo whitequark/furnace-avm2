@@ -23,7 +23,7 @@ module Furnace::AVM2
         @scopes = []
         @metascopes = []
 
-        @catch_locals = {}
+        @catch_scopes = {}
 
         @closure_locals = Set.new
 
@@ -306,6 +306,8 @@ module Furnace::AVM2
         elsif !@activation_local.nil? &&
             captures[:get_local] == @activation_local
           @scopes << :activation
+        elsif @catch_scopes.include? captures[:get_local]
+          @scopes << @catch_scopes[captures[:get_local]]
         elsif captures[:set_activation_local]
           if @activation_local
             raise "more than one activation per function is not supported"
@@ -314,7 +316,7 @@ module Furnace::AVM2
           @scopes << :activation
           @activation_local = captures[:set_activation_local]
         else
-          raise "abnormal matched pushscope in nonglobal code"
+          raise "abnormal matched pushscope in nonglobal code: #{captures.inspect}"
         end
       else
         raise "abnormal pushscope in nonglobal code"
@@ -581,11 +583,12 @@ module Furnace::AVM2
               "Non-matching catch_id and catch id", [])
           end
 
-          @catch_locals[captures[:catch_local]] = captures[:variable]
-
-          @scopes << {
+          scope = {
             captures[:index] => captures[:variable]
           }
+
+          @catch_scopes[captures[:catch_local]] = scope
+          @scopes << scope
 
           throw :skip unless stmt
           stmt
