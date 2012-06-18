@@ -179,59 +179,70 @@ module Furnace::AVM2
               # This is the best guess we can do.
               block = find_merge_point([ block.targets[0], block ]).first
             elsif @loops.include?(block) && !@postcond_heads.include?(block)
+              # we're trapped in a strange loop
               if block.insns.first == block.cti
                 log nesting, "is a while loop"
 
-                loop_node = :while
+                loop_type = :head_cti
                 cti_block = block
               else
-                log nesting, "is a do-while loop"
-
-                loop_node = :do_while
-                cti_block = nil
+                back_edges = []
 
                 @loops[block].each do |loop_block|
                   loop_block.targets.each do |target|
                     # Find a back edge
                     if @dom[loop_block].include? target
-                      raise "multiple back edges" unless cti_block.nil?
-                      cti_block = loop_block
+                      back_edges << loop_block
                     end
                   end
                 end
+
+                if back_edges.count == 1
+                  loop_type = :tail_cti
+                  cti_block = back_edges.first
+                else
+                  raise "invalid back edge count"
+                end
               end
 
-              # we're trapped in a strange loop
-              reverse = !cti_block.cti.children[0]
-              in_root, out_root = cti_block.targets
+              if loop_type == :infinite
+                in_root, out_root = block, nil
 
-              # One of the branch targets should reside within
-              # the loop.
-              if !@loops[block].include?(in_root)
-                in_root, out_root = out_root, in_root
-                reverse = !reverse
+                # out_root = nil is not correct in all cases, i.e.
+                # when multiple breaks are present.
+
+                expr = AST::Node.new(:true)
+              else
+                reverse = !cti_block.cti.children[0]
+                in_root, out_root = cti_block.targets
+
+                # One of the branch targets should reside within
+                # the loop.
+                if !@loops[block].include?(in_root)
+                  in_root, out_root = out_root, in_root
+                  reverse = !reverse
+                end
+
+                # If we reversed the roots or it was a (jump-if false),
+                # then reverse the condition.
+                expr = normalize_cti_expr(cti_block, reverse)
               end
 
               # Mark the loop tail so we could detect `break' and
               # `continue' statements.
               @loop_tails[out_root] = cti_block
 
-              # If we reversed the roots or it was a (jump-if false),
-              # then reverse the condition.
-              expr = normalize_cti_expr(cti_block, reverse)
-
-              # Remove the block from visited set if it's a do..while header,
-              # as it should be re-processed.
-              if loop_node == :do_while
+              # Remove the block from visited set if it is unrelated to the
+              # current loop condition, as it should be re-processed.
+              if loop_type != :head_cti
                 @visited.delete block
 
                 @postcond_heads.add block
                 @postcond_tails.add cti_block
               end
 
-              # Handle a special case: all code in the loop header and the loop
-              # is do..while.
-              if loop_node == :do_while && cti_block == block
+              # Handle a special case: all code in the loop header.
+              if loop_type == :tail_cti && cti_block == block
                 body = AST::Node.new(:begin)
 
                 append_instructions(block, body.children)
@@ -247,6 +258,13 @@ module Furnace::AVM2
                 current_nodes << AST::Node.new(:label, [ loop_label(block) ])
               end
 
+              # Map loop types to node types.
+              if loop_type == :head_cti || loop_type == :infinite
+                loop_node = :while
+              else
+                loop_node = :do_while
+              end
+
               # (while|do-while (condition)
               #   (body ...))
               current_nodes << AST::Node.new(loop_node, [
@@ -255,7 +273,7 @@ module Furnace::AVM2
               ])
 
               # Add cti_block to visited for the do-while case.
-              if loop_node == :do_while
+              if loop_type == :tail_cti
                 @visited.add cti_block
               end
 
