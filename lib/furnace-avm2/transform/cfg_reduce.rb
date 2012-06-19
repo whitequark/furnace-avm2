@@ -20,6 +20,8 @@ module Furnace::AVM2
         @postcond_heads = Set.new
         @postcond_tails = Set.new
 
+        @try_tails      = Hash.new { |h,k| h[k] = Set.new }
+
         ast, = extended_block(@cfg.entry)
 
         @visited.add @cfg.exit
@@ -71,12 +73,25 @@ module Furnace::AVM2
               AST::Node.new(:begin, nodes),
             ] + handlers) ]
 
-            # Handle a special case whether control doesn't flow after tails
-            # of the catches by its own, e.g. the last statement of try
-            # block is return.
             if tails.any? && tails.uniq.count == 1 &&
                       @dom[tails.first].include?(exception)
-              tail_code = extended_block(tails.first, nil, loop_stack, nesting + 1, nil)
+              # Handle a special case whether control doesn't flow after tails
+              # of the catches by its own, e.g. the last statement of try
+              # block is return.
+
+              tail_block = tails.first
+            elsif @try_tails.has_key? exception
+              # Handle a special case where control falls through more than
+              # one level of scopes.
+              if @try_tails[exception].count > 1
+                raise "multiple try block exit points"
+              end
+
+              tail_block = @try_tails[exception].first
+            end
+
+            if tail_block
+              tail_code = extended_block(tail_block, nil, loop_stack, nesting + 1, nil)
               eh_nodes.concat tail_code.children
             end
 
@@ -134,6 +149,12 @@ module Furnace::AVM2
             break
           elsif block.cti && block.cti.type == :exception_dispatch
             log nesting, "exit: spurious exception dispatch traverse"
+            break
+          elsif !upper_exc.nil? && block.exception.nil? && block != @cfg.exit
+            log nesting, "exit: leaving try block"
+
+            @try_tails[upper_exc].add block
+
             break
           elsif block == @cfg.exit
             # We have just arrived to exit node.
