@@ -151,32 +151,96 @@ module Furnace::AVM2
                     group_by { |index| block.targets[index] }.values.
                     map { |(main, *others)| [ main, others ] }]
 
+              # Find a merge point for all of the case branches.
               case_branches = block.targets.values_at(*aliases.keys)
-              case_merges   = find_merge_point(block.targets)
+              case_merges   = find_merge_point(case_branches)
 
-              cases = case_branches.zip(case_merges).map do |branch, merge|
-                extended_block(branch, merge, loop_stack, nesting + 1, current_exception)
+              # A possible exit point for the statement is a merge which
+              # isn't pointed to by a branch. This prediction can fail if
+              # there are empty cases.
+              possible_exit_points = (case_merges - case_branches).uniq
+              if possible_exit_points.count > 1
+                raise "multiple possible switch exit points at first guess"
+              end
+
+              exit_point = possible_exit_points.first
+              log nesting, "exit point (first guess): #{exit_point}"
+
+              # Compute case predecessors for fallthrough.
+              case_predecessors = Hash.new { |h,k| h[k] = Set.new }
+
+              case_branches.zip(case_merges).each do |(branch, merge)|
+                if case_branches.include?(merge)
+                  case_predecessors[merge].add branch
+                end
+              end
+
+              # One and only one block may have multiple predecessors.
+              # In this case, it is the actual exit point; switch the
+              # prediction.
+              new_exit_point, = case_predecessors.find { |branch, pred| pred.count > 1 }
+              if new_exit_point
+                if case_predecessors.find { |branch, pred|
+                        pred.count > 1 && branch != new_exit_point }
+                  raise "multiple possible switch exit points at second guess"
+                end
+
+                exit_point = new_exit_point
+                log nesting, "exit point (second guess): #{exit_point}"
+              end
+
+              # Flatten the one-element sets.
+              case_predecessors.each do |branch, pred|
+                case_predecessors[branch] = pred.first
+              end
+
+              case_successors = case_predecessors.invert
+
+              # Generate code for the actual branches. Stopgap is either the
+              # merge or exit point.
+              case_bodies = case_branches.zip(case_merges).map do |(branch, merge)|
+                extended_block(branch, merge || exit_point, loop_stack, nesting + 1, current_exception)
               end
 
               node = AST::Node.new(:begin)
 
-              cases.each_with_index.map do |branch, main_index|
-                headers = []
-
-                [ main_index, *aliases[main_index] ].each do |index|
-                  if index == 0
-                    headers << AST::Node.new(:default)
-                  else
-                    headers << AST::Node.new(:case, [
-                      AST::Node.new(:integer, [ index - 1 ])
-                    ])
-                  end
+              # Sort the nodes in the order of fallthrough precedence
+              # and assemble the body AST.
+              case_pool = case_branches.dup
+              while case_pool.any?
+                next_branch = case_pool.find { |c| !case_predecessors.has_key?(c) }
+                if next_branch.nil?
+                  raise "circular dependency between cases"
                 end
 
-                branch.children << AST::Node.new(:break)
+                body = nil
 
-                node.children += headers
-                node.children << branch
+                while next_branch
+                  case_pool.delete next_branch
+
+                  if body && !case_predecessors.has_key?(next_branch)
+                    body.children << AST::Node.new(:break)
+                  end
+
+                  main_index = case_branches.index(next_branch)
+                  body = case_bodies[main_index]
+
+                  [ main_index, *aliases[main_index] ].each do |index|
+                    if index == 0
+                      node.children << AST::Node.new(:default)
+                    else
+                      node.children << AST::Node.new(:case, [
+                        AST::Node.new(:integer, [ index - 1 ])
+                      ])
+                    end
+                  end
+
+                  node.children << body
+
+                  next_branch = case_successors[next_branch]
+                end
+
+                body.children << AST::Node.new(:break)
               end
 
               current_nodes << AST::Node.new(:switch, [
@@ -184,9 +248,7 @@ module Furnace::AVM2
                 node
               ])
 
-              # Follow to merge point of the default branch and switch root.
-              # This is the best guess we can do.
-              block = find_merge_point([ block.targets[0], block ]).first
+              block = exit_point
             elsif @loops.include?(block) && !@postcond_heads.include?(block)
               # we're trapped in a strange loop
               if block.insns.first == block.cti
@@ -355,7 +417,7 @@ module Furnace::AVM2
 
                 # The function technically finds two merge points,
                 # but in case of two heads they're identical.
-                merge, * = find_merge_point([ left_root, right_root ])
+                merge, = find_merge_point([ left_root, right_root ])
 
                 # If the merge search did not yield a valid node, use
                 # stopgap for the current block to avoid runaway code
