@@ -197,9 +197,15 @@ module Furnace::AVM2
               case_successors = case_predecessors.invert
 
               # Generate code for the actual branches. Stopgap is either the
-              # merge or exit point.
+              # another case (fallthrough) or exit point.
               case_bodies = case_branches.zip(case_merges).map do |(branch, merge)|
-                extended_block(branch, merge || exit_point, loop_stack, nesting + 1, current_exception)
+                if case_branches.include? merge
+                  branch_stopgap = merge
+                else
+                  branch_stopgap = exit_point
+                end
+
+                extended_block(branch, branch_stopgap, loop_stack, nesting + 1, current_exception)
               end
 
               node = AST::Node.new(:begin)
