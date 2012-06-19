@@ -189,6 +189,11 @@ module Furnace::AVM2
                 log nesting, "exit point (second guess): #{exit_point}"
               end
 
+              if exit_point.nil?
+                exit_point = stopgap
+                log nesting, "exit point (last restort): stopgap #{stopgap}"
+              end
+
               # Flatten the one-element sets.
               case_predecessors.each do |branch, pred|
                 case_predecessors[branch] = pred.first
