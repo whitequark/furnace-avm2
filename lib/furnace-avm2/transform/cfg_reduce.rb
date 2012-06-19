@@ -53,9 +53,9 @@ module Furnace::AVM2
 
               node = catches[index]
               if node.type == :catch
-                exception, var = node.children
+                exc_name, var_name = node.children
                 handlers.push AST::Node.new(:catch, [
-                  exception, var,
+                  exc_name, var_name,
                   handler
                 ], node.metadata)
               elsif node.type == :finally
@@ -67,9 +67,20 @@ module Furnace::AVM2
               end
             end
 
-            [ AST::Node.new(:try, [
-                AST::Node.new(:begin, nodes),
-              ] + handlers) ]
+            eh_nodes = [ AST::Node.new(:try, [
+              AST::Node.new(:begin, nodes),
+            ] + handlers) ]
+
+            # Handle a special case whether control doesn't flow after tails
+            # of the catches by its own, e.g. the last statement of try
+            # block is return.
+            if tails.any? && tails.uniq.count == 1 &&
+                      @dom[tails.first].include?(exception)
+              tail_code = extended_block(tails.first, nil, loop_stack, nesting + 1, nil)
+              eh_nodes.concat tail_code.children
+            end
+
+            eh_nodes
           end
         else
           []
