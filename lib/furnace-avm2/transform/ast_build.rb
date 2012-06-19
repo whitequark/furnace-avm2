@@ -97,7 +97,9 @@ module Furnace::AVM2
           expressions.unshift jump_node
         end
 
-        @ast.children.concat expressions
+        expressions.each do |expr|
+          emit(expr)
+        end
       end
 
       LocalIncDecInnerMatcher = AST::Matcher.new do
@@ -307,6 +309,7 @@ module Furnace::AVM2
               spurious += 1
 
               save_node = AST::Node.new(:set_local, [ -spurious, *consume(1) ])
+              expand_conditionals()
               emit(save_node)
 
               (1 + dup).times do
