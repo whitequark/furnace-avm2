@@ -195,13 +195,13 @@ module Furnace::AVM2
               # A possible exit point for the statement is a merge which
               # isn't pointed to by a branch. This prediction can fail if
               # there are empty cases.
-              possible_exit_points = (case_merges - case_branches).uniq
+              possible_exit_points = (case_merges.compact - case_branches).uniq
               if possible_exit_points.count > 1
                 raise "multiple possible switch exit points at first guess"
               end
 
               exit_point = possible_exit_points.first
-              log nesting, "exit point (first guess): #{exit_point}"
+              log nesting, "exit point (first guess): #{exit_point.inspect}"
 
               # Compute case predecessors for fallthrough.
               case_predecessors = Hash.new { |h,k| h[k] = Set.new }
@@ -223,12 +223,12 @@ module Furnace::AVM2
                 end
 
                 exit_point = new_exit_point
-                log nesting, "exit point (second guess): #{exit_point}"
+                log nesting, "exit point (second guess): #{exit_point.inspect}"
               end
 
               if exit_point.nil?
                 exit_point = stopgap
-                log nesting, "exit point (last restort): stopgap #{stopgap}"
+                log nesting, "exit point (last restort): stopgap #{stopgap.inspect}"
               end
 
               # Flatten the one-element sets.
