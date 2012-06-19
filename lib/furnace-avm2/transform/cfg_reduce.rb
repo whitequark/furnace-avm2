@@ -93,39 +93,44 @@ module Furnace::AVM2
         current_nodes     = []
         exception_changed = false
 
-        while block
-          log nesting, "EX: #{(current_exception.label if current_exception) || '-'} " <<
-                       "NEW-EX: #{(block.exception.label if block.exception) || '-'}"
+        log nesting, "--- STOPGAP: #{stopgap.inspect}"
 
+        while block
           log nesting, "BLOCK: #{block.inspect}"
-          log nesting, "stopgap: #{stopgap.inspect}"
 
           if is_loop_head?(block, loop_stack)
-            # We have just arrived to loop head. Insert `continue'
-            # and exit.
+            log nesting, "exit: loop head (continue stmt)"
+
             check_nonlocal_loop(loop_stack, block) do |params|
               current_nodes << AST::Node.new(:continue, params)
             end
+
             break
           elsif is_loop_tail?(block, loop_stack)
-            # We have just arrived to loop tail. Insert `break'
-            # and exit.
+            log nesting, "exit: loop tail (break stmt)"
+
             loop = @loop_tails[block]
             check_nonlocal_loop(loop_stack, loop) do |params|
               current_nodes << AST::Node.new(:break, params)
             end
+
             break
           elsif loop_stack.first == block && !@loops.include?(block)
-            # We have just arrived to do..while cti block. Exit.
+            log nesting, "exit: do..while cti block"
             break
           elsif block == stopgap
-            # We have just arrived to a merge point of `if'
-            # contidional. Exit.
+            log nesting, "exit: stopgap encountered"
+            break
+          elsif block.cti && block.cti.type == :exception_dispatch
+            log nesting, "exit: spurious exception dispatch traverse"
             break
           elsif block == @cfg.exit
             # We have just arrived to exit node.
             break
           end
+
+          log nesting, "EX: #{(current_exception.label if current_exception) || '-'} " <<
+                       "NEW-EX: #{(block.exception.label if block.exception) || '-'}"
 
           if block.exception != current_exception
             nodes.concat possibly_wrap_eh(prev_block, current_nodes, current_exception, loop_stack, nesting)
