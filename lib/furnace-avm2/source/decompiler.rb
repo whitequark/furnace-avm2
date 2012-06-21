@@ -688,6 +688,41 @@ module Furnace::AVM2
     alias :expr_pre_increment_local  :expr_prepost_incdec_local
     alias :expr_pre_decrement_local  :expr_prepost_incdec_local
 
+    PrePostIncDecSlot = Matcher.new do
+      [any,
+        capture(:index),
+        either[
+          [:get_global_scope],
+          [:get_scope_object, capture(:scope_pos)]
+        ]
+      ]
+    end
+
+    def expr_prepost_incdec_slot(opcode)
+      if captures = PrePostIncDecSlot.match(opcode)
+        scope = @scopes[captures[:scope_pos] || 0]
+
+        if @closure_slots && scope == :activation
+          slot_trait = @closure_slots[captures[:index]]
+          slot = token(VariableNameToken, slot_trait.name.name)
+
+          if opcode.type == :post_increment_slot
+            token(UnaryPostOperatorToken, slot, "++")
+          elsif opcode.type == :post_decrement_slot
+            token(UnaryPostOperatorToken, slot, "--")
+          elsif opcode.type == :pre_increment_slot
+            token(UnaryOperatorToken, slot, "++")
+          elsif opcode.type == :pre_decrement_slot
+            token(UnaryOperatorToken, slot, "--")
+          end
+        end
+      end
+    end
+    alias :expr_post_increment_slot :expr_prepost_incdec_slot
+    alias :expr_post_decrement_slot :expr_prepost_incdec_slot
+    alias :expr_pre_increment_slot  :expr_prepost_incdec_slot
+    alias :expr_pre_decrement_slot  :expr_prepost_incdec_slot
+
     OPERATOR_MAP = {
       :and         => :"&&",
       :or          => :"||",

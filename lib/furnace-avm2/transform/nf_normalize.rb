@@ -23,7 +23,10 @@ module Furnace::AVM2
       end
 
       LocalIncDecMatcher = AST::Matcher.new do
-        [:set_local, capture(:index),
+        [ either_multi[
+            [:set_slot,  capture(:index), capture(:scope)],
+            [:set_local, capture(:index)],
+          ],
           either[
             [:convert, any,
               capture(:inner)],
@@ -38,10 +41,16 @@ module Furnace::AVM2
         [capture(:operator),
           either[
             [:convert, any,
-              [:get_local, backref(:index)]],
-            [:get_local, backref(:index)],
-            capture(:abnormal)
+              capture(:getter)],
+            capture(:getter),
           ]
+        ]
+      end
+
+      LocalIncDecGetterMatcher = AST::Matcher.new do
+        either[
+          [:get_slot,  backref(:index), backref(:scope)],
+          [:get_local, backref(:index)],
         ]
       end
 
@@ -53,22 +62,27 @@ module Furnace::AVM2
       def on_set_local(node)
         captures = {}
         if LocalIncDecMatcher.match(node, captures) &&
-              LocalIncDecInnerMatcher.match(captures[:inner], captures)
-          if IncDecOperators.include? captures[:operator]
-            if captures[:abnormal]
-              node.update(:add, [
-                AST::Node.new(:set_local, [
-                  captures[:index],
-                  captures[:abnormal]
-                ]),
-                AST::Node.new(:integer, [ 1 ])
-              ])
+              LocalIncDecInnerMatcher.match(captures[:inner], captures) &&
+              IncDecOperators.include?(captures[:operator])
+          if captures[:getter].is_a?(AST::Node) &&
+              LocalIncDecGetterMatcher.match(captures[:getter], captures)
+            if captures[:scope]
+              node.update(:"#{captures[:operator]}_slot", [ captures[:index], captures[:scope] ])
             else
               node.update(:"#{captures[:operator]}_local", [ captures[:index] ])
             end
+          else
+            node.update(:add, [
+              AST::Node.new(:set_local, [
+                captures[:index],
+                captures[:getter]
+              ]),
+              AST::Node.new(:integer, [ 1 ])
+            ])
           end
         end
       end
+      alias :on_set_slot :on_set_local
 
       ExpandedForInMatcher = AST::Matcher.new do
         [:if, [:has_next2, skip], skip]
