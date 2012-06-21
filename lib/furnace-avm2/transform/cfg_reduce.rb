@@ -190,6 +190,8 @@ module Furnace::AVM2
             if block.cti.type == :lookup_switch
               log nesting, "is a switch"
 
+              append_instructions(block, current_nodes)
+
               # Group cases pointing to the same blocks of code.
               aliases = Hash[block.targets.each_index.
                     group_by { |index| block.targets[index] }.values.
