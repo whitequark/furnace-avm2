@@ -59,7 +59,7 @@ module Furnace::AVM2
           next_label = next_node.metadata[:label] if next_node
 
           case node.type
-          when :return_value, :return_void
+          when :return_value, :return_void, :throw
             cutoff(nil, [nil])
 
           when :jump
