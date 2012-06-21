@@ -5,26 +5,44 @@ module Furnace::AVM2
     class PropagateConstants
       include AST::Visitor
 
-      def transform(ast, *stuff)
-        @local_nonconst = Set.new
-        @local_sets = {}
-        @local_gets = Hash.new { |h,k| h[k] = [] }
+      class Replacer
+        include AST::Visitor
 
-        visit ast
+        def initialize(local_var, value)
+          @local_var, @value = local_var, value
+        end
 
-        @local_sets.each do |index, set_node|
-          *, value = set_node.children
+        def replace_in(nodes)
+          @nodes = nodes
+          @graceful_shutdown = true
 
-          unless @local_nonconst.include? index
-            @local_gets[index].each do |get_node|
-              get_node.update(:find_property_strict,
-                value.children.dup,
-                get_node.metadata)
+          catch(:stop) {
+            @nodes.each do |node|
+              visit node
             end
+          }
 
-            set_node.update(:nop, [])
+          @graceful_shutdown
+        end
+
+        def on_set_local(node)
+          index, value = node.children
+          if index == @local_var
+            @graceful_shutdown = @nodes.include?(node)
+            throw :stop
           end
         end
+
+        def on_get_local(node)
+          index, = node.children
+          if index == @local_var
+            node.update(@value.type, @value.children.dup, @value.metadata)
+          end
+        end
+      end
+
+      def transform(ast, *stuff)
+        visit ast
 
         [ ast, *stuff ]
       end
@@ -32,17 +50,14 @@ module Furnace::AVM2
       def on_set_local(node)
         index, value = node.children
         if value.type == :find_property_strict
-          if @local_sets.has_key?(index)
-            @local_nonconst.add index
-          else
-            @local_sets[index] = node
+          block = node.parent
+          nodes = block.children[(block.children.index(node) + 1)..-1]
+
+          replacer = Replacer.new(index, value)
+          if replacer.replace_in(nodes)
+            node.update(:remove)
           end
         end
-      end
-
-      def on_get_local(node)
-        index, = node.children
-        @local_gets[index].push node
       end
     end
   end
