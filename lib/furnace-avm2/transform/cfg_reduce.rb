@@ -306,7 +306,11 @@ module Furnace::AVM2
               block = exit_point
             elsif @loops.include?(block) && !@postcond_heads.include?(block)
               # we're trapped in a strange loop
-              if block.insns.first == block.cti
+              if block.insns.first == block.cti &&
+                    !(@loops[block].include?(block.targets.first) &&
+                      @loops[block].include?(block.targets.last))
+                # Make sure that both branch targets don't reside within the
+                # loop. If they do, it's a do-while loop.
                 log nesting, "is a while loop"
 
                 loop_type = :head_cti
@@ -324,9 +328,13 @@ module Furnace::AVM2
                 end
 
                 if back_edges.count == 1
+                  log nesting, "is a do-while loop"
+
                   loop_type = :tail_cti
                   cti_block = back_edges.first
                 else
+                  log nesting, "is an infinite loop"
+
                   loop_type = :infinite
                   cti_block = block
                 end
@@ -343,9 +351,9 @@ module Furnace::AVM2
                 reverse = !cti_block.cti.children[0]
                 in_root, out_root = cti_block.targets
 
-                # One of the branch targets should reside within
-                # the loop.
                 if !@loops[block].include?(in_root)
+                  # One of the branch targets should reside within
+                  # the loop.
                   in_root, out_root = out_root, in_root
                   reverse = !reverse
                 end
