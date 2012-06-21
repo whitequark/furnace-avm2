@@ -270,8 +270,8 @@ module Furnace::AVM2
                     body.children << AST::Node.new(:break)
                   end
 
-                  main_index = case_branches.index(next_branch)
-                  body = case_bodies[main_index]
+                  main_index = block.targets.index(next_branch)
+                  body = case_bodies[case_branches.index(next_branch)]
 
                   [ main_index, *aliases[main_index] ].each do |index|
                     if index == 0
