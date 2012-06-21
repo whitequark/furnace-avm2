@@ -27,6 +27,8 @@ module Furnace::AVM2
           either[
             [:convert, any,
               capture(:inner)],
+            [:coerce, :any,
+              capture(:inner)],
             capture(:inner)
           ]
         ]
