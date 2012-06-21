@@ -112,7 +112,7 @@ module Furnace::AVM2
                     loop_stack.include?(@loop_tails[block])
       end
 
-      def extended_block(block, stopgap=nil, loop_stack=[], nesting=0, upper_exc=nil)
+      def extended_block(block, stopgap=nil, loop_stack=[], nesting=0, upper_exc=nil, options={})
         nodes = []
         prev_block = nil
         current_exception = upper_exc
@@ -125,13 +125,20 @@ module Furnace::AVM2
           log nesting, "BLOCK: #{block.inspect}"
 
           if is_loop_head?(block, loop_stack)
-            log nesting, "exit: loop head (continue stmt)"
+            if options[:infinite_loop_head]
+              # Infinite loop head is a special case where cti_block
+              # has back edges pointing to it, but just for once it
+              # should not be turned to (continue) statement.
+              options.delete(:infinite_loop_head)
+            else
+              log nesting, "exit: loop head (continue stmt)"
 
-            check_nonlocal_loop(loop_stack, block) do |params|
-              current_nodes << AST::Node.new(:continue, params)
+              check_nonlocal_loop(loop_stack, block) do |params|
+                current_nodes << AST::Node.new(:continue, params)
+              end
+
+              break
             end
-
-            break
           elsif is_loop_tail?(block, loop_stack)
             log nesting, "exit: loop tail (break stmt)"
 
@@ -320,7 +327,8 @@ module Furnace::AVM2
                   loop_type = :tail_cti
                   cti_block = back_edges.first
                 else
-                  raise "invalid back edge count"
+                  loop_type = :infinite
+                  cti_block = block
                 end
               end
 
@@ -366,7 +374,8 @@ module Furnace::AVM2
 
                 append_instructions(block, body.children)
               else
-                body = extended_block(in_root, nil, [ cti_block ] + loop_stack, nesting + 1, current_exception)
+                body = extended_block(in_root, nil, [ cti_block ] + loop_stack, nesting + 1, current_exception,
+                        { infinite_loop_head: (loop_type == :infinite) })
               end
 
               # [(label name)]
