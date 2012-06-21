@@ -472,9 +472,11 @@ module Furnace::AVM2
               if completely_dominated?(right_root, block)
                 # Yes. Find merge point.
 
-                # The function technically finds two merge points,
-                # but in case of two heads they're identical.
-                merge, = find_merge_point([ left_root, right_root ])
+                merge_left, merge_right = find_merge_point([ left_root, right_root ])
+
+                # One or both of the merge points could be nil, but they will
+                # not be different.
+                merge = merge_left || merge_right
 
                 # If the merge search did not yield a valid node, use
                 # stopgap for the current block to avoid runaway code
