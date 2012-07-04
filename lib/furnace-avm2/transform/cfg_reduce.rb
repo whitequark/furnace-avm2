@@ -235,9 +235,9 @@ module Furnace::AVM2
                 log nesting, "exit point (second guess): #{exit_point.inspect}"
               end
 
-              if exit_point.nil?
+              if exit_point.nil? || @dom[exit_point].include?(stopgap)
                 exit_point = stopgap
-                log nesting, "exit point (last restort): stopgap #{stopgap.inspect}"
+                log nesting, "exit point (third guess): stopgap #{stopgap.inspect}"
               end
 
               # Flatten the one-element sets.
