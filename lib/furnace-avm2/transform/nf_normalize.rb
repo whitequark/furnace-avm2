@@ -178,6 +178,80 @@ module Furnace::AVM2
           ])
         end
       end
+
+      def on_begin(node)
+        first_ctn = node.children.find_index do |child|
+          [:return_void, :return_value, :break, :continue, :throw].include? child.type
+        end
+        return unless first_ctn
+
+        node.children.slice! (first_ctn + 1)..-1
+      end
+
+      OptimizedSwitchSeed = AST::Matcher.new do
+        [:ternary,
+          [:===, capture(:case_value),
+            [:get_local, capture(:local_index)]],
+          [:integer, capture(:case_index)],
+          capture(:nested)]
+      end
+
+      OptimizedSwitchNested = AST::Matcher.new do
+        either[
+          [:ternary,
+            [:===, capture(:case_value),
+              [:get_local, backref(:local_index)]],
+            [:integer, capture(:case_index)],
+            capture(:nested)],
+          [:integer, capture(:default_index)]
+        ]
+      end
+
+      NumericCase = AST::Matcher.new do
+        [:case, [:integer, capture(:index)]]
+      end
+
+      def on_switch(node)
+        condition, body = node.children
+
+        if captures = OptimizedSwitchSeed.match(condition)
+          mapping = { captures[:case_index] => captures[:case_value] }
+          while captures = OptimizedSwitchNested.match(captures[:nested], captures)
+            break if captures[:default_index]
+            mapping[captures[:case_index]] = captures[:case_value]
+          end
+
+          return if captures.nil?
+
+          case_mapping = {}
+
+          body.children.each do |child|
+            if case_captures = NumericCase.match(child)
+              case_index = case_captures[:index]
+              if captures[:default_index] == case_index
+                case_mapping[child] = nil
+              elsif mapping.has_key?(case_index)
+                case_mapping[child] = mapping[case_index]
+              else
+                # fallback
+                return
+              end
+            end
+          end
+
+          # At this point, we are sure that this switch can be transformed.
+
+          node.children[0] = AST::Node.new(:get_local, [ captures[:local_index] ])
+
+          case_mapping.each do |child, value|
+            if value.nil?
+              body.children.delete child
+            else
+              child.children[0] = value
+            end
+          end
+        end
+      end
     end
   end
 end
