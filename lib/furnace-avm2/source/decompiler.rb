@@ -34,7 +34,7 @@ module Furnace::AVM2
 
         @global_slots = @options[:global_slots] || {}
 
-        stmt_block @body.code_to_nf,
+        stmt_block (@nf || @body.code_to_nf),
           function: !@options[:global_code],
           closure:  @closure
 
@@ -76,8 +76,13 @@ module Furnace::AVM2
 
     def decompose_static_initializer
       properties = {}
+      matches = []
 
-      StaticProperty.find_all(@body.code_to_nf.children) do |match, captures|
+      @nf = @body.code_to_nf
+
+      StaticProperty.find_all(@nf.children) do |match, captures|
+        matches.push match
+
         begin
           token = handle_expression(captures[:value])
         rescue ExpressionNotRecognized => e
@@ -86,6 +91,8 @@ module Furnace::AVM2
 
         properties[captures[:property]] = token
       end
+
+      @nf.children -= matches
 
       properties
     end

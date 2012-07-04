@@ -9,8 +9,11 @@ module Furnace::AVM2::Tokens
 
       if options[:environment] == :class && options[:static]
         if origin.initializer_body
-          properties = Furnace::AVM2::Decompiler.new(
-                origin.initializer_body, options).decompose_static_initializer
+          initializer_decompiler = Furnace::AVM2::Decompiler.new(
+                origin.initializer_body, options.merge(global_code: true))
+          properties = initializer_decompiler.decompose_static_initializer
+          static_initialization = initializer_decompiler.decompile
+
           options = options.merge(property_values: properties)
         end
       end
@@ -18,6 +21,11 @@ module Furnace::AVM2::Tokens
       tokens += vars.map { |trait| transform_trait trait, options }
 
       if tokens.any?
+        tokens << Furnace::Code::NewlineToken.new(origin, options)
+      end
+
+      if static_initialization && static_initialization.children.any?
+        tokens << static_initialization
         tokens << Furnace::Code::NewlineToken.new(origin, options)
       end
 
