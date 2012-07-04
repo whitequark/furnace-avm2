@@ -305,7 +305,11 @@ module Furnace::AVM2
                 node
               ])
 
-              block = exit_point
+              if reachable?(exit_point, [ block ])
+                block = exit_point
+              else
+                block = nil
+              end
             elsif @loops.include?(block) && !@postcond_heads.include?(block)
               # we're trapped in a strange loop
               if block.insns.first == block.cti &&
@@ -546,6 +550,37 @@ module Furnace::AVM2
         else
           block.sources == [dominator]
         end
+      end
+
+      # Check if a block is reachable from sources.
+      def reachable?(block, sources)
+        worklist = sources.to_set
+        visited  = Set[]
+
+        while worklist.any?
+          node = worklist.first
+          worklist.delete node
+
+          return true if node == block
+
+          visited.add node
+
+          node.targets.each do |target|
+            # Skip visited nodes.
+            if visited.include?(target)
+              next
+            end
+
+            # Skip back edges.
+            if @dom[node].include?(target)
+              next
+            end
+
+            worklist.add target
+          end
+        end
+
+        false
       end
 
       # Find a set of merge points for a set of partially diverged
