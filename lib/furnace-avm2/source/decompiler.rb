@@ -346,6 +346,17 @@ module Furnace::AVM2
       end
     end
 
+    def stmt_with(opcode, nodes)
+      object, scope = opcode.children
+
+      @scopes << :with
+      nodes << token(WithToken,
+          expr(object),
+          stmt_block(scope))
+    ensure
+      @scopes.pop
+    end
+
     # Expressions
 
     def handle_expression(opcode)
@@ -828,13 +839,17 @@ module Furnace::AVM2
           ],
           [
             either[
-              [:get_scope_object, 0],
+              [:get_scope_object, capture(:scope)],
               [:get_global_scope]
             ],
             capture(:multiname)
           ],
         ],
         capture_rest(:arguments)]
+    end
+
+    def pseudo_global_scope?(scope)
+      [:this, :with].include?(@scopes[scope || 0])
     end
 
     def expr_get_lex(opcode)
@@ -844,6 +859,7 @@ module Furnace::AVM2
 
     def expr_get_property(opcode)
       if captures = PropertyGlobal.match(opcode)
+        return unless pseudo_global_scope?(captures[:scope])
         get_name(nil, captures[:multiname])
       else
         subject, multiname, = opcode.children
@@ -867,6 +883,7 @@ module Furnace::AVM2
 
     def expr_set_property(opcode)
       if captures = PropertyGlobal.match(opcode)
+        return unless pseudo_global_scope?(captures[:scope])
         token(AssignmentToken, [
           get_name(nil, captures[:multiname]),
           parenthesize(expr(*captures[:arguments]))
@@ -900,6 +917,7 @@ module Furnace::AVM2
 
     def expr_do_property(opcode, klass, has_args)
       if captures = PropertyGlobal.match(opcode)
+        return unless pseudo_global_scope?(captures[:scope])
         token(klass, [
           get_name(nil, captures[:multiname]),
           (token(ArgumentsToken, exprs(captures[:arguments])) if has_args)

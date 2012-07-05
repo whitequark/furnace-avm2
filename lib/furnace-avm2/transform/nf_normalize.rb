@@ -180,7 +180,44 @@ module Furnace::AVM2
       end
 
       def on_begin(node)
-        first_ctn = node.children.find_index do |child|
+        # Fold (with)'s
+        with_begin = node.children.index do |child|
+          child.type == :push_with
+        end
+        with_end = nil
+
+        if with_begin
+          nesting = 0
+          node.children[with_begin..-1].each_with_index do |child, index|
+            if child.type == :push_with || child.type == :push_scope
+              nesting += 1
+            elsif child.type == :pop_scope
+              nesting -= 1
+              if nesting == 0
+                with_end = with_begin + index
+                break
+              end
+            end
+          end
+
+          if nesting == 0
+            with_scope,  = node.children[with_begin].children
+            with_content = node.children.slice (with_begin + 1)..(with_end - 1)
+
+            with_node = AST::Node.new(:with, [
+              with_scope,
+              AST::Node.new(:begin,
+                with_content
+              )
+            ])
+
+            node.children.slice! with_begin..with_end
+            node.children.insert with_begin, with_node
+          end
+        end
+
+        # Remove obviously dead code
+        first_ctn = node.children.index do |child|
           [:return_void, :return_value, :break, :continue, :throw].include? child.type
         end
         return unless first_ctn
