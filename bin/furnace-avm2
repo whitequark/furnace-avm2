@@ -15,10 +15,14 @@ require "benchmark"
 
 include Furnace
 
+GRAPH_FORMATS = %w(none graphviz)
+
 opts = Trollop::options do
   version "furnace-avm2 #{AVM2::VERSION}"
   banner <<-EOS
   furnace-avm2 is a processing tool which operates on ActionScript3 bytecode.
+
+  Supported graphing formats: #{GRAPH_FORMATS.join(", ")}.
 
   Usage: #{__FILE__} [options]
 EOS
@@ -31,14 +35,14 @@ EOS
 
   opt :only,          "Only operate on methods <i+>",               :type => :ints,   :short => '-O'
   opt :except,        "Operate on all methods except <i+>",         :type => :ints,   :short => '-E'
-  opt :grep,          "Search <s> in method names",                 :type => :string, :short => '-G'
+  opt :grep,          "Search <s> in method names",                 :type => :string, :short => '-g'
 
   opt :collect,       "Collect failed methods instead of exiting",  :default => false
   opt :sort_by_size,  "Sort methods by body size",                  :default => false
 
   opt :disasm_before, "Disassemble methods before transforming",    :default => false, :short => '-B'
   opt :disasm_after,  "Disassemble methods after transforming",     :default => false, :short => '-A'
-  opt :cfg,           "Emit CFG in Graphviz format for methods",    :default => false, :short => '-C'
+  opt :cfg,           "Emit CFG in specified format for methods",   :type => :string,  :short => '-G'
 
   opt :dce,           "Eliminate dead code",                        :default => false
   opt :fix_names,     "Remove invalid characters from names",       :default => true,  :short => '-q'
@@ -48,6 +52,10 @@ EOS
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
+
+if opts[:cfg] && !GRAPH_FORMATS.include?(opts[:cfg])
+  Trollop::die "Unsupported graphing format."
+end
 
 abc = nil
 File.open(opts[:input]) do |file|
@@ -150,8 +158,11 @@ opts[:threads].times do
 
         if opts[:cfg]
           cfg, = body.code_to_cfg
-          File.open("method-#{body.method_idx}.dot", "w") do |dot|
-            dot.write cfg.to_graphviz
+
+          if opts[:cfg] == 'graphviz'
+            File.open("method-#{body.method_idx}.dot", "w") do |dot|
+              dot.write cfg.to_graphviz
+            end
           end
 
           puts "Method #{body.method_idx}; dominators"
