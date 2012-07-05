@@ -1125,13 +1125,18 @@ module Furnace::AVM2
       origin = multiname.metadata[:origin]
       case origin.kind
       when :QName, :QNameA, :Multiname, :MultinameA
+        prefix = nil
+        if [:QNameA, :MultinameA].include? origin.kind
+          prefix = '@'
+        end
+
         if subject
           token(AccessToken, [
             parenthesize(subject),
-            token(PropertyNameToken, origin.name)
+            token(PropertyNameToken, "#{prefix}#{origin.name}")
           ])
         else
-          token(PropertyNameToken, origin.name)
+          token(PropertyNameToken, "#{prefix}#{origin.name}")
         end
       when :MultinameL, :MultinameLA
         if subject
