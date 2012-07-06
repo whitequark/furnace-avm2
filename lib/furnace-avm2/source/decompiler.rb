@@ -15,15 +15,15 @@ module Furnace::AVM2
     def initialize(body, options)
       @body, @method, @options = body, body.method, options.dup
       @closure = @options.delete(:closure)
+
+      @scopes       = []
+      @metascopes   = []
+      @catch_scopes = {}
     end
 
     def decompile
       begin
         @locals = Set.new([0]) + (1..@method.param_count).to_a
-        @scopes = []
-        @metascopes = []
-
-        @catch_scopes = {}
 
         @closure_locals = Set.new
 
@@ -33,6 +33,8 @@ module Furnace::AVM2
         end
 
         @global_slots = @options[:global_slots] || {}
+
+        @scopes << :this if @options[:global_code]
 
         stmt_block (@nf || @body.code_to_nf),
           function: !@options[:global_code],
@@ -859,7 +861,7 @@ module Furnace::AVM2
 
     def expr_get_property(opcode)
       if captures = PropertyGlobal.match(opcode)
-        return unless pseudo_global_scope?(captures[:scope])
+        return if !captures[:multiname] && !pseudo_global_scope?(captures[:scope])
         get_name(nil, captures[:multiname])
       else
         subject, multiname, = opcode.children
@@ -883,7 +885,7 @@ module Furnace::AVM2
 
     def expr_set_property(opcode)
       if captures = PropertyGlobal.match(opcode)
-        return unless pseudo_global_scope?(captures[:scope])
+        return if !captures[:multiname] && !pseudo_global_scope?(captures[:scope])
         token(AssignmentToken, [
           get_name(nil, captures[:multiname]),
           parenthesize(expr(*captures[:arguments]))
@@ -917,7 +919,7 @@ module Furnace::AVM2
 
     def expr_do_property(opcode, klass, has_args)
       if captures = PropertyGlobal.match(opcode)
-        return unless pseudo_global_scope?(captures[:scope])
+        return if !captures[:multiname] && !pseudo_global_scope?(captures[:scope])
         token(klass, [
           get_name(nil, captures[:multiname]),
           (token(ArgumentsToken, exprs(captures[:arguments])) if has_args)
