@@ -1,12 +1,24 @@
 #!/usr/bin/env ruby
 
 require "rubygems"
-begin
-  require "bundler/setup"
-rescue LoadError
+
+root_dir = File.expand_path(File.join(File.dirname(__FILE__),'..'))
+if File.directory?(File.join(root_dir,'.git'))
+  Dir.chdir(root_dir) do |path|
+    require 'bundler'
+
+    begin
+      Bundler.setup(:default)
+    rescue Bundler::BundlerError => e
+      warn e.message
+      warn "Run `bundle install` to install missing gems"
+      exit e.status_code
+    end
+  end
 end
 
-$: << File.join(File.dirname(__FILE__), '..', 'lib')
+lib_dir = File.join(root_dir,'lib')
+$LOAD_PATH << lib_dir unless $LOAD_PATH.include?(lib_dir)
 
 require "trollop"
 require "furnace-avm2"
@@ -24,7 +36,7 @@ opts = Trollop::options do
 
   Supported graphing formats: #{GRAPH_FORMATS.join(", ")}.
 
-  Usage: #{__FILE__} [options]
+  Usage: #{$0} [options]
 EOS
 
   opt :input,         "Input file",                                 :type => :string, :required => true
@@ -74,11 +86,11 @@ disasm = lambda do |body, after|
   puts body.code.disassemble
 
   if body.exceptions.any?
-    puts
-    puts "Exceptions"
+    $stderr.puts
+    $stderr.puts "Exceptions"
     body.exceptions.each do |exception|
-      puts "  #{exception.from_offset} -> #{exception.to_offset}: " <<
-           "catch(#{exception.exception.to_s} #{exception.variable.to_s}) #{exception.target_offset}"
+      $stderr.puts "  #{exception.from_offset} -> #{exception.to_offset}: " <<
+                   "catch(#{exception.exception.to_s} #{exception.variable.to_s}) #{exception.target_offset}"
     end
   end
 
@@ -201,7 +213,7 @@ opts[:threads].times do
         end
       rescue Exception => e
         if opts[:collect]
-          puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
+          $stderr.puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
           failed << body.method_idx
         else
           raise e
