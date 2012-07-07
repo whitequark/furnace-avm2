@@ -25,8 +25,8 @@ require "furnace-avm2"
 begin
   gem "pry"
   require "pry"
-rescue LoadError
-  puts "$ gem install pry"
+rescue LoadError => e
+  $stderr.puts "Run `gem install pry` to install Pry"
   exit 1
 end
 
