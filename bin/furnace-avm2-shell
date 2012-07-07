@@ -26,7 +26,7 @@ begin
   gem "pry"
   require "pry"
 rescue LoadError => e
-  $stderr.puts "Run `gem install pry` to install Pry"
+  warn "Run `gem install pry` to install Pry"
   exit -1
 end
 
