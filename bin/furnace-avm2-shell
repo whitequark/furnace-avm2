@@ -27,7 +27,7 @@ begin
   require "pry"
 rescue LoadError => e
   $stderr.puts "Run `gem install pry` to install Pry"
-  exit 1
+  exit -1
 end
 
 include Furnace
