@@ -1,21 +1,33 @@
 #!/usr/bin/env ruby
 
 require "rubygems"
-begin
-  require "bundler/setup"
-rescue LoadError
+
+root_dir = File.expand_path(File.join(File.dirname(__FILE__),'..'))
+if File.directory?(File.join(root_dir,'.git'))
+  Dir.chdir(root_dir) do |path|
+    require 'bundler'
+
+    begin
+      Bundler.setup(:default)
+    rescue Bundler::BundlerError => e
+      warn e.message
+      warn "Run `bundle install` to install missing gems"
+      exit e.status_code
+    end
+  end
 end
 
-$: << File.join(File.dirname(__FILE__), '..', 'lib')
+lib_dir = File.join(root_dir,'lib')
+$LOAD_PATH << lib_dir unless $LOAD_PATH.include?(lib_dir)
 
 require "furnace-avm2"
 
 begin
   gem "pry"
   require "pry"
-rescue LoadError
-  puts "$ gem install pry"
-  exit 1
+rescue LoadError => e
+  warn "Run `gem install pry` to install Pry"
+  exit -1
 end
 
 include Furnace
