@@ -35,7 +35,7 @@ opts = Trollop::options do
 
   Debugging information classes: #{DEBUG_INFO.join(", ")}.
 
-  Usage: #{__FILE__} [options]
+  Usage: #{$0} [options]
 EOS
 
   opt :input,         "Input file",                                 :type => :string, :required => true

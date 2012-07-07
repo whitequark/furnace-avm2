@@ -36,7 +36,7 @@ opts = Trollop::options do
 
   Supported graphing formats: #{GRAPH_FORMATS.join(", ")}.
 
-  Usage: #{__FILE__} [options]
+  Usage: #{$0} [options]
 EOS
 
   opt :input,         "Input file",                                 :type => :string, :required => true
