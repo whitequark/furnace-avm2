@@ -54,15 +54,17 @@ module Furnace::AVM2
 
           when ABC::AS3Jump
             @jumps.add(opcode.target_offset)
-            cutoff(nil, opcode.parameters)
+            cutoff(nil, [ opcode.target_offset ])
 
           when ABC::ControlTransferOpcode
             @jumps.add(opcode.target_offset)
             cutoff(opcode, [ opcode.target_offset, next_offset ])
 
           when ABC::AS3LookupSwitch
-            @jumps.merge(opcode.parameters)
-            cutoff(opcode, opcode.parameters)
+            jump_to = [ opcode.default_target.offset ] +
+                            opcode.case_targets.map(&:offset)
+            @jumps.merge(jump_to)
+            cutoff(opcode, jump_to)
 
           else
             *, next_exception_block = exception_block_for(next_offset)
