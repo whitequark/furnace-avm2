@@ -7,7 +7,7 @@ module Furnace::AVM2
         #@verbose = true
       end
 
-      def transform(cfg)
+      def transform(cfg, info)
         @cfg   = cfg
 
         @dom   = @cfg.dominators

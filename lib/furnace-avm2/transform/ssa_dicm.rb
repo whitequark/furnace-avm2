@@ -12,6 +12,8 @@ module Furnace::AVM2
 
           changed = false
 
+          puts " =============== #{block.label}"
+
           block_info = info[block]
           block_info[:sets].each do |id|
             src_node  = block_info[:set_map][id]
@@ -24,9 +26,13 @@ module Furnace::AVM2
               target = targets.first
               target_info = info[target]
 
+              p target_info[:gets_map]
+
               if target_info[:gets_map][id].one?
                 dst_node  = target_info[:gets_map][id].first
                 dst_upper = target_info[:gets_upper][dst_node]
+
+                p src_node, dst_node, dst_upper
 
                 do_move = false
 
@@ -76,8 +82,6 @@ module Furnace::AVM2
             worklist.add target unless visited.include? target
           end
         end
-
-        cfg.merge_redundant!
 
         [ cfg, info ]
       end

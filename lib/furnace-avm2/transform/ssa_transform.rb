@@ -79,7 +79,7 @@ module Furnace::AVM2
 
           info[block] = block_info
 
-          #block.insns.push \
+          block.insns.push \
               AST::Node.new(:_info, [
                 AST::Node.new(:sets, [ block_info[:sets] ]),
                 AST::Node.new(:gets, [ block_info[:gets] ]),

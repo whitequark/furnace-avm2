@@ -25,7 +25,9 @@ module Furnace::AVM2::ABC
       pipeline = Furnace::Transform::Pipeline.new([
         Furnace::AVM2::Transform::CFGBuild.new,
         Furnace::AVM2::Transform::SSATransform.new,
+        Furnace::AVM2::Transform::SSAOptimize.new,
         Furnace::AVM2::Transform::SSADataflowInvariantCodeMotion.new,
+        Furnace::AVM2::Transform::SSAOptimize.new,
       ])
 
       pipeline.run(code, self)
