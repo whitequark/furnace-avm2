@@ -25,6 +25,9 @@ module Furnace::AVM2::Tokens
       end
 
       if static_initialization && static_initialization.children.any?
+        tokens << CommentToken.new(origin,
+                    "Method ##{origin.initializer_body.method_idx}",
+                  options) if options[:debug_funids]
         tokens << static_initialization
         tokens << Furnace::Code::NewlineToken.new(origin, options)
       end

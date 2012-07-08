@@ -15,7 +15,7 @@ module Furnace::AVM2::Tokens
       if options[:debug_funids] && !options[:closure]
         @children.unshift \
           CommentToken.new(origin,
-            "Function ##{options[:index]}",
+            "Method ##{options[:index]}",
           options)
       end
     end
