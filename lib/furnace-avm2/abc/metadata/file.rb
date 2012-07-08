@@ -44,16 +44,32 @@ module Furnace::AVM2::ABC
       end
     end
 
+    AS3_KEYWORDS = \
+            # Lexical keywords
+            %w(as break case catch class const continue default delete
+               do else extends false finally for function if implements
+               import in instanceof interface internal is native new
+               null package private protected public return super switch
+               this throw to true try typeof use var void while with) +
+            # Syntactical keywords
+            %w(each get set namespace include dynamic final native
+               override static) +
+            # Future reserved words
+            %w(abstract boolean byte cast char debugger double enum export
+               float goto intrinsic long prototype short synchronized throws
+               to transient type virtual volatile)
+
     def fix_name!(name_idx, options={})
       old_name = constant_pool.strings[name_idx - 1]
       return if ["", "*"].include? old_name
 
       fixed_name = sanitize_name(old_name, options)
 
-      if old_name != fixed_name
+      if old_name != fixed_name || AS3_KEYWORDS.include?(fixed_name)
         index = 0
         indexed_name = fixed_name
-        while @name_set.include? indexed_name
+        while AS3_KEYWORDS.include?(indexed_name) ||
+              @name_set.include?(indexed_name)
           indexed_name = "#{fixed_name}_i#{index}"
           index += 1
         end
@@ -69,15 +85,18 @@ module Furnace::AVM2::ABC
         return name if name.start_with? "http://"
 
         name.split('.').map do |part|
-          part.gsub(/^[^a-zA-Z_$]+/, '').
-            gsub(/[^a-zA-Z_$0-9:]+/, '')
+          clean_name_part(part)
         end.reject do |part|
           part.empty?
         end.join('.')
       else
-        name.gsub(/^[^a-zA-Z_$]+/, '').
-          gsub(/[^a-zA-Z_$0-9:]+/, '')
+        clean_name_part(name)
       end
+    end
+
+    def clean_name_part(part)
+      part = part.gsub(/^[^a-zA-Z_$]+/, '').
+                  gsub(/[^a-zA-Z_$0-9:]+/, '')
     end
 
     protected
