@@ -11,7 +11,14 @@ module Furnace::AVM2::Tokens
         if origin.initializer_body
           initializer_decompiler = Furnace::AVM2::Decompiler.new(
                 origin.initializer_body, options.merge(global_code: true))
-          properties = initializer_decompiler.decompose_static_initializer
+
+          begin
+            properties = initializer_decompiler.decompose_static_initializer
+          rescue Exception => e
+            # This error will be caught when decompiling the rest of the
+            # static initializer code. Ignore it here.
+          end
+
           static_initialization = initializer_decompiler.decompile
 
           options = options.merge(property_values: properties)
