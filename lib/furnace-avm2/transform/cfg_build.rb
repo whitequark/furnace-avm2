@@ -85,8 +85,7 @@ module Furnace::AVM2
           @cfg.nodes.add exc_node
         end
 
-        #@cfg.eliminate_unreachable!
-        #@cfg.merge_redundant!
+        @cfg.eliminate_unreachable!
 
         @cfg
       end

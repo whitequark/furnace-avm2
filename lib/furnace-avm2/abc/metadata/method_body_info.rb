@@ -21,15 +21,16 @@ module Furnace::AVM2::ABC
       end
     end
 
-    def code_to_cfg
+    def code_to_cfg(options={})
       pipeline = Furnace::Transform::Pipeline.new([
         Furnace::AVM2::Transform::CFGBuild.new,
+        Furnace::AVM2::Transform::SSATransform.new,
       ])
 
       pipeline.run(code, self)
     end
 
-    def code_to_nf
+    def code_to_nf(options={})
       pipeline = Furnace::Transform::Pipeline.new([
         Furnace::AVM2::Transform::CFGReduce.new,
         Furnace::AVM2::Transform::NFNormalize.new,
