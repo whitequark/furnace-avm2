@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class AsmOpToken < Furnace::Code::TerminalToken
-    include IsSimple
 
     def initialize(origin, opcode, options={})
       super(origin, options)

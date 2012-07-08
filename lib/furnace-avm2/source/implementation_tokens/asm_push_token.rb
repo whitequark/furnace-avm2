@@ -1,6 +1,5 @@
 module Furnace::AVM2::Tokens
   class AsmPushToken < Furnace::Code::SurroundedToken
-    include IsComplex
 
     def text_before
       'push('
