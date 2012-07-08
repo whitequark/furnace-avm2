@@ -3,7 +3,7 @@ module Furnace::AVM2::ABC
     const_array_of :ns, :namespace, :plural => :ns
 
     def to_s
-      "{#{ns.map(&:to_s).join(",")}}"
+      "{...,#{ns.map(&:to_s).last}}"
     end
 
     def to_astlet

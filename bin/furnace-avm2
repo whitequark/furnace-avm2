@@ -41,8 +41,6 @@ EOS
 
   opt :input,         "Input file",                                 :type => :string, :required => true
   opt :output,        "Output file",                                :type => :string
-  opt :verbose,       "Be verbose",                                 :default => false
-  opt :verify,        "Do extra verification passes",               :default => false, :short => '-V'
 
   opt :threads,       "Use <i> threads for processing",             :default => 1
 
@@ -53,13 +51,9 @@ EOS
   opt :collect,       "Collect failed methods instead of exiting",  :default => false
   opt :sort_by_size,  "Sort methods by body size",                  :default => false
 
-  opt :disasm_before, "Disassemble methods before transforming",    :default => false, :short => '-B'
-  opt :disasm_after,  "Disassemble methods after transforming",     :default => false, :short => '-A'
-  opt :cfg,           "Emit CFG in specified format for methods",   :type => :string,  :short => '-G'
-
-  opt :dce,           "Eliminate dead code",                        :default => false
   opt :fix_names,     "Remove invalid characters from names",       :default => true,  :short => '-q'
-  opt :ast,           "Build AST",                                  :default => false
+
+  opt :cfg,           "Emit CFG in specified format for methods",   :type => :string,  :short => '-G'
   opt :nf,            "Build NF-AST",                               :default => false
   opt :decompile,     "Decompile methods",                          :default => false
 end
@@ -76,30 +70,7 @@ File.open(opts[:input]) do |file|
   abc.read(file)
 end
 
-disasm = lambda do |body, after|
-  puts "Method #{body.method_idx}," <<
-       " max stack #{body.max_stack}, local count #{body.local_count}"
-  if after
-    puts "After transformation"
-  else
-    puts "Before transformation"
-  end
-  puts body.code.disassemble
-
-  if body.exceptions.any?
-    $stderr.puts
-    $stderr.puts "Exceptions"
-    body.exceptions.each do |exception|
-      $stderr.puts "  #{exception.from_offset} -> #{exception.to_offset}: " <<
-                   "catch(#{exception.exception.to_s} #{exception.variable.to_s}) #{exception.target_offset}"
-    end
-  end
-
-  puts
-end
-
 failed = []
-dced = []
 by_body_size = {}
 
 if opts[:fix_names]
@@ -150,27 +121,8 @@ opts[:threads].times do
       end
 
       begin
-        disasm[body, false] if opts[:disasm_before]
-
         if opts[:sort_by_size]
           by_body_size[body] = body.code_length
-        end
-
-        if opts[:dce]
-          dced << body.method_idx if body.code.eliminate_dead!
-          if opts[:verify]
-            temp_io = StringIO.new
-            body.write temp_io
-          end
-        end
-
-        disasm[body, true] if opts[:disasm_after]
-
-        if opts[:ast]
-          ast, = body.code_to_ast
-          puts "Method #{body.method_idx}; AST"
-          puts ast.to_sexp
-          puts
         end
 
         if opts[:cfg]
@@ -229,13 +181,6 @@ opts[:threads].times do
 end
 
 threads.each &:join
-
-if opts[:verbose]
-  if opts[:dce]
-    puts "List of methods undergone DCE transform (#{dced.count}):"
-    puts "  #{dced.join " "}"
-  end
-end
 
 if opts[:sort_by_size]
   puts "Methods by body size:"

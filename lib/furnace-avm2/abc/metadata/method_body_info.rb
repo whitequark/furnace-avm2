@@ -21,23 +21,12 @@ module Furnace::AVM2::ABC
       end
     end
 
-    def code_to_ast(options={})
+    def code_to_cfg
       pipeline = Furnace::Transform::Pipeline.new([
-        Furnace::AVM2::Transform::ASTBuild.new(options),
-        Furnace::AVM2::Transform::ASTNormalize.new(options),
-        Furnace::AVM2::Transform::PropagateConstants.new,
+        Furnace::AVM2::Transform::CFGBuild.new,
       ])
 
       pipeline.run(code, self)
-    end
-
-    def code_to_cfg
-      pipeline = Furnace::Transform::Pipeline.new([
-        Furnace::AVM2::Transform::PropagateLabels.new,
-        Furnace::AVM2::Transform::CFGBuild.new
-      ])
-
-      pipeline.run(*code_to_ast({}))
     end
 
     def code_to_nf
