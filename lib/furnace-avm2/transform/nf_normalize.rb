@@ -18,10 +18,6 @@ module Furnace::AVM2
         end
       end
 
-      def on_nop(node)
-        node.update(:remove)
-      end
-
       LocalIncDecMatcher = AST::Matcher.new do
         [ either_multi[
             [:set_slot,  capture(:index), capture(:scope)],
@@ -113,7 +109,7 @@ module Furnace::AVM2
           [:begin,
             [ either_multi[
                 [ :set_local, capture(:value_reg) ],
-                [ :set_slot, capture(:value_reg), [:get_scope_object, 1] ],
+                [ :set_slot, capture(:value_reg), [:get_scope_object, any] ],
               ],
               [ either[:coerce, :convert], capture(:value_type),
                 [ capture(:iterator),
@@ -218,7 +214,7 @@ module Furnace::AVM2
 
         # Remove obviously dead code
         first_ctn = node.children.index do |child|
-          [:return_void, :return_value, :break, :continue, :throw].include? child.type
+          [:return, :break, :continue, :throw].include? child.type
         end
         return unless first_ctn
 

@@ -1,6 +1,7 @@
 module Furnace::AVM2::ABC
   class AS3GetLocal < LoadStoreOpcode
     instruction 0x62
+    read_barrier :local
 
     body do
       vuint30 :local_index

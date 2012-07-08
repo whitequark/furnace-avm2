@@ -11,72 +11,78 @@ module Furnace::AVM2
         worklist = Set[cfg.entry]
         visited  = Set[]
         while worklist.any?
-          node = worklist.first
-          worklist.delete node
-          visited.add node
+          block = worklist.first
+          worklist.delete block
+          visited.add block
 
-          stack   = @stacks[node].dup
-          opnodes = []
+          stack   = @stacks[block].dup
+          nodes = []
 
-          node_info = {
-            sets: Set[],
-            gets: Set[],
+          block_info = {
+            sets:       Set[],
+            gets:       Set[],
+            set_map:    {},
+            gets_map:   Hash.new { |h, k| h[k] = Set[] },
+            gets_upper: {},
           }
 
-          node.insns.each do |opcode|
+          block.insns.each do |opcode|
             case opcode
             when ABC::AS3Dup
-              top = consume(stack, 1, node_info)
-              produce(stack, top,     node_info)
-              produce(stack, top.dup, node_info)
+              check_stack! stack, 1
+              stack.push stack.last
 
             when ABC::AS3Swap
-              a, b = consume(stack, 2, node_info)
-              produce(stack, a, node_info)
-              produce(stack, b, node_info)
+              check_stack! stack, 2
+              a, b = stack.pop, stack.pop
+              stack.push a, b
 
             when ABC::AS3Pop
-              consume(stack, 1, nil)
+              check_stack! stack, 1
+              stack.pop
 
             else
-              opnode = AST::Node.new(opcode.ast_type, [], label: opcode.offset)
-
-              parameters = consume(stack, opcode.consumes, node_info)
-              if opcode.consumes_context
-                context = opcode.context(consume(stack, opcode.consumes_context, node_info))
-              end
-
-              opnode.children.concat context if context
-              opnode.children.concat opcode.parameters
-              opnode.children.concat parameters
+              node = AST::Node.new(opcode.ast_type, [], opcode.metadata)
 
               if opcode.produces == 1
-                opnode = s(next_rid, opnode)
-                produce(stack, next_rid, node_info)
+                toplevel_node = s(next_rid, node)
+                produce(stack, next_rid, toplevel_node, block_info)
 
                 next_rid += 1
+              else
+                toplevel_node = node
               end
 
-              opnodes.push(opnode)
+              parameters = consume(stack, opcode.consumes, toplevel_node, block_info)
+              if opcode.consumes_context
+                context = opcode.context(consume(stack, opcode.consumes_context, toplevel_node, block_info))
+              end
 
-              if node.cti == opcode
-                node.cti = opnode
+              node.children.concat context if context
+              node.children.concat opcode.parameters
+              node.children.concat parameters
+
+              nodes.push(toplevel_node)
+
+              if block.cti == opcode
+                block.cti = node
               end
             end
           end
 
-          node.insns = opnodes
+          block.insns = nodes
 
-          node.targets.each do |target|
+          block.targets.each do |target|
             @stacks[target] = stack
             worklist.add target unless visited.include? target
           end
 
-          info[node] = node_info
-          node.insns.push \
-              AST::Node.new(:info, [
-                AST::Node.new(:sets, node_info[:sets].to_a),
-                AST::Node.new(:gets, node_info[:gets].to_a),
+          info[block] = block_info
+
+          #block.insns.push \
+              AST::Node.new(:_info, [
+                AST::Node.new(:sets, [ block_info[:sets] ]),
+                AST::Node.new(:gets, [ block_info[:gets] ]),
               ])
         end
 
@@ -90,24 +96,45 @@ module Furnace::AVM2
       end
 
       def s(id, wat)
-        AST::Node.new(:s, [ id.to_i, wat.to_astlet ])
+        metadata = {}
+        [ :read_barrier, :write_barrier ].each do |key|
+          if value = wat.metadata.delete(key)
+            metadata[key] = value
+          end
+        end
+
+        AST::Node.new(:s, [ id.to_i, wat.to_astlet ],
+              metadata)
       end
 
-      def consume(stack, count, info)
-        if count == 0
-          []
-        elsif count <= stack.size
-          stack.slice!(-count..-1).map do |id|
-            info[:gets].add(id) if info
-            r(id)
-          end
-        else
+      def check_stack!(stack, count)
+        if count > stack.size
           raise "cannot consume #{count}: stack underflow with #{stack.size}"
         end
       end
 
-      def produce(stack, id, info)
-        info[:sets].add(id) if info
+      def consume(stack, count, node, info)
+        check_stack! stack, count
+
+        if count == 0
+          []
+        else
+          stack.slice!(-count..-1).map do |id|
+            get_node = r(id)
+
+            info[:gets].add(id)
+            info[:gets_map][id].add get_node
+            info[:gets_upper][get_node] = node
+
+            get_node
+          end
+        end
+      end
+
+      def produce(stack, id, node, info)
+        info[:sets].add(id)
+        info[:set_map][id] = node
+
         stack.push id
       end
     end

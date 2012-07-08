@@ -1,6 +1,7 @@
 module Furnace::AVM2::ABC
   class AS3HasNext2 < Opcode
     instruction 0x32
+    write_barrier :local, :memory
 
     body do
       vuint30 :object_reg
