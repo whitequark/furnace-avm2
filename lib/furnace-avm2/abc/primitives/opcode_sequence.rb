@@ -74,7 +74,11 @@ module Furnace::AVM2::ABC
     end
 
     def byte_length
-      map(&:byte_length).reduce(0, :+)
+      if @raw_code
+        @raw_code.length
+      else
+        map(&:byte_length).reduce(0, :+)
+      end
     end
 
     # Transformations
@@ -95,6 +99,10 @@ module Furnace::AVM2::ABC
           targets << opcode.default_target
           targets += opcode.case_targets
         end
+      end
+
+      @parent.exceptions.each do |exc|
+        targets << exc.target
       end
 
       pending_label = nil
@@ -121,14 +129,17 @@ module Furnace::AVM2::ABC
         pending_label = opcode.offset if pending_label.nil?
         pending_queue << opcode
 
-        if opcode.is_a? ControlTransferOpcode
+        if opcode.is_a?(ControlTransferOpcode)
           if opcode.conditional
             cutoff.([ opcode.target.offset, opcode.offset + opcode.byte_length ])
           else
             cutoff.([ opcode.target.offset ])
           end
-        elsif opcode.is_a? AS3LookupSwitch
+        elsif opcode.is_a?(AS3LookupSwitch)
           cutoff.(opcode.parameters.flatten)
+        elsif opcode.is_a?(FunctionReturnOpcode) ||
+              opcode.is_a?(AS3Throw)
+          cutoff.([])
         end
       end
 
@@ -144,32 +155,44 @@ module Furnace::AVM2::ABC
     end
 
     def eliminate_dead!
-      cfg = build_cfg
-      dead_opcodes = []
+      begin
+        cfg = build_cfg
+      rescue Exception => e
+        # Ignore. This will fail at later stages.
+        return false
+      end
 
-      worklist = cfg.nodes.dup
+      worklist = Set[cfg.entry]
+      @parent.exceptions.each do |exc|
+        worklist.add cfg.find_node(exc.target_offset)
+      end
+
+      livelist = Set[]
       while worklist.any?
         node = worklist.first
         worklist.delete node
 
-        next if node == cfg.entry
+        livelist.add node
 
-        if node.sources.count == 0 ||
-              node.sources == [node]
-          dead_opcodes.concat node.insns
+        node.targets.each do |target|
+          worklist.add target unless livelist.include? target
         end
       end
 
-      dead_opcodes.each do |opcode|
-        delete opcode
+      cfg.nodes.each do |node|
+        unless livelist.include? node
+          node.insns.each do |opcode|
+            delete opcode
+          end
+        end
       end
 
       recache!
 
-      dead_opcodes.any?
+      livelist != cfg.nodes
     end
 
-    protected
+    private
 
     def parse
       sub_io = StringIO.new(@raw_code)

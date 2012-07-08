@@ -342,19 +342,15 @@ module Furnace::AVM2
 
               expand_conditionals()
 
-              # Spec does not require stack to be empty upon encountering return.
-              # If there's something left, it should have been here.
-              if opcode.is_a? ABC::FunctionReturnOpcode
-                while @stack.any?
-                  emit(*consume(1))
-                end
-              end
-
               emit(node)
             elsif opcode.produces == 1
               produce(node)
             end
           end
+        end
+
+        if @stack.any?
+          raise "nonempty stack on exit"
         end
 
         [ @ast.normalize_hierarchy!, body, finallies.values ]

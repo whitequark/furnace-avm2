@@ -42,6 +42,7 @@ EOS
   opt :input,         "Input file",                                 :type => :string, :required => true
   opt :output,        "Output file",                                :type => :string
   opt :verbose,       "Be verbose",                                 :default => false
+  opt :verify,        "Do extra verification passes",               :default => false, :short => '-V'
 
   opt :threads,       "Use <i> threads for processing",             :default => 1
 
@@ -157,6 +158,10 @@ opts[:threads].times do
 
         if opts[:dce]
           dced << body.method_idx if body.code.eliminate_dead!
+          if opts[:verify]
+            temp_io = StringIO.new
+            body.write temp_io
+          end
         end
 
         disasm[body, true] if opts[:disasm_after]
