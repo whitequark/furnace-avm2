@@ -45,6 +45,8 @@ module Furnace::AVM2::ABC
 
     define_property :instruction do |encoding|
       MAP[encoding] = self
+
+      define_singleton_method(:opcode) { encoding }
     end
 
     define_property :ast_type

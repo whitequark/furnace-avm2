@@ -1129,6 +1129,97 @@ module Furnace::AVM2
       expr(content)
     end
 
+    ## Alchemy opcodes
+
+    ALCHEMY_BINARY_MAP = {
+      :alchemy_store_int8    => AS3AlchemyStoreInt8,
+      :alchemy_store_int16   => AS3AlchemyStoreInt16,
+      :alchemy_store_int32   => AS3AlchemyStoreInt32,
+      :alchemy_store_float32 => AS3AlchemyStoreFloat32,
+      :alchemy_store_float64 => AS3AlchemyStoreFloat64
+    }
+
+    def expr_alchemy_binary_asm(node)
+      value, address = node.children
+      opcode = ALCHEMY_BINARY_MAP[node.type]
+
+      token(CallToken, [
+        token(AsmToken),
+        token(ArgumentsToken, [
+          token(AsmPushToken, [ expr(value) ]),
+          token(AsmPushToken, [ expr(address) ]),
+          token(SupplementaryCommentToken, node.type.to_s, [
+            token(AsmOpToken, opcode)
+          ])
+        ])
+      ])
+    end
+
+    alias :expr_alchemy_store_int8    :expr_alchemy_binary_asm
+    alias :expr_alchemy_store_int16   :expr_alchemy_binary_asm
+    alias :expr_alchemy_store_int32   :expr_alchemy_binary_asm
+    alias :expr_alchemy_store_float32 :expr_alchemy_binary_asm
+    alias :expr_alchemy_store_float64 :expr_alchemy_binary_asm
+
+    ALCHEMY_UNARY_MAP = {
+      :alchemy_load_int8    => AS3AlchemyLoadInt8,
+      :alchemy_load_int16   => AS3AlchemyLoadInt16,
+      :alchemy_load_int32   => AS3AlchemyLoadInt32,
+
+      :alchemy_extend1      => AS3AlchemyExtend1,
+      :alchemy_extend8      => AS3AlchemyExtend8,
+      :alchemy_extend16     => AS3AlchemyExtend16
+    }
+
+    def expr_alchemy_unary_asm(node)
+      value, = node.children
+      opcode = ALCHEMY_UNARY_MAP[node.type]
+
+      token(CallToken, [
+        token(XAsmToken, [
+          token(ImmediateTypenameToken, "uint")
+        ]),
+        token(ArgumentsToken, [
+          token(AsmPushToken, [ expr(value) ]),
+          token(SupplementaryCommentToken, node.type.to_s, [
+            token(AsmOpToken, opcode)
+          ])
+        ])
+      ])
+    end
+
+    alias :expr_alchemy_load_int8  :expr_alchemy_unary_asm
+    alias :expr_alchemy_load_int16 :expr_alchemy_unary_asm
+    alias :expr_alchemy_load_int32 :expr_alchemy_unary_asm
+    alias :expr_alchemy_extend1    :expr_alchemy_unary_asm
+    alias :expr_alchemy_extend8    :expr_alchemy_unary_asm
+    alias :expr_alchemy_extend16   :expr_alchemy_unary_asm
+
+    ALCHEMY_FLOAT_MAP = {
+      :alchemy_load_float32 => AS3AlchemyLoadFloat32,
+      :alchemy_load_float64 => AS3AlchemyLoadFloat64
+    }
+
+    def expr_alchemy_float_asm(node)
+      value, = node.children
+      opcode = ALCHEMY_FLOAT_MAP[node.type]
+
+      token(CallToken, [
+        token(XAsmToken, [
+          token(ImmediateTypenameToken, "Number")
+        ]),
+        token(ArgumentsToken, [
+          token(AsmPushToken, [ expr(value) ]),
+          token(SupplementaryCommentToken, node.type.to_s, [
+            token(AsmOpToken, opcode)
+          ])
+        ])
+      ])
+    end
+
+    alias :expr_alchemy_load_float32 :expr_alchemy_float_asm
+    alias :expr_alchemy_load_float64 :expr_alchemy_float_asm
+
     private
 
     def token(klass, *args)
