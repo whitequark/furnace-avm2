@@ -17,6 +17,8 @@ Gem::Specification.new do |s|
   s.test_files    = s.files.grep(%r{^(test|spec|features)/})
   s.require_paths = ["lib"]
 
+  s.required_ruby_version = '>= 1.9.1'
+
   s.add_runtime_dependency "furnace", '= 0.2.5'
   s.add_runtime_dependency "trollop"
 end

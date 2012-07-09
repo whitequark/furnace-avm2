@@ -104,7 +104,7 @@ module Furnace::AVM2
       end
 
       LocalIncDecInnerMatcher = AST::Matcher.new do
-        [ either[*PRE_POST_OPERATORS],
+        [ either[*Furnace::AVM2::Transform::ASTBuild::PRE_POST_OPERATORS],
           either[
             [:convert, any,
               [:get_local, any]],
