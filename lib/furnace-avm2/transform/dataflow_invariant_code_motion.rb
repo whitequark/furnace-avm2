@@ -1,7 +1,7 @@
 module Furnace::AVM2
   module Transform
     class DataflowInvariantCodeMotion
-      def transform(cfg, info)
+      def transform(cfg)
         worklist = Set[cfg.entry]
         visited  = Set[]
 
@@ -14,23 +14,23 @@ module Furnace::AVM2
 
           #puts " =============== #{block.label}"
 
-          block_info = info[block]
-          block_info[:sets].each do |id|
-            src_node = block_info[:set_map][id]
+          block_meta = block.metadata
+          block_meta.sets.each do |id|
+            src_node = block_meta.set_map[id]
 
             targets = ([ block ] + block.targets).select do |target|
-              info[target][:gets].include? id
+              target.metadata.gets.include? id
             end
 
             if !src_node.nil? && targets.one?
               target = targets.first
-              target_info = info[target]
+              target_meta = target.metadata
 
-              #p target_info[:gets_map]
+              #p target_meta[:gets_map]
 
-              if target_info[:gets_map][id].one?
-                dst_node  = target_info[:gets_map][id].first
-                dst_upper = target_info[:gets_upper][dst_node]
+              if target_meta.gets_map[id].one?
+                dst_node  = target_meta.gets_map[id].first
+                dst_upper = target_meta.gets_upper[dst_node]
 
                 #p src_node, dst_node, dst_upper
 
@@ -46,8 +46,8 @@ module Furnace::AVM2
                 if do_move
                   block.insns.delete src_node
 
-                  block_info[:sets].delete id
-                  block_info[:set_map].delete id
+                  block_meta.sets.delete id
+                  block_meta.set_map.delete id
 
                   value = src_node.children.last
                   dst_node.update(value.type, value.children, value.metadata)
@@ -56,9 +56,9 @@ module Furnace::AVM2
                     dst_upper.metadata[key].merge src_node.metadata[key]
                   end
 
-                  target_info[:gets].delete id
-                  target_info[:gets_map].delete id
-                  target_info[:gets_upper].delete dst_node
+                  target_meta.gets.delete id
+                  target_meta.gets_map.delete id
+                  target_meta.gets_upper.delete dst_node
 
                   changed = true
                 end
@@ -67,8 +67,8 @@ module Furnace::AVM2
               if src_node.nil? || src_node.metadata[:write_barrier].empty?
                 block.insns.delete src_node
 
-                block_info[:sets].delete id
-                block_info[:set_map].delete id
+                block_meta.sets.delete id
+                block_meta.set_map.delete id
 
                 changed = true
               end
@@ -82,7 +82,7 @@ module Furnace::AVM2
           end
         end
 
-        [ cfg, info ]
+        cfg
       end
 
       EMPTY_SET = Set[]
@@ -99,8 +99,6 @@ module Furnace::AVM2
         wbar, rbar = src_node.metadata.values_at(:write_barrier, :read_barrier)
 
         block.insns[start_index...stop_index].each do |elem|
-          next if elem.type == :_info #NBNB
-
           elem_wbar, elem_rbar = elem.metadata.values_at(:write_barrier, :read_barrier)
 
           if (elem_wbar & wbar).any? ||

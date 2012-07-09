@@ -174,25 +174,25 @@ module Furnace::AVM2
         end
       end
 
-      def transform(cfg, info)
+      def transform(cfg)
         constant_folder = ConstantFolder.new
 
-        cfg.nodes.each do |node|
-          if node.cti && node.cti.type == :branch_if
-            compare_to, expr = node.cti.children
+        cfg.nodes.each do |block|
+          if block.cti && block.cti.type == :branch_if
+            compare_to, expr = block.cti.children
             if folded = constant_folder.fold(expr)
               value = constant_folder.value folded
 
               if value ^ compare_to
-                node.target_labels = [ node.target_labels[0] ]
+                block.target_labels = [ block.target_labels[0] ]
               else
-                node.target_labels = [ node.target_labels[1] ]
+                block.target_labels = [ block.target_labels[1] ]
               end
             end
           end
         end
 
-        [ cfg, info ]
+        [ cfg ]
       end
     end
   end

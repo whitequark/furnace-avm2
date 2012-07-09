@@ -4,7 +4,7 @@ module Furnace::AVM2
       include AST::Visitor
 
       def transform(nf)
-        @nf = nf.normalize_hierarchy!
+        @nf = nf
 
         remove_useless_return
         visit @nf

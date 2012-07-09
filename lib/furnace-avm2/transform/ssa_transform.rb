@@ -1,5 +1,51 @@
 module Furnace::AVM2
   module Transform
+    class SSAMetadata
+      attr_reader :sets, :gets
+      attr_reader :set_map, :gets_map, :gets_upper
+
+      def initialize(hash={})
+        @hash = hash.freeze
+        @sets, @gets = Set[], Set[]
+        @set_map     = {}
+        @gets_map    = Hash.new { |h, k| h[k] = Set[] }
+        @gets_upper  = {}
+      end
+
+      def [](key)
+        @hash[key]
+      end
+
+      def any?
+        @sets.any? && @gets.any?
+      end
+
+      def inspect
+        "| sets: #{sets.to_a.join(", ")}" <<
+          " gets: #{gets.to_a.join(", ")}"
+      end
+
+      def merge!(other)
+        @sets.merge other.sets
+        @gets.merge other.gets
+
+        @set_map.merge! other.set_map
+        @gets_map.merge! other.gets_map { |h, ak, dk| ak + dk }
+        @gets_upper.merge! other.gets_upper
+      end
+
+      def add_get(id, upper, node)
+        @gets.add(id)
+        @gets_map[id].add node
+        @gets_upper[node] = upper
+      end
+
+      def add_set(id, node)
+        @sets.add(id)
+        @set_map[id] = node
+      end
+    end
+
     class SSATransform
       class ASTNormalizer
         include Furnace::AST::StrictVisitor
@@ -42,7 +88,6 @@ module Furnace::AVM2
       def transform(cfg)
         @cfg     = cfg
         @stacks  = { cfg.entry => [] }
-        info     = {}
 
         normalizer = ASTNormalizer.new
 
@@ -57,13 +102,8 @@ module Furnace::AVM2
           stack   = @stacks[block].dup
           nodes = []
 
-          block_info = {
-            sets:       Set[],
-            gets:       Set[],
-            set_map:    {},
-            gets_map:   Hash.new { |h, k| h[k] = Set[] },
-            gets_upper: {},
-          }
+          metadata = SSAMetadata.new
+          block.metadata = metadata
 
           block.insns.each do |opcode|
             case opcode
@@ -85,16 +125,16 @@ module Furnace::AVM2
 
               if opcode.produces == 1
                 toplevel_node = s(next_rid, node)
-                produce(stack, next_rid, toplevel_node, block_info)
+                produce(stack, next_rid, toplevel_node, metadata)
 
                 next_rid += 1
               else
                 toplevel_node = node
               end
 
-              parameters = consume(stack, opcode.consumes, toplevel_node, block_info)
+              parameters = consume(stack, opcode.consumes, toplevel_node, metadata)
               if opcode.consumes_context
-                context = opcode.context(consume(stack, opcode.consumes_context, toplevel_node, block_info))
+                context = opcode.context(consume(stack, opcode.consumes_context, toplevel_node, metadata))
               end
 
               node.children.concat context if context
@@ -117,11 +157,9 @@ module Furnace::AVM2
             @stacks[target] = stack
             worklist.add target unless visited.include? target
           end
-
-          info[block] = block_info
         end
 
-        [ @cfg, info ]
+        @cfg
       end
 
       private
@@ -148,7 +186,7 @@ module Furnace::AVM2
         end
       end
 
-      def consume(stack, count, node, info)
+      def consume(stack, count, node, metadata)
         check_stack! stack, count
 
         if count == 0
@@ -157,18 +195,15 @@ module Furnace::AVM2
           stack.slice!(-count..-1).map do |id|
             get_node = r(id)
 
-            info[:gets].add(id)
-            info[:gets_map][id].add get_node
-            info[:gets_upper][get_node] = node
+            metadata.add_get(id, node, get_node)
 
             get_node
           end
         end
       end
 
-      def produce(stack, id, node, info)
-        info[:sets].add(id)
-        info[:set_map][id] = node
+      def produce(stack, id, node, metadata)
+        metadata.add_set id, node
 
         stack.push id
       end

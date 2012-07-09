@@ -34,14 +34,14 @@ module Furnace::AVM2
         end
       end
 
-      def transform(cfg, info)
+      def transform(cfg)
         visitor = Visitor.new
 
-        cfg.nodes.each do |node|
-          visitor.visit_all node.insns
+        cfg.nodes.each do |block|
+          visitor.visit_all block.insns
         end
 
-        [ cfg, info ]
+        cfg
       end
     end
   end

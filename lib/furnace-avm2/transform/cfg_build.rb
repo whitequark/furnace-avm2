@@ -9,8 +9,9 @@ module Furnace::AVM2
         body.exceptions.each_with_index do |exc, index|
           unless exc_block = @exceptions[exc.range]
             exc_block = CFG::Node.new(@cfg, "exc_#{index}")
+            exc_block.metadata[:keep] = true
 
-            dispatch_node = AST::Node.new(:exception_dispatch, [], keep: true)
+            dispatch_node = AST::Node.new(:exception_dispatch, [])
             exc_block.insns << dispatch_node
             exc_block.cti = dispatch_node
 
