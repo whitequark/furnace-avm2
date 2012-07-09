@@ -2,7 +2,9 @@ module Furnace::AVM2
   module Transform
     class SSAOptimize
       def transform(cfg, info)
-        cfg.eliminate_unreachable!
+        cfg.eliminate_unreachable! do |dead|
+          info.delete dead
+        end
 
         cfg.merge_redundant! do |alive, dead|
           alive_info, dead_info = info.values_at(alive, dead)
@@ -15,6 +17,8 @@ module Furnace::AVM2
           alive_info[:gets_upper].merge! dead_info[:gets_upper]
 
           dead.insns.delete dead.insns.find { |n| n.type == :_info }
+
+          info.delete dead
         end
 
         [ cfg, info ]

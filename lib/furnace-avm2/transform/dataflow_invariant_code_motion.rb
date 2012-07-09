@@ -1,6 +1,6 @@
 module Furnace::AVM2
   module Transform
-    class SSADataflowInvariantCodeMotion
+    class DataflowInvariantCodeMotion
       def transform(cfg, info)
         worklist = Set[cfg.entry]
         visited  = Set[]

@@ -27,7 +27,8 @@ module Furnace::AVM2::ABC
         Furnace::AVM2::Transform::SSATransform.new,
         Furnace::AVM2::Transform::RefineLocalVariableBarriers.new,
         Furnace::AVM2::Transform::SSAOptimize.new,
-        Furnace::AVM2::Transform::SSADataflowInvariantCodeMotion.new,
+        Furnace::AVM2::Transform::DataflowInvariantCodeMotion.new,
+        Furnace::AVM2::Transform::PartialEvaluation.new,
         Furnace::AVM2::Transform::SSAOptimize.new,
       ])
 
@@ -38,6 +39,7 @@ module Furnace::AVM2::ABC
       pipeline = Furnace::Transform::Pipeline.new([
         Furnace::AVM2::Transform::CFGReduce.new,
         Furnace::AVM2::Transform::NFNormalize.new,
+        Furnace::AVM2::Transform::PropagateConstants.new,
       ])
 
       pipeline.run(*code_to_cfg)
