@@ -1,11 +1,50 @@
 module Furnace::AVM2
   module Transform
     class SSATransform
+      class ASTNormalizer
+        include Furnace::AST::StrictVisitor
+
+        # (if-* a b) -> (branch-if (*' a b))
+        BINARY_IF_MAPPING = {
+          :eq        => [false, :==],
+          :ne        => [false, :!=],
+          :ge        => [false, :>=],
+          :nge       => [true,  :>=],
+          :gt        => [false, :>],
+          :ngt       => [true,  :>],
+          :le        => [false, :<=],
+          :nle       => [true,  :<=],
+          :lt        => [false, :<],
+          :nlt       => [true,  :<],
+          :strict_eq => [false, :===],
+          :strict_ne => [true,  :===], # Why? Because of (lookup-switch ...).
+        }
+
+        BINARY_IF_MAPPING.each do |cond, (positive, comp)|
+          define_method :"on_if_#{cond}" do |node|
+            node.update(:branch_if, [
+              positive,
+              AST::Node.new(comp, node.children)
+            ])
+          end
+        end
+
+        [true, false].each do |cond|
+          define_method :"on_if_#{cond}" do |node|
+            node.update(:branch_if, [
+              cond,
+              node.children.first
+            ])
+          end
+        end
+      end
+
       def transform(cfg)
         @cfg     = cfg
         @stacks  = { cfg.entry => [] }
-
         info     = {}
+
+        normalizer = ASTNormalizer.new
 
         next_rid = 0
         worklist = Set[cfg.entry]
@@ -61,6 +100,8 @@ module Furnace::AVM2
               node.children.concat context if context
               node.children.concat opcode.parameters
               node.children.concat parameters
+
+              normalizer.visit node
 
               nodes.push(toplevel_node)
 

@@ -27,7 +27,7 @@ require "benchmark"
 
 include Furnace
 
-GRAPH_FORMATS = %w(none graphviz)
+GRAPH_FORMATS = %w(none text graphviz)
 
 opts = Trollop::options do
   version "furnace-avm2 #{AVM2::VERSION}"
@@ -44,9 +44,9 @@ EOS
 
   opt :threads,       "Use <i> threads for processing",             :default => 1
 
-  opt :only,          "Only operate on methods <i+>",               :type => :ints,   :short => '-O'
-  opt :except,        "Operate on all methods except <i+>",         :type => :ints,   :short => '-E'
-  opt :grep,          "Search <s> in method names",                 :type => :string, :short => '-g'
+  opt :only,          "Only operate on methods <i+>",               :type => :ints,    :short => '-O'
+  opt :except,        "Operate on all methods except <i+>",         :type => :ints,    :short => '-E'
+  opt :grep,          "Search <s> in method names",                 :type => :string,  :short => '-g'
 
   opt :collect,       "Collect failed methods instead of exiting",  :default => false
   opt :sort_by_size,  "Sort methods by body size",                  :default => false
@@ -54,8 +54,8 @@ EOS
   opt :fix_names,     "Remove invalid characters from names",       :default => true,  :short => '-q'
 
   opt :cfg,           "Emit CFG in specified format for methods",   :type => :string,  :short => '-G'
-  opt :nf,            "Build NF-AST",                               :default => false
-  opt :decompile,     "Decompile methods",                          :default => false
+  opt :nf,            "Build NF-AST",                               :default => false, :short => '-n'
+  opt :decompile,     "Decompile methods",                          :default => false, :short => '-d'
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?

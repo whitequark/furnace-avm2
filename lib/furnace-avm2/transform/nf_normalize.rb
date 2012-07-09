@@ -12,6 +12,10 @@ module Furnace::AVM2
         @nf
       end
 
+      def on__info(node)
+        node.update(:remove)
+      end
+
       def remove_useless_return
         if @nf.children.last.type == :return_void
           @nf.children.slice! -1

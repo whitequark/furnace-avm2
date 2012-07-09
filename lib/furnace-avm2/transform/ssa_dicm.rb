@@ -12,27 +12,27 @@ module Furnace::AVM2
 
           changed = false
 
-          puts " =============== #{block.label}"
+          #puts " =============== #{block.label}"
 
           block_info = info[block]
           block_info[:sets].each do |id|
-            src_node  = block_info[:set_map][id]
+            src_node = block_info[:set_map][id]
 
             targets = ([ block ] + block.targets).select do |target|
               info[target][:gets].include? id
             end
 
-            if targets.one?
+            if !src_node.nil? && targets.one?
               target = targets.first
               target_info = info[target]
 
-              p target_info[:gets_map]
+              #p target_info[:gets_map]
 
               if target_info[:gets_map][id].one?
                 dst_node  = target_info[:gets_map][id].first
                 dst_upper = target_info[:gets_upper][dst_node]
 
-                p src_node, dst_node, dst_upper
+                #p src_node, dst_node, dst_upper
 
                 do_move = false
 
@@ -64,8 +64,7 @@ module Furnace::AVM2
                 end
               end
             elsif targets.empty?
-              if src_node.metadata[:read_barrier].empty? &&
-                 src_node.metadata[:write_barrier].empty?
+              if src_node.nil? || src_node.metadata[:write_barrier].empty?
                 block.insns.delete src_node
 
                 block_info[:sets].delete id
