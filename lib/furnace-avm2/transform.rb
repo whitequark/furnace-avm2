@@ -4,6 +4,7 @@ module Furnace::AVM2::Transform
 end
 
 require_relative "transform/cfg_build"
+require_relative "transform/refine_local_variable_barriers"
 require_relative "transform/ssa_transform"
 require_relative "transform/ssa_optimize"
 require_relative "transform/ssa_dicm"
