@@ -78,7 +78,7 @@ module Furnace::AVM2
         [true, false].each do |cond|
           define_method :"on_if_#{cond}" do |node|
             node.update(:branch_if, [
-              cond,
+              !cond,
               node.children.first
             ])
           end

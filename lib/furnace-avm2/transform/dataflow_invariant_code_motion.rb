@@ -5,6 +5,8 @@ module Furnace::AVM2
         worklist = Set[cfg.entry]
         visited  = Set[]
 
+        any_changed = false
+
         while worklist.any?
           block = worklist.first
           worklist.delete block
@@ -75,14 +77,19 @@ module Furnace::AVM2
             end
           end
 
-          worklist.add block if changed
+          if changed
+            worklist.add block
+            any_changed = true
+          end
 
           block.targets.each do |target|
             worklist.add target unless visited.include? target
           end
         end
 
-        cfg
+        if any_changed
+          cfg
+        end
       end
 
       EMPTY_SET = Set[]

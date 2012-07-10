@@ -3,6 +3,8 @@ module Furnace::AVM2::Transform
   CFG = Furnace::CFG
 end
 
+require_relative "transform/iterative_process"
+
 require_relative "transform/cfg_build"
 require_relative "transform/refine_local_variable_barriers"
 require_relative "transform/ssa_transform"

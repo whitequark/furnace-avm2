@@ -175,6 +175,8 @@ module Furnace::AVM2
       end
 
       def transform(cfg)
+        changed = false
+
         constant_folder = ConstantFolder.new
 
         cfg.nodes.each do |block|
@@ -188,11 +190,15 @@ module Furnace::AVM2
               else
                 block.target_labels = [ block.target_labels[1] ]
               end
+
+              changed = true
             end
           end
         end
 
-        [ cfg ]
+        if changed
+          cfg
+        end
       end
     end
   end

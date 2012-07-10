@@ -26,10 +26,13 @@ module Furnace::AVM2::ABC
         Furnace::AVM2::Transform::CFGBuild.new,
         Furnace::AVM2::Transform::SSATransform.new,
         Furnace::AVM2::Transform::RefineLocalVariableBarriers.new,
-        Furnace::AVM2::Transform::SSAOptimize.new,
-        Furnace::AVM2::Transform::DataflowInvariantCodeMotion.new,
-        Furnace::AVM2::Transform::PartialEvaluation.new,
-        Furnace::AVM2::Transform::SSAOptimize.new,
+        Furnace::AVM2::Transform::SSAOptimize.new(idempotent: true),
+
+        Furnace::AVM2::Transform::IterativeProcess.new([
+          Furnace::AVM2::Transform::DataflowInvariantCodeMotion.new,
+          Furnace::AVM2::Transform::PartialEvaluation.new,
+          Furnace::AVM2::Transform::SSAOptimize.new,
+        ])
       ])
 
       pipeline.run(code, self)

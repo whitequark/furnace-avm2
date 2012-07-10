@@ -1,14 +1,25 @@
 module Furnace::AVM2
   module Transform
     class SSAOptimize
+      def initialize(options={})
+        @idempotent = options[:idempotent] || false
+      end
+
       def transform(cfg)
-        cfg.eliminate_unreachable!
+        changed = false
+
+        cfg.eliminate_unreachable! do |dead|
+          changed = true
+        end
 
         cfg.merge_redundant! do |alive, dead|
           alive.metadata.merge! dead.metadata
+          changed = true
         end
 
-        cfg
+        if changed || @idempotent
+          cfg
+        end
       end
     end
   end
