@@ -41,13 +41,14 @@ module Furnace::AVM2::ABC
     xlat_field :kind
 
     choice     :data, :selection => :kind do
-      variant :Slot,     :nested, :class => ABC::TraitSlot
-      variant :Method,   :nested, :class => ABC::TraitMethod
-      variant :Getter,   :nested, :class => ABC::TraitMethod
-      variant :Setter,   :nested, :class => ABC::TraitMethod
-      variant :Class,    :nested, :class => ABC::TraitClass
-      variant :Function, :nested, :class => ABC::TraitFunction
-      variant :Const,    :nested, :class => ABC::TraitSlot
+      # Fully qualified names required by 1.9.1 compat.
+      variant :Slot,     :nested, :class => Furnace::AVM2::ABC::TraitSlot
+      variant :Method,   :nested, :class => Furnace::AVM2::ABC::TraitMethod
+      variant :Getter,   :nested, :class => Furnace::AVM2::ABC::TraitMethod
+      variant :Setter,   :nested, :class => Furnace::AVM2::ABC::TraitMethod
+      variant :Class,    :nested, :class => Furnace::AVM2::ABC::TraitClass
+      variant :Function, :nested, :class => Furnace::AVM2::ABC::TraitFunction
+      variant :Const,    :nested, :class => Furnace::AVM2::ABC::TraitSlot
     end
 
     root_array_of :metadata, :metadata, :plural => :metadata, :if => :metadata?

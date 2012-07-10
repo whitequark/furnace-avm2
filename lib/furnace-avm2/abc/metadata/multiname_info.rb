@@ -18,17 +18,18 @@ module Furnace::AVM2::ABC
     xlat_field :kind
 
     choice     :data, :selection => :kind do
-      variant :QName,       :nested, :class => ABC::MultinameKindQName
-      variant :QNameA,      :nested, :class => ABC::MultinameKindQName
-      variant :RTQName,     :nested, :class => ABC::MultinameKindRTQName
-      variant :RTQNameA,    :nested, :class => ABC::MultinameKindRTQName
-      variant :RTQNameL,    :nested, :class => ABC::MultinameKindRTQNameL
-      variant :RTQNameLA,   :nested, :class => ABC::MultinameKindRTQNameL
-      variant :Multiname,   :nested, :class => ABC::MultinameKindMultiname
-      variant :MultinameA,  :nested, :class => ABC::MultinameKindMultiname
-      variant :MultinameL,  :nested, :class => ABC::MultinameKindMultinameL
-      variant :MultinameLA, :nested, :class => ABC::MultinameKindMultinameL
-      variant :GenericName, :nested, :class => ABC::MultinameKindGenericName
+      # Fully qualified names required by 1.9.1 compat.
+      variant :QName,       :nested, :class => Furnace::AVM2::ABC::MultinameKindQName
+      variant :QNameA,      :nested, :class => Furnace::AVM2::ABC::MultinameKindQName
+      variant :RTQName,     :nested, :class => Furnace::AVM2::ABC::MultinameKindRTQName
+      variant :RTQNameA,    :nested, :class => Furnace::AVM2::ABC::MultinameKindRTQName
+      variant :RTQNameL,    :nested, :class => Furnace::AVM2::ABC::MultinameKindRTQNameL
+      variant :RTQNameLA,   :nested, :class => Furnace::AVM2::ABC::MultinameKindRTQNameL
+      variant :Multiname,   :nested, :class => Furnace::AVM2::ABC::MultinameKindMultiname
+      variant :MultinameA,  :nested, :class => Furnace::AVM2::ABC::MultinameKindMultiname
+      variant :MultinameL,  :nested, :class => Furnace::AVM2::ABC::MultinameKindMultinameL
+      variant :MultinameLA, :nested, :class => Furnace::AVM2::ABC::MultinameKindMultinameL
+      variant :GenericName, :nested, :class => Furnace::AVM2::ABC::MultinameKindGenericName
     end
 
     def method_missing(method, *args, &block)
