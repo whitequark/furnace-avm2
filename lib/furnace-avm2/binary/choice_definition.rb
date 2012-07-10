@@ -1,5 +1,8 @@
 module Furnace::AVM2::Binary
   class ChoiceDefinition
+
+    include Furnace::AVM2
+
     def initialize
       @data = []
     end
