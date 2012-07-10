@@ -12,8 +12,18 @@ module Furnace::AVM2
         @nf
       end
 
-      def on__info(node)
-        node.update(:remove)
+      def on_s(node)
+        index, value = node.children
+        node.update(:set_local, [
+          -index, value
+        ])
+      end
+
+      def on_r(node)
+        index, = node.children
+        node.update(:get_local, [
+          -index,
+        ])
       end
 
       def remove_useless_return

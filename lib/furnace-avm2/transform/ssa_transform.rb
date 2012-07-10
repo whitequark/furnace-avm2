@@ -17,7 +17,7 @@ module Furnace::AVM2
       end
 
       def any?
-        @sets.any? && @gets.any?
+        @sets.any? || @gets.any?
       end
 
       def inspect
@@ -124,10 +124,8 @@ module Furnace::AVM2
               node = AST::Node.new(opcode.ast_type, [], opcode.metadata)
 
               if opcode.produces == 1
-                toplevel_node = s(next_rid, node)
-                produce(stack, next_rid, toplevel_node, metadata)
-
-                next_rid += 1
+                stack_id = (next_rid += 1)
+                toplevel_node = s(stack_id, node)
               else
                 toplevel_node = node
               end
@@ -144,6 +142,10 @@ module Furnace::AVM2
               normalizer.visit node
 
               nodes.push(toplevel_node)
+
+              if opcode.produces == 1
+                produce(stack, stack_id, toplevel_node, metadata)
+              end
 
               if block.cti == opcode
                 block.cti = node

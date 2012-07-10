@@ -39,7 +39,6 @@ module Furnace::AVM2::ABC
       pipeline = Furnace::Transform::Pipeline.new([
         Furnace::AVM2::Transform::CFGReduce.new,
         Furnace::AVM2::Transform::NFNormalize.new,
-        Furnace::AVM2::Transform::PropagateConstants.new,
       ])
 
       pipeline.run(*code_to_cfg)

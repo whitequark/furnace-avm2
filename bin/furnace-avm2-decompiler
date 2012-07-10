@@ -154,7 +154,8 @@ opts[:threads].times.map do
     loop do
       what = nil
       mutex.synchronize do
-        what = workqueue.pop
+        what = workqueue.sample
+        workqueue.delete what
       end
 
       break if what.nil?
