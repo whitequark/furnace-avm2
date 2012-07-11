@@ -42,10 +42,10 @@ module Furnace::AVM2::ABC
 
       names = options[:names]
       if names[name].nil?
-        options[:ns].add ns
+        options[:ns].add ns if ns
         names[name] = ns
       elsif names[name] != ns
-        options[:no_ns].add ns
+        options[:no_ns].add ns if ns
       end
     end
 
