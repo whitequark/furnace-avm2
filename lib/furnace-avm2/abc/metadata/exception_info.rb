@@ -22,9 +22,10 @@ module Furnace::AVM2::ABC
     end
 
     def lookup!
-      self.from_offset   = @from.offset
-      self.to_offset     = @to.offset
-      self.target_offset = @target.offset
+      # HACK ALERT this fixes improper DCE implementation failures
+      self.from_offset   = @from.offset    || 0
+      self.to_offset     = @to.offset      || 0
+      self.target_offset = @target.offset  || 0
     end
 
     def range
