@@ -2,8 +2,8 @@
 
 require "rubygems"
 
-root_dir = File.expand_path(File.join(File.dirname(__FILE__),'..'))
-if File.directory?(File.join(root_dir,'.git'))
+root_dir = File.expand_path(File.join(File.dirname(__FILE__), '..'))
+if File.directory?(File.join(root_dir, '.git'))
   Dir.chdir(root_dir) do |path|
     require 'bundler'
 
@@ -52,9 +52,18 @@ EOS
 
   opt :decompile,     "Write ActionScript 3 code",                  :type => :boolean, :short => '-d'
   opt :destructurize, "Write internal token structure",             :type => :boolean, :short => '-s'
+
+  opt :profile,       "Write KCachegrind profiling data",           :type => :string,  :short => '-p'
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
+
+if opts[:profile]
+  require 'ruby-prof'
+
+  RubyProf.start
+  RubyProf.pause
+end
 
 decompile_options = {}
 
@@ -184,7 +193,14 @@ opts[:threads].times.map do
         }
       )
 
-      source = what.decompile(options)
+      if opts[:profile]
+        RubyProf.resume
+        source = what.decompile(options)
+        RubyProf.pause
+      else
+        source = what.decompile(options)
+      end
+
       next unless source
       next unless source.children.any?
 
@@ -222,6 +238,14 @@ else
 end
 
 $stderr.puts "Time taken: #{"%.2f" % (end_time - start_time)}s"
+
+if opts[:profile]
+  prof_result = RubyProf.stop
+  File.open(opts[:profile], 'w') do |f|
+    printer = RubyProf::CallTreePrinter.new(prof_result)
+    printer.print(f)
+  end
+end
 
 unless opts[:no_output]
   roots.values.flatten.each do |code|

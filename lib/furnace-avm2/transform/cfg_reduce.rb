@@ -661,7 +661,7 @@ module Furnace::AVM2
 
       def append_instructions(block, nodes)
         block.insns.each do |insn|
-          next if insn == block.cti
+          next if insn.equal? block.cti
           nodes << insn
         end
       end
