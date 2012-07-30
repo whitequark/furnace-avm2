@@ -12,6 +12,11 @@ module Furnace::AVM2
         @nf
       end
 
+      def on_any(node)
+        node.metadata.delete :read_barrier
+        node.metadata.delete :write_barrier
+      end
+
       def on_s(node)
         index, value = node.children
         node.update(:set_local, [
@@ -20,10 +25,18 @@ module Furnace::AVM2
       end
 
       def on_r(node)
-        index, = node.children
-        node.update(:get_local, [
-          -index,
-        ])
+        if node.children.one?
+          index, = node.children
+          if index == :exception
+            node.update(:exception_variable, [])
+          else
+            node.update(:get_local, [
+              -index,
+            ])
+          end
+        else
+          node.update(:phi, node.children)
+        end
       end
 
       def remove_useless_return
@@ -145,7 +158,7 @@ module Furnace::AVM2
       SuperfluousContinueMatcher = AST::Matcher.new do
         [:continue]
       end
-
+=begin
       def on_while(node, parent=node.parent, enclosure=node)
         *whatever, code = node.children
         if SuperfluousContinueMatcher.match code.children.last
@@ -188,7 +201,7 @@ module Furnace::AVM2
           ])
         end
       end
-
+=end
       def on_begin(node)
         # Fold (with)'s
         with_begin = node.children.index do |child|

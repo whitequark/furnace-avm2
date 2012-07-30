@@ -54,6 +54,7 @@ EOS
   opt :destructurize, "Write internal token structure",             :type => :boolean, :short => '-s'
 
   opt :profile,       "Write KCachegrind profiling data",           :type => :string,  :short => '-p'
+  opt :wait,          "Wait for a tool like profiler to be attached", :type => :boolean, :short => '-w'
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
@@ -120,6 +121,11 @@ abc.scripts.each do |script|
 end
 
 decompile_options[:global_slots] = global_slots
+
+if opts[:wait]
+  puts "Press Enter to continue."
+  gets
+end
 
 start_time = Time.now
 

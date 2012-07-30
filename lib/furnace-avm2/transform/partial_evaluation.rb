@@ -186,9 +186,9 @@ module Furnace::AVM2
               value = constant_folder.value folded
 
               if value ^ compare_to
-                block.target_labels = [ block.target_labels[0] ]
-              else
                 block.target_labels = [ block.target_labels[1] ]
+              else
+                block.target_labels = [ block.target_labels[0] ]
               end
 
               changed = true

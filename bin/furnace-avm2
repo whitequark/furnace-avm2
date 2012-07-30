@@ -56,6 +56,8 @@ EOS
   opt :cfg,           "Emit CFG in specified format for methods",   :type => :string,  :short => '-G'
   opt :nf,            "Build NF-AST",                               :default => false, :short => '-n'
   opt :decompile,     "Decompile methods",                          :default => false, :short => '-d'
+
+  opt :wait,          "Wait for a tool like profiler to be attached", :type => :boolean, :short => '-w'
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
@@ -101,6 +103,11 @@ if opts[:grep]
   end
 
   exit
+end
+
+if opts[:wait]
+  puts "Press Enter to continue."
+  gets
 end
 
 Thread.abort_on_exception = true

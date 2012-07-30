@@ -10,6 +10,7 @@ module Furnace::AVM2
           unless exc_block = @exceptions[exc.range]
             exc_block = CFG::Node.new(@cfg, "exc_#{index}")
             exc_block.metadata[:keep] = true
+            exc_block.metadata[:exception] = true
 
             dispatch_node = AST::Node.new(:exception_dispatch, [])
             exc_block.insns << dispatch_node

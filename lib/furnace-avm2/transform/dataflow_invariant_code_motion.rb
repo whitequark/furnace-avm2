@@ -1,11 +1,27 @@
 module Furnace::AVM2
   module Transform
     class DataflowInvariantCodeMotion
+      class RNodeUpdater
+        include Furnace::AST::Visitor
+
+        def update(ast, meta, new_upper)
+          @meta, @new_upper = meta, new_upper
+
+          visit ast
+        end
+
+        def on_r(node)
+          @meta.gets_upper[node] = @new_upper
+        end
+      end
+
       def transform(cfg)
         worklist = Set[cfg.entry]
         visited  = Set[]
 
         any_changed = false
+
+        r_node_updater = RNodeUpdater.new
 
         while worklist.any?
           block = worklist.first
@@ -28,10 +44,10 @@ module Furnace::AVM2
               target = targets.first
               target_meta = target.metadata
 
-              #p target_meta[:gets_map]
+              #p target_meta.gets_map
 
-              if target_meta.gets_map[id].one?
-                dst_node  = target_meta.gets_map[id].first
+              dst_node = target_meta.gets_map[id].first
+              if target_meta.gets_map[id].one? && dst_node.children.one?
                 dst_upper = target_meta.gets_upper[dst_node]
 
                 #p src_node, dst_node, dst_upper
@@ -62,6 +78,8 @@ module Furnace::AVM2
                   target_meta.gets_map.delete id
                   target_meta.gets_upper.delete dst_node
 
+                  r_node_updater.update(dst_upper, target.metadata, dst_upper)
+
                   changed = true
                 end
               end
@@ -84,6 +102,13 @@ module Furnace::AVM2
 
           block.targets.each do |target|
             worklist.add target unless visited.include? target
+          end
+
+          if exception = block.exception
+            unless visited.include? exception
+              worklist.merge exception.targets
+              visited.add exception
+            end
           end
         end
 

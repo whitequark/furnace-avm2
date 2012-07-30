@@ -34,9 +34,11 @@ module Furnace::AVM2
         @gets_upper.merge! other.gets_upper
       end
 
-      def add_get(id, upper, node)
-        @gets.add(id)
-        @gets_map[id].add node
+      def add_get(ids, upper, node)
+        @gets.merge(ids)
+        ids.each do |id|
+          @gets_map[id].add node
+        end
         @gets_upper[node] = upper
       end
 
@@ -52,18 +54,18 @@ module Furnace::AVM2
 
         # (if-* a b) -> (branch-if (*' a b))
         BINARY_IF_MAPPING = {
-          :eq        => [false, :==],
-          :ne        => [false, :!=],
-          :ge        => [false, :>=],
-          :nge       => [true,  :>=],
-          :gt        => [false, :>],
-          :ngt       => [true,  :>],
-          :le        => [false, :<=],
-          :nle       => [true,  :<=],
-          :lt        => [false, :<],
-          :nlt       => [true,  :<],
-          :strict_eq => [false, :===],
-          :strict_ne => [true,  :===], # Why? Because of (lookup-switch ...).
+          :eq        => [true,  :==],
+          :ne        => [true,  :!=],
+          :ge        => [true,  :>=],
+          :nge       => [false, :>=],
+          :gt        => [true,  :>],
+          :ngt       => [false, :>],
+          :le        => [true,  :<=],
+          :nle       => [false, :<=],
+          :lt        => [true,  :<],
+          :nlt       => [false, :<],
+          :strict_eq => [true,  :===],
+          :strict_ne => [false, :===], # Why? Because of (lookup-switch ...).
         }
 
         BINARY_IF_MAPPING.each do |cond, (positive, comp)|
@@ -78,7 +80,7 @@ module Furnace::AVM2
         [true, false].each do |cond|
           define_method :"on_if_#{cond}" do |node|
             node.update(:branch_if, [
-              !cond,
+              cond,
               node.children.first
             ])
           end
@@ -87,7 +89,10 @@ module Furnace::AVM2
 
       def transform(cfg)
         @cfg     = cfg
-        @stacks  = { cfg.entry => [] }
+        @stacks  = {}
+
+        @next_rid = 0
+        @rids     = {}
 
         normalizer = ASTNormalizer.new
 
@@ -97,9 +102,36 @@ module Furnace::AVM2
         while worklist.any?
           block = worklist.first
           worklist.delete block
+
+          if block == cfg.entry
+            stack = []
+          elsif block.metadata[:exception]
+            @stacks[block] = [
+              :exception
+            ]
+
+            worklist.merge block.targets
+            visited.add block
+
+            next
+          else
+            base_stack = block.sources.map { |s| @stacks[s] }.find { |x| x }
+            if base_stack.nil?
+              raise "block without base stack"
+            end
+
+            parent_stacks = block.sources.map { |s| get_stack(s, base_stack) }
+            if block != cfg.exit && parent_stacks.map(&:size).uniq.count != 1
+              raise "nonmatching stacks at #{block.label} " <<
+                    "(from #{block.sources.map(&:label).join(", ")})"
+            end
+
+            first, *others = parent_stacks
+            stack = first.zip(*others).map { |list| list.flatten }
+          end
+
           visited.add block
 
-          stack   = @stacks[block].dup
           nodes = []
 
           metadata = SSAMetadata.new
@@ -124,7 +156,7 @@ module Furnace::AVM2
               node = AST::Node.new(opcode.ast_type, [], opcode.metadata)
 
               if opcode.produces == 1
-                stack_id = (next_rid += 1)
+                stack_id = get_rid(block)
                 toplevel_node = s(stack_id, node)
               else
                 toplevel_node = node
@@ -155,9 +187,13 @@ module Furnace::AVM2
 
           block.insns = nodes
 
+          @stacks[block] = stack
+
           block.targets.each do |target|
-            @stacks[target] = stack
             worklist.add target unless visited.include? target
+          end
+          if exception = block.exception
+            worklist.add exception unless visited.include? exception
           end
         end
 
@@ -166,8 +202,28 @@ module Furnace::AVM2
 
       private
 
-      def r(id)
-        AST::Node.new(:r, [ id.to_i ])
+      def get_rid(block)
+        if @rids[block]
+          @rids[block].shift
+        else
+          @next_rid += 1
+        end
+      end
+
+      def get_stack(block, base_stack)
+        if @stacks[block]
+          @stacks[block]
+        else
+          if @rids[block].nil?
+            @rids[block] = base_stack.size.times.map { get_rid(block) }
+          end
+
+          @rids[block].map { |rid| [rid] }
+        end
+      end
+
+      def r(ids)
+        AST::Node.new(:r, ids)
       end
 
       def s(id, wat)
@@ -194,10 +250,10 @@ module Furnace::AVM2
         if count == 0
           []
         else
-          stack.slice!(-count..-1).map do |id|
-            get_node = r(id)
+          stack.slice!(-count..-1).map do |ids|
+            get_node = r(ids)
 
-            metadata.add_get(id, node, get_node)
+            metadata.add_get(ids, node, get_node)
 
             get_node
           end
@@ -207,7 +263,7 @@ module Furnace::AVM2
       def produce(stack, id, node, metadata)
         metadata.add_set id, node
 
-        stack.push id
+        stack.push [id]
       end
     end
   end
