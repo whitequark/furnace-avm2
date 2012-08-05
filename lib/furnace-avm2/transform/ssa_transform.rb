@@ -92,7 +92,7 @@ module Furnace::AVM2
         @stacks  = {}
 
         @next_rid = 0
-        @rids     = {}
+        @rids     = Hash.new { [] }
 
         normalizer = ASTNormalizer.new
 
@@ -203,7 +203,7 @@ module Furnace::AVM2
       private
 
       def get_rid(block)
-        if @rids[block]
+        if @rids[block].any?
           @rids[block].shift
         else
           @next_rid += 1
@@ -214,7 +214,7 @@ module Furnace::AVM2
         if @stacks[block]
           @stacks[block]
         else
-          if @rids[block].nil?
+          if @rids[block].empty?
             @rids[block] = base_stack.size.times.map { get_rid(block) }
           end
 
