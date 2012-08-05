@@ -7,7 +7,7 @@ module Furnace::AVM2::ABC
     end
 
     def to_astlet
-      AST::Node.new(:set, ns.map(&:name).uniq)
+      AST::Node.new(:set, ns.map(&:name).uniq, ellipsis: true)
     end
   end
 end
