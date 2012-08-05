@@ -92,6 +92,7 @@ module Furnace::AVM2
         end
 
         @cfg.eliminate_unreachable!
+        @cfg.merge_redundant!
 
         @cfg
       end
