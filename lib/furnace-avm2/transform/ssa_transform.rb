@@ -115,6 +115,8 @@ module Furnace::AVM2
 
             next
           else
+            @cfg.merge_redundant!
+
             base_stack = block.sources.map { |s| @stacks[s] }.find { |x| x }
             if base_stack.nil?
               raise "block without base stack"
