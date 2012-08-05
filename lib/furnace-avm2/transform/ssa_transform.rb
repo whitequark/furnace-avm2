@@ -46,6 +46,19 @@ module Furnace::AVM2
         @sets.add(id)
         @set_map[id] = node
       end
+
+      def remove_get(id)
+        @gets.delete id
+        @gets_map[id].each do |node|
+          node.children.delete id
+        end
+        @gets_map.delete id
+      end
+
+      def remove_set(id)
+        @sets.delete id
+        @set_map.delete id
+      end
     end
 
     class SSATransform

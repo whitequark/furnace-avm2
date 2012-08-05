@@ -32,7 +32,8 @@ module Furnace::AVM2::ABC
           Furnace::AVM2::Transform::DataflowInvariantCodeMotion.new,
           Furnace::AVM2::Transform::PartialEvaluation.new,
           Furnace::AVM2::Transform::SSAOptimize.new,
-        ])
+          Furnace::AVM2::Transform::FoldTernaryOperators.new,
+        ]),
       ])
 
       pipeline.run(code, self)
