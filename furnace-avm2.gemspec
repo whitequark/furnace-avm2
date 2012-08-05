@@ -21,4 +21,5 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency "furnace", '= 0.2.5'
   s.add_runtime_dependency "trollop"
+  s.add_runtime_dependency "parallel"
 end

@@ -42,8 +42,6 @@ EOS
   opt :input,         "Input file",                                 :type => :string, :required => true
   opt :output,        "Output file",                                :type => :string
 
-  opt :threads,       "Use <i> threads for processing",             :default => 1
-
   opt :only,          "Only operate on methods <i+>",               :type => :ints,    :short => '-O'
   opt :except,        "Operate on all methods except <i+>",         :type => :ints,    :short => '-E'
   opt :grep,          "Search <s> in method names",                 :type => :string,  :short => '-g'
@@ -110,84 +108,75 @@ if opts[:wait]
   gets
 end
 
-Thread.abort_on_exception = true
-
 threads = []
 bodies  = abc.method_bodies.dup
-mutex   = Mutex.new
 
-opts[:threads].times do
-  threads << Thread.new do
-    loop do
-      body = mutex.synchronize { bodies.pop }
-      break if body.nil?
+loop do
+  body = bodies.pop
+  break if body.nil?
 
-      if (opts[:except] && opts[:except].include?(body.method_idx)) ||
-        (opts[:only]   && !opts[:only].include?(body.method_idx))
-        next
+  if (opts[:except] && opts[:except].include?(body.method_idx)) ||
+    (opts[:only]   && !opts[:only].include?(body.method_idx))
+    next
+  end
+
+  begin
+    if opts[:sort_by_size]
+      by_body_size[body] = body.code_length
+    end
+
+    if opts[:cfg]
+      cfg, = body.code_to_cfg
+
+      if opts[:cfg] == 'graphviz'
+        File.open("method-#{body.method_idx}.dot", "w") do |dot|
+          dot.write cfg.to_graphviz
+        end
       end
 
-      begin
-        if opts[:sort_by_size]
-          by_body_size[body] = body.code_length
-        end
-
-        if opts[:cfg]
-          cfg, = body.code_to_cfg
-
-          if opts[:cfg] == 'graphviz'
-            File.open("method-#{body.method_idx}.dot", "w") do |dot|
-              dot.write cfg.to_graphviz
-            end
-          end
-
-          puts "Method #{body.method_idx}; dominators"
-          cfg.dominators.each do |node, dominating|
-            puts "#{node.label.inspect} => " +
-                 "#{dominating.map(&:label).map(&:inspect).join(", ")}"
-          end
-          puts
+      puts "Method #{body.method_idx}; dominators"
+      cfg.dominators.each do |node, dominating|
+        puts "#{node.label.inspect} => " +
+             "#{dominating.map(&:label).map(&:inspect).join(", ")}"
+      end
+      puts
 =begin
-          puts "Method #{body.method_idx}; postdominators"
-          cfg.postdominators.each do |node, dominating|
-            puts "#{node.label.inspect} => " +
-                 "#{dominating.map(&:label).map(&:inspect).join(", ")}"
-          end
-          puts
-=end
-          puts "Method #{body.method_idx}; loops"
-          cfg.identify_loops.each do |header, body|
-            puts "#{header.label.inspect} => " +
-                 "#{body.map(&:label).map(&:inspect).join(", ")}"
-          end
-          puts
-        end
-
-        if opts[:nf]
-          ast, = body.code_to_nf
-          puts "Method #{body.method_idx}; NF-AST"
-          puts ast.to_sexp
-          puts
-        end
-
-        if opts[:decompile]
-          puts "Method #{body.method_idx}"
-          puts body.decompile(ns: []).to_text.lstrip
-          puts
-        end
-      rescue Exception => e
-        if opts[:collect]
-          $stderr.puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
-          failed << body.method_idx
-        else
-          raise e
-        end
+      puts "Method #{body.method_idx}; postdominators"
+      cfg.postdominators.each do |node, dominating|
+        puts "#{node.label.inspect} => " +
+             "#{dominating.map(&:label).map(&:inspect).join(", ")}"
       end
+      puts
+=end
+      puts "Method #{body.method_idx}; loops"
+      cfg.identify_loops.each do |header, body|
+        puts "#{header.label.inspect} => " +
+             "#{body.map(&:label).map(&:inspect).join(", ")}"
+      end
+      puts
+    end
+
+    if opts[:nf]
+      ast, = body.code_to_nf
+      puts "Method #{body.method_idx}; NF-AST"
+      puts ast.to_sexp
+      puts
+    end
+
+    if opts[:decompile]
+      puts "Method #{body.method_idx}"
+      puts body.decompile(ns: []).to_text.lstrip
+      puts
+    end
+  rescue Exception => e
+    if opts[:collect]
+      $stderr.puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
+      failed << body.method_idx
+    else
+      raise e
     end
   end
 end
-
-threads.each &:join
 
 if opts[:sort_by_size]
   puts "Methods by body size:"

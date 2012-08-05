@@ -4,3 +4,5 @@ gemspec
 
 gem "pry"
 gem "ruby-prof", :platforms => :mri
+
+gem "furnace", :path => '../furnace'
