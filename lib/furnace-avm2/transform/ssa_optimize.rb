@@ -2,7 +2,8 @@ module Furnace::AVM2
   module Transform
     class SSAOptimize
       def initialize(options={})
-        @idempotent = options[:idempotent] || false
+        @idempotent = options[:idempotent]
+        @idempotent = false if @idempotent.nil?
       end
 
       def transform(cfg)
