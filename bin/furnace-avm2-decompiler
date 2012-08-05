@@ -208,13 +208,15 @@ start_time = Time.now
 workqueue.shuffle!
 
 Parallel.map(workqueue, parallel_options, &process).each do |result|
-  stat.merge!(result[:stat]) do |key, global, local|
-    global + local
-  end
+  if result
+    stat.merge!(result[:stat]) do |key, global, local|
+      global + local
+    end
 
-  ns = result[:ns]
-  roots[ns] ||= []
-  roots[ns] << result[:source]
+    ns = result[:ns]
+    roots[ns] ||= []
+    roots[ns] << result[:source]
+  end
 end
 
 end_time = Time.now
