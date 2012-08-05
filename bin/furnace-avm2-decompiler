@@ -126,28 +126,22 @@ if opts[:wait]
   gets
 end
 
+print_one_stat = lambda do |color, count|
+  str  = ":" * (count / 2)
+  str << "." * (count % 2)
+  $stderr.print "\e[0;#{color}m#{str}\e[0m"
+end
+
+print_stat = lambda do |stat|
+  print_one_stat.("1;31", stat[:failed])
+  print_one_stat.("32", stat[:success])
+  print_one_stat.("1;33", stat[:partial])
+end
+
 workqueue  = abc.instances + abc.scripts
 total_size = workqueue.size
 
 $stderr.puts "Found #{total_size} classes and packages."
-
-stick       = %w(| / - \\)
-stick_state = 0
-stick_timer = 0
-
-progress_thread = Thread.new do
-  loop do
-    stick_timer += 1
-    if stick_timer % 10 == 0
-      $stderr.print "\e[KDecompiling... #{total_size - workqueue.size}/#{total_size} "
-      $stderr.print stick[stick_state]
-      $stderr.print "\e[0G"
-      stick_state = (stick_state + 1) % stick.count
-    end
-
-    sleep
-  end
-end
 
 process = lambda do |what|
   if what.is_a? AVM2::ABC::InstanceInfo
@@ -182,14 +176,16 @@ process = lambda do |what|
     source = what.decompile(options)
   end
 
+  stat = options[:stat]
+
+  print_stat.(stat)
+
   if source && source.children.any?
     {
-      stat:   options[:stat],
+      stat:   stat,
       ns:     ns.to_s,
       source: source.to_text,
     }
-  else
-    {}
   end
 end
 
@@ -208,6 +204,8 @@ stat  = {
 }
 
 start_time = Time.now
+
+workqueue.shuffle!
 
 Parallel.map(workqueue, parallel_options, &process).each do |result|
   stat.merge!(result[:stat]) do |key, global, local|
