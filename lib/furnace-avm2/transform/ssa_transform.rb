@@ -89,19 +89,59 @@ module Furnace::AVM2
 
       def transform(cfg)
         @cfg     = cfg
+        @dom     = cfg.dominators
         @stacks  = {}
 
         @next_rid = 0
         @rids     = Hash.new { [] }
 
+        # Compose worklist, an ordered list of basic blocks.
+        # General idea: for every block except loop heads, have each
+        # source visited before this block. For loop heads, have
+        # everything except blocks with back edges visited beforehand.
+
+        visited  = Set[ nil ]
+        nodes    = Set[ cfg.entry ]
+        worklist = []
+
+        while nodes.any?
+          applicable_nodes = nodes.select do |node|
+            node.sources.reduce(true) do |result, source|
+              result &&
+                (visited.include?(source) ||
+                @dom[source].include?(node))
+            end
+          end
+
+          nodes.subtract applicable_nodes
+          visited.merge applicable_nodes
+
+          worklist += applicable_nodes
+
+          applicable_nodes.each do |node|
+            node.targets.each do |target|
+              nodes.add target unless visited.include? target
+            end
+
+            nodes.add node.exception unless visited.include? node.exception
+          end
+        end
+
+        # Do the transformation itself.
+
         normalizer = ASTNormalizer.new
 
         next_rid = 0
-        worklist = Set[cfg.entry]
         visited  = Set[]
+
         while worklist.any?
-          block = worklist.first
-          worklist.delete block
+          block = worklist.shift
+
+          if visited.include?(block)
+            raise "already visited block #{block.label}"
+          end
+
+          visited.add block
 
           if block == cfg.entry
             stack = []
@@ -109,9 +149,6 @@ module Furnace::AVM2
             @stacks[block] = [
               :exception
             ]
-
-            worklist.merge block.targets
-            visited.add block
 
             next
           else
@@ -131,8 +168,6 @@ module Furnace::AVM2
             first, *others = parent_stacks
             stack = first.zip(*others).map { |list| list.flatten }
           end
-
-          visited.add block
 
           nodes = []
 
@@ -190,13 +225,6 @@ module Furnace::AVM2
           block.insns = nodes
 
           @stacks[block] = stack
-
-          block.targets.each do |target|
-            worklist.add target unless visited.include? target
-          end
-          if exception = block.exception
-            worklist.add exception unless visited.include? exception
-          end
         end
 
         @cfg
