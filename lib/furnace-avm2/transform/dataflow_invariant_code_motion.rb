@@ -16,19 +16,19 @@ module Furnace::AVM2
       end
 
       def transform(cfg)
+        r_node_updater = RNodeUpdater.new
+
+        changed = false
+
         worklist = Set[cfg.entry]
         visited  = Set[]
-
-        any_changed = false
-
-        r_node_updater = RNodeUpdater.new
 
         while worklist.any?
           block = worklist.first
           worklist.delete block
           visited.add block
 
-          changed = false
+          block_changed = false
 
           #puts " =============== #{block.label}"
 
@@ -80,7 +80,7 @@ module Furnace::AVM2
 
                   r_node_updater.update(dst_upper, target.metadata, dst_upper)
 
-                  changed = true
+                  block_changed = true
                 end
               end
             elsif targets.empty?
@@ -90,14 +90,14 @@ module Furnace::AVM2
                 block_meta.sets.delete id
                 block_meta.set_map.delete id
 
-                changed = true
+                block_changed = true
               end
             end
           end
 
-          if changed
+          if block_changed
             worklist.add block
-            any_changed = true
+            changed = true
           end
 
           block.targets.each do |target|
@@ -112,9 +112,7 @@ module Furnace::AVM2
           end
         end
 
-        if any_changed
-          cfg
-        end
+        cfg if changed
       end
 
       EMPTY_SET = Set[]
