@@ -41,6 +41,7 @@ EOS
 
   opt :input,         "Input file",                                 :type => :string, :required => true
   opt :verbose,       "Be verbose",                                 :default => false
+  opt :quiet,         "Be quiet",                                   :default => false
   opt :debug,         "Show debugging information for <s+>.",       :type => :strings, :short => '-D'
 
   opt :only,          "Only operate on classes <s+>",               :type => :strings, :short => '-O'
@@ -54,6 +55,7 @@ EOS
 
   opt :profile,       "Write KCachegrind profiling data",           :type => :string,  :short => '-p'
   opt :wait,          "Wait for a tool like profiler to be attached", :type => :boolean, :short => '-w'
+  opt :loop,          "Perform the decompiling in loop for profiling", :default => false
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
@@ -178,7 +180,7 @@ process = lambda do |what|
 
   stat = options[:stat]
 
-  print_stat.(stat)
+  print_stat.(stat) unless opts[:quiet]
 
   if source && source.children.any?
     {
@@ -195,32 +197,39 @@ else
   parallel_options = { in_processes: Parallel.physical_processor_count }
 end
 
-roots = {}
-stat  = {
-  total:   0,
-  success: 0,
-  partial: 0,
-  failed:  0,
-}
-
-start_time = Time.now
-
 Random.srand 0
 workqueue.shuffle!
 
-Parallel.map(workqueue, parallel_options, &process).each do |result|
-  if result
-    stat.merge!(result[:stat]) do |key, global, local|
-      global + local
+stat = roots = nil
+
+loop {
+  start_time = Time.now
+
+  roots = {}
+  stat  = {
+    total:   0,
+    success: 0,
+    partial: 0,
+    failed:  0,
+  }
+
+  Parallel.map(workqueue, parallel_options, &process).each do |result|
+    if result
+      stat.merge!(result[:stat]) do |key, global, local|
+        global + local
+      end
+
+      ns = result[:ns]
+      roots[ns] ||= []
+      roots[ns] << result[:source]
     end
-
-    ns = result[:ns]
-    roots[ns] ||= []
-    roots[ns] << result[:source]
   end
-end
 
-end_time = Time.now
+  end_time = Time.now
+
+  $stderr.puts "Time taken: #{"%.2f" % (end_time - start_time)}s"
+  break unless opts[:loop]
+}
 
 if stat[:total] > 0
   $stderr.puts
@@ -236,8 +245,6 @@ if stat[:total] > 0
 else
   $stderr.puts "No methods were processed."
 end
-
-$stderr.puts "Time taken: #{"%.2f" % (end_time - start_time)}s"
 
 if opts[:profile]
   prof_result = RubyProf.stop
