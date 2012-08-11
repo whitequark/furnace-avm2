@@ -24,6 +24,9 @@ module Furnace::AVM2
       def inspect
         str  = "| sets: #{@sets.to_a.join(", ")} gets: #{@gets.to_a.join(", ")}\n"
         str << "| live: #{@live.to_a.join(", ")}"
+        #str << "\n| set_map: #{@set_map.inspect}\n"
+        #str << "| gets_map: #{@gets_map.inspect}\n"
+        #str << "| gets_upper: #{@gets_upper.inspect}\n"
         str
       end
 
@@ -53,6 +56,9 @@ module Furnace::AVM2
         @gets.delete id
         @gets_map[id].each do |node|
           node.children.delete id
+          if node.children.empty?
+            @gets_upper.delete node
+          end
         end
         @gets_map.delete id
       end

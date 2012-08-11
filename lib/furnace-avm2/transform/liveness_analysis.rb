@@ -5,6 +5,12 @@ module Furnace::AVM2
       EMPTY_SET = Set[]
 
       def transform(cfg)
+        # Clear old data
+        cfg.nodes.each do |block|
+          block.metadata.live = nil
+          block.metadata.dead = nil
+        end
+
         # Search from the entry node, mark live variables
         worklist = Set[ cfg.entry ]
         while worklist.any?

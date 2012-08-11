@@ -56,6 +56,7 @@ EOS
   opt :profile,       "Write KCachegrind profiling data",           :type => :string,  :short => '-p'
   opt :wait,          "Wait for a tool like profiler to be attached", :type => :boolean, :short => '-w'
   opt :loop,          "Perform the decompiling in loop for profiling", :default => false
+  opt :threads,       "Override thread count",                      :type => :integer
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
@@ -191,10 +192,12 @@ process = lambda do |what|
   end
 end
 
+threads = opts[:threads] || Parallel.physical_processor_count
+
 if defined?(JRUBY_VERSION)
-  parallel_options = { in_threads:   Parallel.physical_processor_count }
+  parallel_options = { in_threads:   threads }
 else
-  parallel_options = { in_processes: Parallel.physical_processor_count }
+  parallel_options = { in_processes: threads }
 end
 
 Random.srand 0

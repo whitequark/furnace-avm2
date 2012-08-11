@@ -1,6 +1,8 @@
 module Furnace::AVM2
   module Transform
     class FoldTernaryOperators
+      include PhiNodeReduction
+
       def transform(cfg)
         changed = false
 
@@ -66,7 +68,7 @@ module Furnace::AVM2
 
             compare_to, condition = shared.cti.children
 
-            if !compare_to
+            if compare_to
               left_val, right_val = right_val, left_val
             end
 
@@ -92,6 +94,8 @@ module Furnace::AVM2
             cfg.nodes.delete left
             cfg.nodes.delete right
             cfg.flush
+
+            reduce_phi_nodes(cfg, shared, right_id, left_id)
 
             changed = node_changed = true
           end
