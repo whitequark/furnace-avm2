@@ -36,18 +36,20 @@ module Furnace::AVM2
           block_meta.sets.each do |id|
             src_node = block_meta.set_map[id]
 
-            targets = ([ block ] + block.targets).select do |target|
+            targets = ([ block ] + block.targets)
+            applicable_targets = targets.select do |target|
               target.metadata.gets.include? id
             end
 
-            if !src_node.nil? && targets.one?
-              target = targets.first
+            if !src_node.nil? && applicable_targets.one?
+              target = applicable_targets.first
               target_meta = target.metadata
 
               #p target_meta.gets_map
 
               dst_node = target_meta.gets_map[id].first
-              if target_meta.gets_map[id].one? && dst_node.children.one?
+              if target_meta.gets_map[id].one? && dst_node.children.one? &&
+                    targets.one? { |b| b.metadata.live.include? id }
                 dst_upper = target_meta.gets_upper[dst_node]
 
                 #p src_node, dst_node, dst_upper
@@ -114,8 +116,6 @@ module Furnace::AVM2
 
         cfg if changed
       end
-
-      EMPTY_SET = Set[]
 
       def can_move_to?(src_node, block, dst_node)
         if start_index = block.insns.index(src_node)
