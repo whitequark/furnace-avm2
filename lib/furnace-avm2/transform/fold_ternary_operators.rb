@@ -7,8 +7,6 @@ module Furnace::AVM2
         changed = false
 
         cfg.nodes.each do |node|
-          next if node.metadata[:exception]
-
           node_changed = false
 
           # Find a phi node.

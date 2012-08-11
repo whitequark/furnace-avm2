@@ -17,8 +17,6 @@ module Furnace::AVM2
         changed = false
 
         cfg.nodes.each do |block|
-          next if block.metadata[:exception]
-
           # Find a phi node.
 
           gets = block.metadata.gets_map.values.

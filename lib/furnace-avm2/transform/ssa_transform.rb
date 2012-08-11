@@ -171,6 +171,8 @@ module Furnace::AVM2
           if block == cfg.entry
             stack = []
           elsif block.metadata[:exception]
+            block.metadata = SSAMetadata.new(block.metadata)
+
             @stacks[block] = [
               :exception
             ]

@@ -48,7 +48,7 @@ module Furnace::AVM2
           end
 
           if block.metadata.dead != old_dead
-            block.sources.each do |source|
+            [ *block.sources, *block.exception_sources ].each do |source|
               worklist.add source
             end
           end
