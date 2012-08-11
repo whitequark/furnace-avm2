@@ -3,10 +3,11 @@ module Furnace::AVM2
     class SSAMetadata
       attr_reader :sets, :gets
       attr_reader :set_map, :gets_map, :gets_upper
+      attr_accessor :live, :dead
 
       def initialize(hash={})
         @hash = hash.freeze
-        @sets, @gets = Set[], Set[]
+        @sets, @gets, @live = Set[], Set[], Set[]
         @set_map     = {}
         @gets_map    = Hash.new { |h, k| h[k] = Set[] }
         @gets_upper  = {}
@@ -17,12 +18,13 @@ module Furnace::AVM2
       end
 
       def any?
-        @sets.any? || @gets.any?
+        @sets.any? || @gets.any? || @live.any?
       end
 
       def inspect
-        "| sets: #{sets.to_a.join(", ")}" <<
-          " gets: #{gets.to_a.join(", ")}"
+        str  = "| sets: #{@sets.to_a.join(", ")} gets: #{@gets.to_a.join(", ")}\n"
+        str << "| live: #{@live.to_a.join(", ")}"
+        str
       end
 
       def merge!(other)

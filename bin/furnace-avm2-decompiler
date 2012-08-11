@@ -227,7 +227,7 @@ loop {
 
   end_time = Time.now
 
-  $stderr.puts "Time taken: #{"%.2f" % (end_time - start_time)}s"
+  $stderr.puts "\nTime taken: #{"%.2f" % (end_time - start_time)}s"
   break unless opts[:loop]
 }
 
