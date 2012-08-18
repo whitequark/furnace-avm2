@@ -182,7 +182,7 @@ module Furnace::AVM2
             block.metadata = SSAMetadata.new(block.metadata)
 
             @stacks[block] = [
-              :exception
+              block.label # :"exc_N"
             ]
 
             next

@@ -8,7 +8,7 @@ module Furnace::AVM2
 
         body.exceptions.each_with_index do |exc, index|
           unless exc_block = @exceptions[exc.range]
-            exc_block = CFG::Node.new(@cfg, "exc_#{index}")
+            exc_block = CFG::Node.new(@cfg, :"exc_#{index}")
             exc_block.metadata[:keep] = true
             exc_block.metadata[:exception] = true
 

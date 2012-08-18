@@ -27,8 +27,8 @@ module Furnace::AVM2
       def on_r(node)
         if node.children.one?
           index, = node.children
-          if index == :exception
-            node.update(:exception_variable, [])
+          if index.is_a? Symbol
+            node.update(:spurious_special_variable, [ index ])
           else
             node.update(:get_local, [
               -index,

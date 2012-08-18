@@ -37,6 +37,7 @@ module Furnace::AVM2::ABC
           Furnace::AVM2::Transform::FoldTernaryOperators.new,
         ]),
 
+        Furnace::AVM2::Transform::UpdateExceptionVariables.new,
         Furnace::AVM2::Transform::FoldPassthroughAssignments.new,
       ])
 

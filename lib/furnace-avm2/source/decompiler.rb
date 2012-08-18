@@ -474,7 +474,7 @@ module Furnace::AVM2
 
         if scope.is_a? Hash
           # treat as an inline scope, probably from an eh
-          if scope[captures[:index]]
+          if scope.has_key? captures[:index]
             var = scope[captures[:index]]
             token(VariableNameToken, var.metadata[:origin].name)
           end
