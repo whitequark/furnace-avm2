@@ -86,15 +86,9 @@ module Furnace::AVM2
             capture(:root)]]
       end
 
-      SuperfluousContinueMatcher = AST::Matcher.new do
-        [:continue]
-      end
 =begin
       def on_while(node, parent=node.parent, enclosure=node)
         *whatever, code = node.children
-        if SuperfluousContinueMatcher.match code.children.last
-          code.children.slice! -1
-        end
 
         if captures = ForInMatcher.match(node)
           case captures[:iterator]

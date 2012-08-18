@@ -35,6 +35,7 @@ module Furnace::AVM2::ABC
           Furnace::AVM2::Transform::SSAOptimize.new,
           Furnace::AVM2::Transform::FoldBooleanShortcuts.new,
           Furnace::AVM2::Transform::FoldTernaryOperators.new,
+          Furnace::AVM2::Transform::FoldIncrementDecrement.new,
         ]),
 
         Furnace::AVM2::Transform::UpdateExceptionVariables.new,
