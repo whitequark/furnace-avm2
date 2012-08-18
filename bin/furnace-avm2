@@ -108,6 +108,11 @@ if opts[:wait]
   gets
 end
 
+trap("QUIT") {
+  puts "Backtrace:"
+  puts caller
+}
+
 threads = []
 bodies  = abc.method_bodies.dup
 

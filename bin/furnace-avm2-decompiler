@@ -129,6 +129,11 @@ if opts[:wait]
   gets
 end
 
+trap("QUIT") {
+  puts "Backtrace:"
+  puts caller
+}
+
 print_one_stat = lambda do |color, count|
   str  = ":" * (count / 2)
   str << "." * (count % 2)
