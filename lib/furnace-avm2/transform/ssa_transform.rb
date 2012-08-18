@@ -1,3 +1,5 @@
+require 'pp'
+
 module Furnace::AVM2
   module Transform
     class SSAMetadata
@@ -24,9 +26,9 @@ module Furnace::AVM2
       def inspect
         str  = "| sets: #{@sets.to_a.join(", ")} gets: #{@gets.to_a.join(", ")}\n"
         str << "| live: #{@live.to_a.join(", ")}"
-        #str << "\n| set_map: #{@set_map.inspect}\n"
-        #str << "| gets_map: #{@gets_map.inspect}\n"
-        #str << "| gets_upper: #{@gets_upper.inspect}\n"
+        #str << "\n| set_map: #{@set_map.pretty_inspect}"
+        #str << "| gets_map: #{@gets_map.pretty_inspect}"
+        #str << "| gets_upper: #{@gets_upper.pretty_inspect}"
         str
       end
 
@@ -123,6 +125,8 @@ module Furnace::AVM2
 
         @next_rid = 0
         @rids     = Hash.new { [] }
+
+        @next_rlabel = 0
 
         # Compose worklist, an ordered list of basic blocks.
         # General idea: for every block except loop heads, have each
@@ -286,7 +290,8 @@ module Furnace::AVM2
       end
 
       def r(ids)
-        AST::Node.new(:r, ids)
+        @next_rlabel += 1
+        AST::Node.new(:r, ids, { rlabel: @next_rlabel })
       end
 
       def s(id, wat)
