@@ -203,7 +203,7 @@ module Furnace::AVM2
             end
 
             first, *others = parent_stacks
-            stack = first.zip(*others).map { |list| list.flatten }
+            stack = first.zip(*others).map { |list| list.flatten.uniq }
           end
 
           nodes = []
