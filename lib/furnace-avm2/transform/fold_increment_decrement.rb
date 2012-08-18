@@ -3,51 +3,37 @@ module Furnace::AVM2
     class FoldIncrementDecrement
       OPERATIONS = [:increment, :decrement]
 
-      PossiblyConvertingGet = AST::Matcher.new do
-        either[
-          [:r, backref(:id)],
-          [:convert, :integer,
-            [:r, backref(:id)]]
-        ]
-      end
-
-      PostXrementSet = AST::Matcher.new do
-        [:s, capture(:id),
+      def self.possibly_converting(type)
+        AST::Matcher.new do
           either[
-            [:get_local, capture(:local)],
-            [:get_slot,  capture(:slot), capture(:scope)]
+            [:convert, either[:integer, :double],
+              capture(type)],
+            capture(type)
           ]
-        ]
+        end
       end
 
-      PostXrementGet = AST::Matcher.new do
+      ConvOpInner = possibly_converting(:op_inner)
+      ConvOpOuter = possibly_converting(:op_outer)
+      ConvSingle  = possibly_converting(:single)
+
+      GetValue = AST::Matcher.new do
         either[
-          [:set_local, backref(:local),
-            [capture(:operation),
-              capture(:get)]],
-          [:set_slot, backref(:slot), backref(:scope),
-            [capture(:operation),
-              capture(:get)]]
+          [:get_local, capture(:local)],
+          [:get_slot,  capture(:slot), capture(:scope)]
         ]
       end
 
-      PreXrementSet = AST::Matcher.new do
-        [:s, capture(:id),
-          [capture(:operation),
-            either[
-              [:get_local, capture(:local)],
-              [:get_slot,  capture(:slot), capture(:scope)]
-            ]
-          ]
-        ]
+      UpdateValue = AST::Matcher.new do
+        [capture(:operation), capture(:update)]
       end
 
-      PreXrementGet = AST::Matcher.new do
+      SetValue = AST::Matcher.new do
         either[
-          [:set_local, backref(:local),
-            capture(:get)],
-          [:set_slot, backref(:slot), backref(:scope),
-            capture(:get)],
+          [:set_local, capture(:local),
+            capture(:value)],
+          [:set_slot,  capture(:slot), capture(:scope),
+            capture(:value)]
         ]
       end
 
@@ -59,6 +45,7 @@ module Furnace::AVM2
 
           metadata.sets.each do |id|
             set = metadata.set_map[id]
+            _, set_value = set.children
 
             sorted_gets = block.metadata.gets_map[id].map do |node|
               [ node, block.metadata.gets_upper[node] ]
@@ -99,18 +86,25 @@ module Furnace::AVM2
 
             type = nil
 
-            if captures = PostXrementSet.match(set)
-              if PostXrementGet.match(get_upper, captures) &&
-                    OPERATIONS.include?(captures[:operation]) &&
-                    PossiblyConvertingGet.match(captures[:get], captures)
-                type = "post"
-              end
-            elsif captures = PreXrementSet.match(set)
-              if PreXrementGet.match(get_upper, captures) &&
-                    OPERATIONS.include?(captures[:operation]) &&
-                    PossiblyConvertingGet.match(captures[:get], captures)
-                type = "pre"
-              end
+            # This is pretty arcane.
+            if (captures = ConvSingle.match(set_value)) &&
+                  GetValue.match(captures[:single], captures) &&
+                  SetValue.match(get_upper, captures) &&
+                  ConvOpOuter.match(captures[:value], captures) &&
+                  UpdateValue.match(captures[:op_outer], captures) &&
+                  OPERATIONS.include?(captures[:operation]) &&
+                  ConvOpInner.match(captures[:update], captures) &&
+                  captures[:op_inner] == get
+              type = "post"
+            elsif (captures = ConvOpOuter.match(set_value)) &&
+                  UpdateValue.match(captures[:op_outer], captures) &&
+                  OPERATIONS.include?(captures[:operation]) &&
+                  ConvOpInner.match(captures[:update], captures) &&
+                  GetValue.match(captures[:op_inner], captures) &&
+                  SetValue.match(get_upper, captures) &&
+                  ConvSingle.match(captures[:value], captures) &&
+                  captures[:single] == get
+              type = "pre"
             end
 
             next if type.nil?

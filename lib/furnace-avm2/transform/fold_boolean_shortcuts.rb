@@ -99,6 +99,8 @@ module Furnace::AVM2
 
             reduce_phi_nodes(cfg, block, top_id, bottom_id)
 
+            cfg.flush
+
             changed = true
           end
         end
