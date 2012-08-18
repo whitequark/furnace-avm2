@@ -5,11 +5,16 @@ module Furnace::AVM2
       EMPTY_SET = Set[]
 
       def transform(cfg)
+        dom   = cfg.dominators
+        loops = cfg.identify_loops
+
         # Clear old data
         cfg.nodes.each do |block|
           block.metadata.live = nil
           block.metadata.dead = nil
         end
+
+        dead_ends = Set[ cfg.exit ]
 
         # Search from the entry node, mark live variables
         worklist = Set[ cfg.entry ]
@@ -17,10 +22,19 @@ module Furnace::AVM2
           block = worklist.first
           worklist.delete block
 
+          if loops.include? block
+            back_edged, sources = block.sources.partition do |source|
+              dom[source].include? block
+            end
+            dead_ends.merge back_edged
+          else
+            sources = block.sources
+          end
+
           old_live = block.metadata.live
           block.metadata.live =
             block.metadata.sets +
-            block.sources.map { |s| s.metadata.live || EMPTY_SET }.
+            sources.map { |s| s.metadata.live || EMPTY_SET }.
                           reduce(EMPTY_SET, :|)
 
           if block.metadata.live != old_live
@@ -31,19 +45,22 @@ module Furnace::AVM2
           end
         end
 
-        cfg.exit.metadata.dead = cfg.exit.metadata.live
-
         # Search from the exit node, unmark dead variables
-        worklist = Set[ cfg.exit ]
+        worklist = dead_ends.dup
         while worklist.any?
           block = worklist.first
           worklist.delete block
 
-          unless block == cfg.exit
-            old_dead = block.metadata.dead
+          old_dead = block.metadata.dead
+
+          if dead_ends.include? block
+            block.metadata.dead =
+              block.metadata.live -
+              block.metadata.gets
+          else
             block.metadata.dead =
               block.targets.map { |s| s.metadata.dead || EMPTY_SET }.
-                            reduce(:&) -
+                      reduce(:&) -
               block.metadata.gets
           end
 

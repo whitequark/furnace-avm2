@@ -20,12 +20,13 @@ module Furnace::AVM2
       end
 
       def any?
-        @sets.any? || @gets.any? || @live.any?
+        @sets.any? || @gets.any? || @live.any? || @dead
       end
 
       def inspect
         str  = "| sets: #{@sets.to_a.join(", ")} gets: #{@gets.to_a.join(", ")}\n"
         str << "| live: #{@live.to_a.join(", ")}"
+        str << "\n| dead: #{@dead.to_a.join(", ")}" if @dead
         #str << "\n| set_map: #{@set_map.pretty_inspect}"
         #str << "| gets_map: #{@gets_map.pretty_inspect}"
         #str << "| gets_upper: #{@gets_upper.pretty_inspect}"
