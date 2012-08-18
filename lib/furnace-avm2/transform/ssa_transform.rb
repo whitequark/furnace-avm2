@@ -36,9 +36,9 @@ module Furnace::AVM2
         @sets.merge other.sets
         @gets.merge other.gets
 
-        @set_map.merge! other.set_map
-        @gets_map.merge! other.gets_map { |h, ak, dk| ak + dk }
-        @gets_upper.merge! other.gets_upper
+        @set_map.merge!(other.set_map)
+        @gets_map.merge!(other.gets_map) { |key, ours, theirs| ours + theirs }
+        @gets_upper.merge!(other.gets_upper)
       end
 
       def add_get(ids, upper, node)
