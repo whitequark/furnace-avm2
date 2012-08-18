@@ -191,6 +191,9 @@ module Furnace::AVM2
                 block.target_labels = [ block.target_labels[0] ]
               end
 
+              block.insns.delete block.cti
+              block.cti = nil
+
               changed = true
             end
           end
