@@ -36,6 +36,8 @@ module Furnace::AVM2::ABC
           Furnace::AVM2::Transform::FoldBooleanShortcuts.new,
           Furnace::AVM2::Transform::FoldTernaryOperators.new,
         ]),
+
+        Furnace::AVM2::Transform::FoldPassthroughAssignments.new,
       ])
 
       pipeline.run(code, self)
