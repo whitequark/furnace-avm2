@@ -291,7 +291,7 @@ module Furnace::AVM2
 
       def r(ids)
         @next_rlabel += 1
-        AST::Node.new(:r, ids, { rlabel: @next_rlabel })
+        AST::Node.new(:r, ids) # , { label: @next_rlabel })
       end
 
       def s(id, wat)

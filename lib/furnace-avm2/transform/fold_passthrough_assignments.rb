@@ -28,7 +28,9 @@ module Furnace::AVM2
 
             sorted_nodes.reduce(set_value) do |prev, (node, upper)|
               [ :read_barrier, :write_barrier ].each do |key|
-                upper.metadata[key].merge prev.metadata[key]
+                if prev.metadata.has_key? key
+                  upper.metadata[key].merge prev.metadata[key]
+                end
               end
 
               node.update(prev.type, prev.children)
