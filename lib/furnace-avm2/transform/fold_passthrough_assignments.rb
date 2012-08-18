@@ -4,6 +4,12 @@ module Furnace::AVM2
       def transform(cfg)
         cfg.nodes.each do |block|
           block.metadata.sets.each do |id|
+            # Skip if not referenced. Otherwise, code with possible
+            # side effects will be removed.
+            unless block.metadata.gets.include? id
+              next
+            end
+
             # All references should be contained in the same
             # block as the definition.
             if block.targets.any? { |t| t.metadata.live.include? id }
