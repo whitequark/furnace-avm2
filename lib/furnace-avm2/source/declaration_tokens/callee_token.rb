@@ -12,11 +12,19 @@ module Furnace::AVM2::Tokens
                 options) if @body && !options[:closure])
       ], options)
 
-      if options[:debug_funids] && !options[:closure]
-        @children.unshift \
-          CommentToken.new(origin,
-            "Method ##{options[:index]}",
-          options)
+      if options[:debug_funids]
+        if options[:closure]
+          @children.unshift \
+            SupplementaryCommentToken.new(origin,
+              "Method ##{options[:index]}",
+              [],
+            options)
+        else
+          @children.unshift \
+            CommentToken.new(origin,
+              "Method ##{options[:index]}",
+            options)
+        end
       end
     end
 

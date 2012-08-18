@@ -165,7 +165,7 @@ loop do
 
     if opts[:decompile]
       puts "Method #{body.method_idx}"
-      puts body.decompile(ns: []).to_text.lstrip
+      puts body.decompile(ns: [], debug_funids: true).to_text.lstrip
       puts
     end
   rescue Exception => e

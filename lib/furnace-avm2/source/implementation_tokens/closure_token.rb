@@ -5,7 +5,10 @@ module Furnace::AVM2::Tokens
     def initialize(origin, body, options={})
       super(origin, [
         ClosureNameToken.new(origin, options)
-      ], body.method, body, options.merge({ closure: true }))
+      ], body.method, body, options.merge({
+        closure: true,
+        index:   body.method_idx
+      }))
     end
   end
 end
