@@ -25,8 +25,14 @@ module Furnace::AVM2
             # Fold the constructs.
             set_node = block.metadata.set_map[id]
             _, set_value = set_node.children
+
             sorted_nodes.reduce(set_value) do |prev, (node, upper)|
+              [ :read_barrier, :write_barrier ].each do |key|
+                upper.metadata[key].merge prev.metadata[key]
+              end
+
               node.update(prev.type, prev.children)
+
               upper
             end
 
