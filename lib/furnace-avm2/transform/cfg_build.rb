@@ -81,8 +81,10 @@ module Furnace::AVM2
           end
 
           # Skip nops
-          unless [ ABC::AS3Jump, ABC::AS3Label,
-                   ABC::AS3Kill, ABC::AS3Nop    ].include? opcode.class
+          unless [ ABC::AS3Jump,  ABC::AS3Label,
+                   ABC::AS3Kill,  ABC::AS3Nop,
+                   ABC::AS3Debug, ABC::AS3DebugFile, ABC::AS3DebugLine
+                 ].include? opcode.class
             @pending_queue << opcode
           end
 

@@ -3,7 +3,11 @@ module Furnace::AVM2::ABC
     instruction 0xf0
 
     body do
-      vuint30 :linenum
+      vuint30 :line
+    end
+
+    def parameters
+      [ body.line ]
     end
 
     consume 0

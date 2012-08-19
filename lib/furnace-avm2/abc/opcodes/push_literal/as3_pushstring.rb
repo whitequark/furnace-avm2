@@ -6,6 +6,10 @@ module Furnace::AVM2::ABC
       const_ref :value, :string
     end
 
+    def parameters
+      [ body.line ]
+    end
+
     type :string
   end
 end
