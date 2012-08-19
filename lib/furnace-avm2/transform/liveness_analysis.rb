@@ -22,7 +22,9 @@ module Furnace::AVM2
           block = worklist.first
           worklist.delete block
 
-          if loops.include? block
+          if block.cti && block.cti.type == :throw
+            dead_ends.add block
+          elsif loops.include? block
             back_edged, sources = block.sources.partition do |source|
               dom[source].include? block
             end

@@ -21,11 +21,17 @@ module Furnace::AVM2
 
           exc_block.target_labels << exc.target_offset
 
-          exc_block.cti.children <<
-              AST::Node.new(:catch,
-                [ (exc.exception.to_astlet if exc.exception),
-                  exc.variable.to_astlet,
-                  exc.target_offset ])
+          if exc.variable
+            exc_block.cti.children <<
+                AST::Node.new(:catch,
+                  [ (exc.exception.to_astlet if exc.exception),
+                    exc.variable.to_astlet,
+                    exc.target_offset ])
+          else
+            exc_block.cti.children <<
+                AST::Node.new(:finally,
+                  [ exc.target_offset ])
+          end
         end
 
         # Handle nested exception handling blocks.
@@ -84,8 +90,11 @@ module Furnace::AVM2
           next_offset = next_opcode.offset if next_opcode
 
           case opcode
-          when ABC::FunctionReturnOpcode, ABC::AS3Throw
-            cutoff(nil, [nil])
+          when ABC::FunctionReturnOpcode
+            cutoff(nil, [ nil ])
+
+          when ABC::AS3Throw
+            cutoff(opcode, [ ])
 
           when ABC::AS3Jump
             @jumps.add(opcode.target_offset)

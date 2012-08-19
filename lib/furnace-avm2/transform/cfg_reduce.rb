@@ -425,6 +425,12 @@ module Furnace::AVM2
               end
 
               block = out_root
+            elsif block.cti.type == :throw
+              log nesting, "ends with throw"
+
+              append_instructions(block, current_nodes, true)
+
+              block = nil
             else
               log nesting, "is a conditional"
 
@@ -664,9 +670,9 @@ module Furnace::AVM2
         end
       end
 
-      def append_instructions(block, nodes)
+      def append_instructions(block, nodes, cti=false)
         block.insns.each do |insn|
-          next if insn.equal? block.cti
+          next if insn.equal?(block.cti) && !cti
           nodes << insn
         end
       end
