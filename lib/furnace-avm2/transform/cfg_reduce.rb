@@ -338,7 +338,8 @@ module Furnace::AVM2
                   end
                 end
 
-                if back_edges.count == 1
+                if back_edges.count == 1 &&
+                      back_edges.first.cti
                   log nesting, "is a do-while loop"
 
                   loop_type = :tail_cti
