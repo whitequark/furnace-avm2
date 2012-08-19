@@ -6,7 +6,7 @@ module Furnace::AVM2
       def self.possibly_converting(type)
         AST::Matcher.new do
           either[
-            [:convert, either[:integer, :double],
+            [:convert, either[:integer, :double, :unsigned],
               capture(type)],
             capture(type)
           ]
