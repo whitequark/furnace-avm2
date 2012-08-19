@@ -17,19 +17,21 @@ module Furnace::AVM2
         dead_ends = Set[ cfg.exit ]
 
         # Search from the entry node, mark live variables
-        worklist = Set[ cfg.entry ]
+        worklist = Set[ cfg.entry, cfg.exit ]
         while worklist.any?
           block = worklist.first
           worklist.delete block
 
-          if block.cti && block.cti.type == :throw
-            dead_ends.add block
-          elsif loops.include? block
+          if loops.include? block
             back_edged, sources = block.sources.partition do |source|
               dom[source].include? block
             end
             dead_ends.merge back_edged
           else
+            if block.cti && block.cti.type == :throw
+              dead_ends.add block
+            end
+
             sources = block.sources
           end
 
