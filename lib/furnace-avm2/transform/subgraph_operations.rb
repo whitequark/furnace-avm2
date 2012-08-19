@@ -1,7 +1,7 @@
 module Furnace::AVM2
   module Transform
     module SubgraphOperations
-      def walk_live_nodes(cfg, root)
+      def walk_live_nodes(cfg, root, id)
         worklist = Set[ root ]
         visited  = Set[]
 
@@ -13,7 +13,7 @@ module Furnace::AVM2
           yield block
 
           block.targets.each do |target|
-            if target.metadata.live.include? target_id
+            if target.metadata.live.include? id
               worklist.add target unless visited.include? target
             end
           end
@@ -21,7 +21,7 @@ module Furnace::AVM2
       end
 
       def reduce_phi_nodes(cfg, root, target_id, supplementary_id)
-        walk_live_nodes(cfg, root) do |block|
+        walk_live_nodes(cfg, root, target_id) do |block|
           gets = block.metadata.gets_map[target_id]
           gets.each do |get|
             if get.children.include? supplementary_id
@@ -32,7 +32,7 @@ module Furnace::AVM2
       end
 
       def replace_r_nodes(cfg, root, target_id, replacement)
-        walk_live_nodes(cfg, root) do |block|
+        walk_live_nodes(cfg, root, target_id) do |block|
           gets = block.metadata.gets_map[target_id]
           gets.each do |get|
             get.update(replacement.type,

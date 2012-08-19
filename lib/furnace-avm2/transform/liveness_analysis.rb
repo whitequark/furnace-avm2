@@ -4,6 +4,10 @@ module Furnace::AVM2
       # Avoid creating too much literals.
       EMPTY_SET = Set[]
 
+      def initialize(options={})
+        @idempotent = options[:idempotent] || false
+      end
+
       def transform(cfg)
         dom   = cfg.dominators
         loops = cfg.identify_loops
@@ -83,7 +87,7 @@ module Furnace::AVM2
 
         # This transform does not change CFG in any way,
         # it just rebuilds the metadata.
-        nil
+        cfg if @idempotent
       end
     end
   end
