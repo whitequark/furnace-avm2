@@ -94,7 +94,7 @@ module Furnace::AVM2
             cutoff(nil, [ nil ])
 
           when ABC::AS3Throw
-            cutoff(opcode, [ ])
+            cutoff(opcode, [ nil ])
 
           when ABC::AS3Jump
             @jumps.add(opcode.target_offset)
