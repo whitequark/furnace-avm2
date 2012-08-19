@@ -94,6 +94,25 @@ module Furnace::AVM2
           false
         end
 
+        # Part 9.2
+        def to_boolean(x)
+          if undefined?(x)
+            emit false
+          elsif null?(x)
+            emit false
+          elsif boolean?(x)
+            x
+          elsif number?(x)
+            num = value(x)
+            emit (num == 0 || num.nan?)
+          elsif string?(x)
+            str = value(x)
+            emit (str == "")
+          else
+            true
+          end
+        end
+
         # Part 9.3
         def to_number(x)
           if undefined?(x)
@@ -105,8 +124,21 @@ module Furnace::AVM2
           elsif number?(x)
             x
           elsif string?(x)
-            # TODO: implement this crap.
-            emit x.to_i
+            # .1 I hate you all.
+            str = value(x).strip
+            if str =~ %r{^([+-]?)Infinity$}
+              if $1 == "-"
+                emit -Float::Infinity
+              else
+                emit Float::Infinity
+              end
+            elsif str =~ %r{^[+-]?(\d+\.?\d*|\.\d+)[eE][+-]?\d+$}
+              emit str.to_f
+            elsif str =~ %r{^0[xX]([\da-fA-F]+)$}
+              emit $1.to_i(16)
+            else
+              emit Float::NaN
+            end
           end
         end
 
@@ -183,6 +215,7 @@ module Furnace::AVM2
           if block.cti && block.cti.type == :branch_if
             compare_to, expr = block.cti.children
             if folded = constant_folder.fold(expr)
+              folded = constant_folder.to_boolean(folded)
               value = constant_folder.value folded
 
               if value ^ compare_to
