@@ -50,6 +50,7 @@ EOS
 
   opt :no_output,     "Don't write out any code",                   :default => false
 
+  opt :fix_names,     "Remove invalid characters from names",       :default => true,  :short => '-q'
   opt :decompile,     "Write ActionScript 3 code",                  :type => :boolean, :short => '-d'
   opt :destructurize, "Write internal token structure",             :type => :boolean, :short => '-s'
 
@@ -111,6 +112,10 @@ if opts[:grep]
   end
 
   exit
+end
+
+if opts[:fix_names]
+  abc.fix_names!
 end
 
 global_slots = {}
