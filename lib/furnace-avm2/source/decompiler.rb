@@ -109,7 +109,14 @@ module Furnace::AVM2
         last_index = index
 
         if respond_to?(:"stmt_#{opcode.type}")
+          @collected_vars = []
+          prepend_collected_at = nodes.length
+
           send :"stmt_#{opcode.type}", opcode, nodes
+
+          if @collected_vars.any?
+            nodes.insert(prepend_collected_at, *@collected_vars)
+          end
         else
           catch(:skip) do
             @collected_vars = []
