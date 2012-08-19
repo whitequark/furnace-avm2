@@ -1,7 +1,7 @@
 module Furnace::AVM2
   module Transform
     class FoldBooleanShortcuts
-      include PhiNodeReduction
+      include SubgraphOperations
 
       ValidCondition = Furnace::AST::Matcher.new do
         [:branch_if, any,

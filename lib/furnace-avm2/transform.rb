@@ -3,7 +3,8 @@ module Furnace::AVM2::Transform
   CFG = Furnace::CFG
 end
 
-require_relative "transform/phi_node_reduction"
+require_relative "transform/subgraph_operations"
+require_relative "transform/evaluator"
 
 require_relative "transform/cfg_build"
 require_relative "transform/refine_local_variable_barriers"

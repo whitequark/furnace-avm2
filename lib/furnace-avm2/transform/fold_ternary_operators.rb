@@ -1,7 +1,7 @@
 module Furnace::AVM2
   module Transform
     class FoldTernaryOperators
-      include PhiNodeReduction
+      include SubgraphOperations
 
       def transform(cfg)
         changed = false
