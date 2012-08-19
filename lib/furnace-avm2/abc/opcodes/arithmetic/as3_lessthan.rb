@@ -1,6 +1,8 @@
 module Furnace::AVM2::ABC
   class AS3LessThan < ArithmeticOpcode
     instruction 0xad
+    write_barrier :memory
+
     ast_type :<
 
     consume 2

@@ -51,7 +51,7 @@ module Furnace::AVM2
             root, *tails = find_merge_point([ block ] + exception.targets)
             exception.targets.zip(tails).each_with_index do |(target, tail), index|
               log nesting, "handler #{catches[index].inspect}"
-              handler = extended_block(target, tail || root, loop_stack, nesting + 1, nil)
+              handler = extended_block(target, tail || root, loop_stack, nesting + 1, exception.exception)
 
               node = catches[index]
               if node.type == :catch
@@ -119,10 +119,10 @@ module Furnace::AVM2
         current_nodes     = []
         exception_changed = false
 
-        log nesting, "--- STOPGAP: #{stopgap.inspect}"
+        log nesting, "--- STOPGAP: #{stopgap.label.inspect}" if stopgap
 
         while block
-          log nesting, "BLOCK: #{block.inspect}"
+          log nesting, "BLOCK: #{block.label.inspect}"
 
           if is_loop_head?(block, loop_stack)
             if options[:infinite_loop_head]
@@ -172,7 +172,12 @@ module Furnace::AVM2
                        "NEW-EX: #{(block.exception.label if block.exception) || '-'}"
 
           if block.exception != current_exception
-            nodes.concat possibly_wrap_eh(prev_block, current_nodes, current_exception, loop_stack, nesting)
+            # Don't wrap with a handler if we're coming within
+            # a nested scope.
+            unless block.exception && current_exception &&
+                  block.exception.exception == current_exception
+              nodes.concat possibly_wrap_eh(prev_block, current_nodes, current_exception, loop_stack, nesting)
+            end
 
             current_exception = block.exception
             current_nodes     = []
@@ -333,7 +338,8 @@ module Furnace::AVM2
                   end
                 end
 
-                if back_edges.count == 1
+                if back_edges.count == 1 &&
+                      back_edges.first.cti
                   log nesting, "is a do-while loop"
 
                   loop_type = :tail_cti
@@ -420,6 +426,12 @@ module Furnace::AVM2
               end
 
               block = out_root
+            elsif block.cti.type == :throw
+              log nesting, "ends with throw"
+
+              append_instructions(block, current_nodes, true)
+
+              block = nil
             else
               log nesting, "is a conditional"
 
@@ -659,9 +671,9 @@ module Furnace::AVM2
         end
       end
 
-      def append_instructions(block, nodes)
+      def append_instructions(block, nodes, cti=false)
         block.insns.each do |insn|
-          next if insn == block.cti
+          next if insn.equal?(block.cti) && !cti
           nodes << insn
         end
       end

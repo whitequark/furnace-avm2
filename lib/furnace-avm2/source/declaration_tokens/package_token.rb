@@ -2,7 +2,7 @@ module Furnace::AVM2::Tokens
   class PackageToken < Furnace::Code::NonterminalToken
     def initialize(origin, options={})
       options[:ns] = options[:ns].reject { |ns|
-        ns.name == "" || ns.name == "*"
+        ns.nil? || ns.name == "" || ns.name == "*"
       }
 
       import_ns = options[:ns].reject { |ns|

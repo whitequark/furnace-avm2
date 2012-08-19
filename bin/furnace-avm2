@@ -27,7 +27,7 @@ require "benchmark"
 
 include Furnace
 
-GRAPH_FORMATS = %w(none graphviz)
+GRAPH_FORMATS = %w(none text graphviz)
 
 opts = Trollop::options do
   version "furnace-avm2 #{AVM2::VERSION}"
@@ -41,27 +41,21 @@ EOS
 
   opt :input,         "Input file",                                 :type => :string, :required => true
   opt :output,        "Output file",                                :type => :string
-  opt :verbose,       "Be verbose",                                 :default => false
-  opt :verify,        "Do extra verification passes",               :default => false, :short => '-V'
 
-  opt :threads,       "Use <i> threads for processing",             :default => 1
-
-  opt :only,          "Only operate on methods <i+>",               :type => :ints,   :short => '-O'
-  opt :except,        "Operate on all methods except <i+>",         :type => :ints,   :short => '-E'
-  opt :grep,          "Search <s> in method names",                 :type => :string, :short => '-g'
+  opt :only,          "Only operate on methods <i+>",               :type => :ints,    :short => '-O'
+  opt :except,        "Operate on all methods except <i+>",         :type => :ints,    :short => '-E'
+  opt :grep,          "Search <s> in method names",                 :type => :string,  :short => '-g'
 
   opt :collect,       "Collect failed methods instead of exiting",  :default => false
   opt :sort_by_size,  "Sort methods by body size",                  :default => false
 
-  opt :disasm_before, "Disassemble methods before transforming",    :default => false, :short => '-B'
-  opt :disasm_after,  "Disassemble methods after transforming",     :default => false, :short => '-A'
-  opt :cfg,           "Emit CFG in specified format for methods",   :type => :string,  :short => '-G'
-
-  opt :dce,           "Eliminate dead code",                        :default => false
   opt :fix_names,     "Remove invalid characters from names",       :default => true,  :short => '-q'
-  opt :ast,           "Build AST",                                  :default => false
-  opt :nf,            "Build NF-AST",                               :default => false
-  opt :decompile,     "Decompile methods",                          :default => false
+
+  opt :cfg,           "Emit CFG in specified format for methods",   :type => :string,  :short => '-G'
+  opt :nf,            "Build NF-AST",                               :default => false, :short => '-n'
+  opt :decompile,     "Decompile methods",                          :default => false, :short => '-d'
+
+  opt :wait,          "Wait for a tool like profiler to be attached", :type => :boolean, :short => '-w'
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
@@ -76,30 +70,7 @@ File.open(opts[:input]) do |file|
   abc.read(file)
 end
 
-disasm = lambda do |body, after|
-  puts "Method #{body.method_idx}," <<
-       " max stack #{body.max_stack}, local count #{body.local_count}"
-  if after
-    puts "After transformation"
-  else
-    puts "Before transformation"
-  end
-  puts body.code.disassemble
-
-  if body.exceptions.any?
-    $stderr.puts
-    $stderr.puts "Exceptions"
-    body.exceptions.each do |exception|
-      $stderr.puts "  #{exception.from_offset} -> #{exception.to_offset}: " <<
-                   "catch(#{exception.exception.to_s} #{exception.variable.to_s}) #{exception.target_offset}"
-    end
-  end
-
-  puts
-end
-
 failed = []
-dced = []
 by_body_size = {}
 
 if opts[:fix_names]
@@ -132,108 +103,83 @@ if opts[:grep]
   exit
 end
 
-Thread.abort_on_exception = true
+if opts[:wait]
+  puts "Press Enter to continue."
+  gets
+end
+
+trap("QUIT") {
+  puts "Backtrace:"
+  puts caller
+}
 
 threads = []
 bodies  = abc.method_bodies.dup
-mutex   = Mutex.new
 
-opts[:threads].times do
-  threads << Thread.new do
-    loop do
-      body = mutex.synchronize { bodies.pop }
-      break if body.nil?
+loop do
+  body = bodies.pop
+  break if body.nil?
 
-      if (opts[:except] && opts[:except].include?(body.method_idx)) ||
-        (opts[:only]   && !opts[:only].include?(body.method_idx))
-        next
-      end
-
-      begin
-        disasm[body, false] if opts[:disasm_before]
-
-        if opts[:sort_by_size]
-          by_body_size[body] = body.code_length
-        end
-
-        if opts[:dce]
-          dced << body.method_idx if body.code.eliminate_dead!
-          if opts[:verify]
-            temp_io = StringIO.new
-            body.write temp_io
-          end
-        end
-
-        disasm[body, true] if opts[:disasm_after]
-
-        if opts[:ast]
-          ast, = body.code_to_ast
-          puts "Method #{body.method_idx}; AST"
-          puts ast.to_sexp
-          puts
-        end
-
-        if opts[:cfg]
-          cfg, = body.code_to_cfg
-
-          if opts[:cfg] == 'graphviz'
-            File.open("method-#{body.method_idx}.dot", "w") do |dot|
-              dot.write cfg.to_graphviz
-            end
-          end
-
-          puts "Method #{body.method_idx}; dominators"
-          cfg.dominators.each do |node, dominating|
-            puts "#{node.label.inspect} => " +
-                 "#{dominating.map(&:label).map(&:inspect).join(", ")}"
-          end
-          puts
-=begin
-          puts "Method #{body.method_idx}; postdominators"
-          cfg.postdominators.each do |node, dominating|
-            puts "#{node.label.inspect} => " +
-                 "#{dominating.map(&:label).map(&:inspect).join(", ")}"
-          end
-          puts
-=end
-          puts "Method #{body.method_idx}; loops"
-          cfg.identify_loops.each do |header, body|
-            puts "#{header.label.inspect} => " +
-                 "#{body.map(&:label).map(&:inspect).join(", ")}"
-          end
-          puts
-        end
-
-        if opts[:nf]
-          ast, = body.code_to_nf
-          puts "Method #{body.method_idx}; NF-AST"
-          puts ast.to_sexp
-          puts
-        end
-
-        if opts[:decompile]
-          puts "Method #{body.method_idx}"
-          puts body.decompile(ns: []).to_text.lstrip
-          puts
-        end
-      rescue Exception => e
-        if opts[:collect]
-          $stderr.puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
-          failed << body.method_idx
-        else
-          raise e
-        end
-      end
-    end
+  if (opts[:except] && opts[:except].include?(body.method_idx)) ||
+    (opts[:only]   && !opts[:only].include?(body.method_idx))
+    next
   end
-end
 
-threads.each &:join
+  begin
+    if opts[:sort_by_size]
+      by_body_size[body] = body.code_length
+    end
 
-if opts[:verbose]
-  if opts[:dce]
-    puts "List of methods undergone DCE transform (#{dced.count}):"
-    puts "  #{dced.join " "}"
+    if opts[:cfg]
+      cfg, = body.code_to_cfg
+
+      if opts[:cfg] == 'graphviz'
+        File.open("method-#{body.method_idx}.dot", "w") do |dot|
+          dot.write cfg.to_graphviz
+        end
+      end
+
+      puts "Method #{body.method_idx}; dominators"
+      cfg.dominators.each do |node, dominating|
+        puts "#{node.label.inspect} => " +
+             "#{dominating.map(&:label).map(&:inspect).join(", ")}"
+      end
+      puts
+=begin
+      puts "Method #{body.method_idx}; postdominators"
+      cfg.postdominators.each do |node, dominating|
+        puts "#{node.label.inspect} => " +
+             "#{dominating.map(&:label).map(&:inspect).join(", ")}"
+      end
+      puts
+=end
+      puts "Method #{body.method_idx}; loops"
+      cfg.identify_loops.each do |header, body|
+        puts "#{header.label.inspect} => " +
+             "#{body.map(&:label).map(&:inspect).join(", ")}"
+      end
+      puts
+    end
+
+    if opts[:nf]
+      ast, = body.code_to_nf
+      puts "Method #{body.method_idx}; NF-AST"
+      puts ast.to_sexp
+      puts
+    end
+
+    if opts[:decompile]
+      puts "Method #{body.method_idx}"
+      puts body.decompile(ns: [], debug_funids: true).to_text.lstrip
+      puts
+    end
+  rescue Exception => e
+    if opts[:collect]
+      $stderr.puts "Failure at method body idx=#{body.method_idx}: #{e.class} (#{e.message}) at #{e.backtrace.first}."
+      failed << body.method_idx
+    else
+      raise e
+    end
   end
 end
 

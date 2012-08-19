@@ -1,22 +1,18 @@
 module Furnace::AVM2
   module Transform
     class CFGBuild
-      def transform(ast, body, finallies)
+      def transform(code, body)
+        @cfg        = CFG::Graph.new
         @jumps      = Set.new
         @exceptions = {}
 
-        @cfg = CFG::Graph.new
-
         body.exceptions.each_with_index do |exc, index|
-          if finallies.find { |f| f[:first_catch] == exc }
-            # The first catch in finally is a no-op
-            next
-          end
-
           unless exc_block = @exceptions[exc.range]
-            exc_block = CFG::Node.new(@cfg, "exc_#{index}")
+            exc_block = CFG::Node.new(@cfg, :"exc_#{index}")
+            exc_block.metadata[:keep] = true
+            exc_block.metadata[:exception] = true
 
-            dispatch_node = AST::Node.new(:exception_dispatch, [], keep: true)
+            dispatch_node = AST::Node.new(:exception_dispatch, [])
             exc_block.insns << dispatch_node
             exc_block.cti = dispatch_node
 
@@ -25,16 +21,47 @@ module Furnace::AVM2
 
           exc_block.target_labels << exc.target_offset
 
-          if finallies.find { |f| f[:second_catch] == exc }
-            exc_block.cti.children <<
-                AST::Node.new(:finally,
-                  [ exc.target_offset ])
-          else
+          if exc.variable
             exc_block.cti.children <<
                 AST::Node.new(:catch,
                   [ (exc.exception.to_astlet if exc.exception),
                     exc.variable.to_astlet,
                     exc.target_offset ])
+          else
+            exc_block.cti.children <<
+                AST::Node.new(:finally,
+                  [ exc.target_offset ])
+          end
+        end
+
+        # Handle nested exception handling blocks.
+
+        exceptions_within = Hash.new { |h,k| h[k] = Set[] }
+
+        @exceptions = Hash[
+          @exceptions.sort do |(left_range, left), (right_range, right)|
+            intersection = (left_range & right_range)
+            if intersection.nil?
+              0
+            elsif intersection == left_range
+              exceptions_within[left].add right
+              -1
+            elsif intersection == right_range
+              exceptions_within[right].add left
+              1
+            else
+              raise "impossible exception handler layout"
+            end
+          end
+        ]
+
+        # Set nearest outermost exception handler.
+
+        @exceptions.each do |range, inner|
+          if exceptions_within[inner].any?
+            inner.exception_label = @exceptions.values.find do |outer|
+              exceptions_within[inner].include? outer
+            end.label
           end
         end
 
@@ -43,9 +70,9 @@ module Furnace::AVM2
         @pending_exc_range = nil
         @pending_queue = []
 
-        ast.children.each_with_index do |node, index|
+        code.each_with_index do |opcode, index|
           unless @pending_label
-            @pending_label = node.metadata[:label]
+            @pending_label = opcode.offset
 
             exception_block_for(@pending_label) do |block, range|
               @pending_exc_block = block
@@ -53,37 +80,47 @@ module Furnace::AVM2
             end
           end
 
-          @pending_queue << node if ![:nop, :jump, :label].include? node.type
+          # Skip nops
+          unless [ ABC::AS3Jump,  ABC::AS3Label,
+                   ABC::AS3Kill,  ABC::AS3Nop,
+                   ABC::AS3Debug, ABC::AS3DebugFile, ABC::AS3DebugLine
+                 ].include? opcode.class
+            @pending_queue << opcode
+          end
 
-          next_node  = ast.children[index + 1]
-          next_label = next_node.metadata[:label] if next_node
+          next_opcode = code[index + 1]
+          next_offset = next_opcode.offset if next_opcode
 
-          case node.type
-          when :return_value, :return_void, :throw
-            cutoff(nil, [nil])
+          case opcode
+          when ABC::FunctionReturnOpcode
+            cutoff(nil, [ nil ])
 
-          when :jump
-            @jumps.add(node.children[0])
-            cutoff(nil, [ node.children.delete_at(0) ])
+          when ABC::AS3Throw
+            cutoff(opcode, [ nil ])
 
-          when :jump_if
-            @jumps.add(node.children[1])
-            cutoff(node, [ node.children.delete_at(1), next_label ])
+          when ABC::AS3Jump
+            @jumps.add(opcode.target_offset)
+            cutoff(nil, [ opcode.target_offset ])
 
-          when :lookup_switch
-            jumps_to = [ node.children[0] ] + node.children[1]
-            @jumps.merge(jumps_to)
-            cutoff(node, jumps_to)
+          when ABC::ControlTransferOpcode
+            @jumps.add(opcode.target_offset)
+            cutoff(opcode, [ opcode.target_offset, next_offset ])
+
+          when ABC::AS3LookupSwitch
+            jump_to = [ opcode.default_target.offset ] +
+                            opcode.case_targets.map(&:offset)
+            @jumps.merge(jump_to)
+            cutoff(opcode, jump_to)
 
           else
-            *, next_exception_block = exception_block_for(next_label)
+            *, next_exception_block = exception_block_for(next_offset)
 
-            if @jumps.include?(next_label) || (next_node && next_node.type == :label)
-              cutoff(nil, [next_label])
-            elsif body.exceptions.find { |ex| ex.target_offset == next_label }
-              cutoff(nil, [next_label])
+            if @jumps.include?(next_offset) || (next_opcode && next_opcode.is_a?(ABC::AS3Label))
+              cutoff(nil, [ next_offset ])
+            elsif body.exceptions.find { |ex| ex.target_offset == next_offset }
+              cutoff(nil, [ next_offset ])
             elsif @pending_exc_block != next_exception_block
-              cutoff(nil, [next_label])
+              cutoff(nil, [ next_offset ])
             end
           end
         end
@@ -122,11 +159,11 @@ module Furnace::AVM2
         @pending_queue = []
       end
 
-      def exception_block_for(label)
-        return nil unless label
+      def exception_block_for(offset)
+        return nil unless offset
 
         @exceptions.find do |range, block|
-          if range.include? label
+          if range.include? offset
             yield block, range if block_given?
             true
           end

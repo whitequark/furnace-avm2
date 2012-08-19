@@ -1,6 +1,7 @@
 module Furnace::AVM2::ABC
   class AS3IfNlt < ControlTransferOpcode
     instruction 0x0c
+    write_barrier :memory
 
     body do
       int24     :jump_offset

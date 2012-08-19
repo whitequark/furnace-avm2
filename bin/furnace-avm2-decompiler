@@ -2,8 +2,8 @@
 
 require "rubygems"
 
-root_dir = File.expand_path(File.join(File.dirname(__FILE__),'..'))
-if File.directory?(File.join(root_dir,'.git'))
+root_dir = File.expand_path(File.join(File.dirname(__FILE__), '..'))
+if File.directory?(File.join(root_dir, '.git'))
   Dir.chdir(root_dir) do |path|
     require 'bundler'
 
@@ -22,6 +22,7 @@ $LOAD_PATH << lib_dir unless $LOAD_PATH.include?(lib_dir)
 
 require "trollop"
 require "furnace-avm2"
+require "parallel"
 require "thread"
 
 include Furnace
@@ -40,9 +41,8 @@ EOS
 
   opt :input,         "Input file",                                 :type => :string, :required => true
   opt :verbose,       "Be verbose",                                 :default => false
+  opt :quiet,         "Be quiet",                                   :default => false
   opt :debug,         "Show debugging information for <s+>.",       :type => :strings, :short => '-D'
-
-  opt :threads,       "Use <i> threads for processing",             :default => 1
 
   opt :only,          "Only operate on classes <s+>",               :type => :strings, :short => '-O'
   opt :except,        "Operate on all classes except <s+>",         :type => :strings, :short => '-E'
@@ -52,9 +52,21 @@ EOS
 
   opt :decompile,     "Write ActionScript 3 code",                  :type => :boolean, :short => '-d'
   opt :destructurize, "Write internal token structure",             :type => :boolean, :short => '-s'
+
+  opt :profile,       "Write KCachegrind profiling data",           :type => :string,  :short => '-p'
+  opt :wait,          "Wait for a tool like profiler to be attached", :type => :boolean, :short => '-w'
+  opt :loop,          "Perform the decompiling in loop for profiling", :default => false
+  opt :threads,       "Override thread count",                      :type => :integer
 end
 
 Trollop::die "Stray arguments: #{ARGV}" unless ARGV.empty?
+
+if opts[:profile]
+  require 'ruby-prof'
+
+  RubyProf.start
+  RubyProf.pause
+end
 
 decompile_options = {}
 
@@ -112,98 +124,126 @@ end
 
 decompile_options[:global_slots] = global_slots
 
-start_time = Time.now
+if opts[:wait]
+  puts "Press Enter to continue."
+  gets
+end
 
-mutex = Mutex.new
+trap("QUIT") {
+  puts "Backtrace:"
+  puts caller
+}
 
-roots      = {}
+print_one_stat = lambda do |color, count|
+  str  = ":" * (count / 2)
+  str << "." * (count % 2)
+  $stderr.print "\e[0;#{color}m#{str}\e[0m"
+end
+
+print_stat = lambda do |stat|
+  print_one_stat.("1;31", stat[:failed])
+  print_one_stat.("32", stat[:success])
+  print_one_stat.("1;33", stat[:partial])
+end
+
 workqueue  = abc.instances + abc.scripts
 total_size = workqueue.size
 
-last_percentage = 0
-
-stat = {
-  total:   0,
-  success: 0,
-  partial: 0,
-  failed:  0,
-}
-
 $stderr.puts "Found #{total_size} classes and packages."
 
-stick       = %w(| / - \\)
-stick_state = 0
-stick_timer = 0
-
-progress_thread = Thread.new do
-  loop do
-    stick_timer += 1
-    if stick_timer % 10 == 0
-      $stderr.print "\e[KDecompiling... #{total_size - workqueue.size}/#{total_size} "
-      $stderr.print stick[stick_state]
-      $stderr.print "\e[0G"
-      stick_state = (stick_state + 1) % stick.count
+process = lambda do |what|
+  if what.is_a? AVM2::ABC::InstanceInfo
+    name = what.name
+    ns   = name.ns
+  else # ScriptInfo
+    if what.has_name?
+      name = what.package_name.ns
+      ns   = name.to_s.sub(/(^|\.)[^.]+$/, '')
+    else
+      index = abc.scripts.index(what)
+      name  = "__global_name_#{index}"
+      ns    = "__global_ns_#{index}"
     end
+  end
+  next if shound_skip.(name)
 
-    sleep
+  options = decompile_options.merge(
+    stat: {
+      total:   0,
+      success: 0,
+      partial: 0,
+      failed:  0,
+    }
+  )
+
+  if opts[:profile]
+    RubyProf.resume
+    source = what.decompile(options)
+    RubyProf.pause
+  else
+    source = what.decompile(options)
+  end
+
+  stat = options[:stat]
+
+  print_stat.(stat) unless opts[:quiet]
+
+  if source && source.children.any?
+    {
+      stat:   stat,
+      ns:     ns.to_s,
+      source: source.to_text,
+    }
   end
 end
 
-opts[:threads].times.map do
-  Thread.new do
-    loop do
-      what = nil
-      mutex.synchronize do
-        what = workqueue.pop
+threads = opts[:threads]
+if threads.nil?
+  processors = Parallel.processor_count
+  threads    = processors / 2
+  $stderr.puts "Using #{threads} threads. Pass `--threads #{processors}' option if " <<
+               "your CPU does NOT feature hyperthreading or it is disabled."
+end
+
+if defined?(JRUBY_VERSION)
+  parallel_options = { in_threads:   threads }
+else
+  parallel_options = { in_processes: threads }
+end
+
+Random.srand 0
+workqueue.shuffle!
+
+stat = roots = nil
+
+loop {
+  start_time = Time.now
+
+  roots = {}
+  stat  = {
+    total:   0,
+    success: 0,
+    partial: 0,
+    failed:  0,
+  }
+
+  Parallel.map(workqueue, parallel_options, &process).each do |result|
+    if result
+      stat.merge!(result[:stat]) do |key, global, local|
+        global + local
       end
 
-      break if what.nil?
-
-      if what.is_a? AVM2::ABC::InstanceInfo
-        name = what.name
-        ns   = name.ns
-      else # ScriptInfo
-        if what.has_name?
-          name = what.package_name.ns
-          ns   = name.to_s.sub(/(^|\.)[^.]+$/, '')
-        else
-          index = abc.scripts.index(what)
-          name  = "__global_name_#{index}"
-          ns    = "__global_ns_#{index}"
-        end
-      end
-      next if shound_skip.(name)
-
-      options = decompile_options.merge(
-        stat: {
-          total:   0,
-          success: 0,
-          partial: 0,
-          failed:  0,
-        }
-      )
-
-      source = what.decompile(options)
-      next unless source
-      next unless source.children.any?
-
-      text = source.to_text
-
-      mutex.synchronize do
-        options[:stat].each do |facet, value|
-          stat[facet] += value
-        end
-
-        roots[ns.to_s] ||= []
-        roots[ns.to_s] << text
-
-        progress_thread.wakeup
-      end
+      ns = result[:ns]
+      roots[ns] ||= []
+      roots[ns] << result[:source]
     end
   end
-end.each(&:join)
 
-end_time = Time.now
+  end_time = Time.now
+
+  $stderr.puts "\nTime taken: #{"%.2f" % (end_time - start_time)}s"
+  break unless opts[:loop]
+}
 
 if stat[:total] > 0
   $stderr.puts
@@ -220,7 +260,13 @@ else
   $stderr.puts "No methods were processed."
 end
 
-$stderr.puts "Time taken: #{"%.2f" % (end_time - start_time)}s"
+if opts[:profile]
+  prof_result = RubyProf.stop
+  File.open(opts[:profile], 'w') do |f|
+    printer = RubyProf::CallTreePrinter.new(prof_result)
+    printer.print(f)
+  end
+end
 
 unless opts[:no_output]
   roots.values.flatten.each do |code|

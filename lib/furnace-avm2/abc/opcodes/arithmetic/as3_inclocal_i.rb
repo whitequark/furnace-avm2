@@ -1,6 +1,7 @@
 module Furnace::AVM2::ABC
   class AS3IncLocalI < ArithmeticOpcode
     instruction 0xc2
+    write_barrier :local
 
     body do
       vuint30 :reg_index

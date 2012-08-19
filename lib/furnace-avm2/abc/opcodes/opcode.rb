@@ -56,7 +56,6 @@ module Furnace::AVM2::ABC
     define_property :produce,         :accessor => :produces
 
     define_property :type
-    define_property :special # swap, dup
 
     attr_reader :sequence
 
@@ -66,6 +65,24 @@ module Furnace::AVM2::ABC
 
     def root
       @sequence.root
+    end
+
+    # Barriers
+
+    def self.read_barrier(*values)
+      define_method(:read_barrier)  { Set.new(values) }
+    end
+
+    def read_barrier
+      Set[]
+    end
+
+    def self.write_barrier(*values)
+      define_method(:write_barrier) { Set.new(values) }
+    end
+
+    def write_barrier
+      Set[]
     end
 
     # Stream manipulation
@@ -115,6 +132,14 @@ module Furnace::AVM2::ABC
 
     def parameters
       []
+    end
+
+    def metadata
+      {
+        label:         offset,
+        read_barrier:  read_barrier,
+        write_barrier: write_barrier,
+      }
     end
 
     # Disassembling

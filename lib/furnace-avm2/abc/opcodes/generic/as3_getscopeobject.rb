@@ -1,6 +1,7 @@
 module Furnace::AVM2::ABC
   class AS3GetScopeObject < Opcode
     instruction 0x65
+    read_barrier :scope
 
     body do
       uint8 :scope_index

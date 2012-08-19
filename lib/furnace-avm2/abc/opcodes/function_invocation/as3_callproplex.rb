@@ -3,6 +3,7 @@ module Furnace::AVM2::ABC
     include ContextualOpcode
 
     instruction 0x4c
+    write_barrier :memory
 
     implicit_operand false
 

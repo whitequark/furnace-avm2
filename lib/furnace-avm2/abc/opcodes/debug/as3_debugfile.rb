@@ -3,7 +3,11 @@ module Furnace::AVM2::ABC
     instruction 0xf1
 
     body do
-      vuint30 :index
+      const_ref :file, :string
+    end
+
+    def parameters
+      [ body.file ]
     end
 
     consume 0

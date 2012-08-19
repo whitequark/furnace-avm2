@@ -2,10 +2,6 @@ module Furnace::AVM2::ABC
   class ControlTransferOpcode < Opcode
     define_property :conditional
 
-    def parameters
-      [ target_offset ]
-    end
-
     attr_accessor :target
 
     def target_offset

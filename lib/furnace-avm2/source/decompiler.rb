@@ -109,7 +109,14 @@ module Furnace::AVM2
         last_index = index
 
         if respond_to?(:"stmt_#{opcode.type}")
+          @collected_vars = []
+          prepend_collected_at = nodes.length
+
           send :"stmt_#{opcode.type}", opcode, nodes
+
+          if @collected_vars.any?
+            nodes.insert(prepend_collected_at, *@collected_vars)
+          end
         else
           catch(:skip) do
             @collected_vars = []
@@ -474,7 +481,7 @@ module Furnace::AVM2
 
         if scope.is_a? Hash
           # treat as an inline scope, probably from an eh
-          if scope[captures[:index]]
+          if scope.has_key? captures[:index]
             var = scope[captures[:index]]
             token(VariableNameToken, var.metadata[:origin].name)
           end

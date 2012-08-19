@@ -21,26 +21,31 @@ module Furnace::AVM2::ABC
       end
     end
 
-    def code_to_ast(options={})
+    def code_to_cfg(options={})
       pipeline = Furnace::Transform::Pipeline.new([
-        Furnace::AVM2::Transform::ASTBuild.new(options),
-        Furnace::AVM2::Transform::ASTNormalize.new(options),
-        Furnace::AVM2::Transform::PropagateConstants.new,
+        Furnace::AVM2::Transform::CFGBuild.new,
+        Furnace::AVM2::Transform::SSATransform.new,
+        Furnace::AVM2::Transform::RefineLocalVariableBarriers.new,
+        Furnace::AVM2::Transform::SSAOptimize.new(idempotent: true),
+
+        Furnace::Transform::IterativeProcess.new([
+          Furnace::AVM2::Transform::LivenessAnalysis.new,
+          Furnace::AVM2::Transform::DataflowInvariantCodeMotion.new,
+          Furnace::AVM2::Transform::PartialEvaluation.new,
+          Furnace::AVM2::Transform::SSAOptimize.new,
+          Furnace::AVM2::Transform::FoldBooleanShortcuts.new,
+          Furnace::AVM2::Transform::FoldTernaryOperators.new,
+          Furnace::AVM2::Transform::FoldIncrementDecrement.new,
+        ]),
+
+        Furnace::AVM2::Transform::UpdateExceptionVariables.new,
+        Furnace::AVM2::Transform::FoldPassthroughAssignments.new,
       ])
 
       pipeline.run(code, self)
     end
 
-    def code_to_cfg
-      pipeline = Furnace::Transform::Pipeline.new([
-        Furnace::AVM2::Transform::PropagateLabels.new,
-        Furnace::AVM2::Transform::CFGBuild.new
-      ])
-
-      pipeline.run(*code_to_ast({}))
-    end
-
-    def code_to_nf
+    def code_to_nf(options={})
       pipeline = Furnace::Transform::Pipeline.new([
         Furnace::AVM2::Transform::CFGReduce.new,
         Furnace::AVM2::Transform::NFNormalize.new,

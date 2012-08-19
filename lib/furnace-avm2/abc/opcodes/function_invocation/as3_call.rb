@@ -1,6 +1,7 @@
 module Furnace::AVM2::ABC
   class AS3Call < Opcode
     instruction 0x41
+    write_barrier :memory
 
     body do
       vuint30 :arg_count

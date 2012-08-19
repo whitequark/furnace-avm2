@@ -3,6 +3,7 @@ module Furnace::AVM2::ABC
     include ContextualOpcode
 
     instruction 0x4a
+    write_barrier :memory
 
     body do
       const_ref :property, :multiname

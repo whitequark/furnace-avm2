@@ -95,6 +95,11 @@ Contact
 
 If you experience any difficultes, you can ask me (*whitequark*) on channel `#ruby-lang` at `irc.freenode.net` or drop me a email.
 
+Acknowledgements
+----------------
+
+Special thanks to [Sergey Gridassov](https://github.com/grindars) for the initial idea; [Lev Tolmachev](https://github.com/tolmalev) and Kuzma Yakimets for understandable explanations of complicated graph manipulation algorithms.
+
 License
 -------
 

@@ -4,85 +4,39 @@ module Furnace::AVM2
       include AST::Visitor
 
       def transform(nf)
-        @nf = nf.normalize_hierarchy!
+        @nf = nf
 
-        remove_useless_return
         visit @nf
 
         @nf
       end
 
-      def remove_useless_return
-        if @nf.children.last.type == :return_void
-          @nf.children.slice! -1
-        end
+      def on_any(node)
+        node.metadata.delete :read_barrier
+        node.metadata.delete :write_barrier
       end
 
-      def on_nop(node)
-        node.update(:remove)
+      def on_s(node)
+        index, value = node.children
+        node.update(:set_local, [
+          -index, value
+        ])
       end
 
-      LocalIncDecMatcher = AST::Matcher.new do
-        [ either_multi[
-            [:set_slot,  capture(:index), capture(:scope)],
-            [:set_local, capture(:index)],
-          ],
-          either[
-            [:convert, any,
-              capture(:inner)],
-            [:coerce, :any,
-              capture(:inner)],
-            capture(:inner)
-          ]
-        ]
-      end
-
-      LocalIncDecInnerMatcher = AST::Matcher.new do
-        [capture(:operator),
-          either[
-            [:convert, any,
-              capture(:getter)],
-            capture(:getter),
-          ]
-        ]
-      end
-
-      LocalIncDecGetterMatcher = AST::Matcher.new do
-        either[
-          [:get_slot,  backref(:index), backref(:scope)],
-          [:get_local, backref(:index)],
-        ]
-      end
-
-      IncDecOperators = [
-        :pre_increment, :post_increment,
-        :pre_decrement, :post_decrement
-      ]
-
-      def on_set_local(node)
-        captures = {}
-        if LocalIncDecMatcher.match(node, captures) &&
-              LocalIncDecInnerMatcher.match(captures[:inner], captures) &&
-              IncDecOperators.include?(captures[:operator])
-          if captures[:getter].is_a?(AST::Node) &&
-              LocalIncDecGetterMatcher.match(captures[:getter], captures)
-            if captures[:scope]
-              node.update(:"#{captures[:operator]}_slot", [ captures[:index], captures[:scope] ])
-            else
-              node.update(:"#{captures[:operator]}_local", [ captures[:index] ])
-            end
+      def on_r(node)
+        if node.children.one?
+          index, = node.children
+          if index.is_a? Symbol
+            node.update(:spurious_special_variable, [ index ])
           else
-            node.update(:add, [
-              AST::Node.new(:set_local, [
-                captures[:index],
-                captures[:getter]
-              ]),
-              AST::Node.new(:integer, [ 1 ])
+            node.update(:get_local, [
+              -index,
             ])
           end
+        else
+          node.update(:phi, node.children)
         end
       end
-      alias :on_set_slot :on_set_local
 
       ExpandedForInMatcher = AST::Matcher.new do
         [:if, [:has_next2, skip], skip]
@@ -90,20 +44,22 @@ module Furnace::AVM2
 
       # Loops can get expanded, but conditionals would never contain
       # has-next2.
-      def on_if(node)
+      def do_if(node, parent)
         if ExpandedForInMatcher.match node
           condition, body, rest = node.children
 
           body.children << AST::Node.new(:break)
 
           loop = AST::Node.new(:while, [ condition, body ])
-          on_while(loop, node.parent, node)
+          do_while(loop, parent, node)
 
           if rest
-            node.update(:expand, [ loop ] + rest.children)
+            [ loop ] + rest.children
           else
-            node.update(:expand, [ loop ])
+            [ loop ]
           end
+        else
+          node
         end
       end
 
@@ -113,7 +69,7 @@ module Furnace::AVM2
           [:begin,
             [ either_multi[
                 [ :set_local, capture(:value_reg) ],
-                [ :set_slot, capture(:value_reg), [:get_scope_object, 1] ],
+                [ :set_slot, capture(:value_reg), [:get_scope_object, any] ],
               ],
               [ either[:coerce, :convert], capture(:value_type),
                 [ capture(:iterator),
@@ -132,15 +88,8 @@ module Furnace::AVM2
             capture(:root)]]
       end
 
-      SuperfluousContinueMatcher = AST::Matcher.new do
-        [:continue]
-      end
-
-      def on_while(node, parent=node.parent, enclosure=node)
+      def do_while(node, parent, enclosure=node)
         *whatever, code = node.children
-        if SuperfluousContinueMatcher.match code.children.last
-          code.children.slice! -1
-        end
 
         if captures = ForInMatcher.match(node)
           case captures[:iterator]
@@ -177,9 +126,27 @@ module Furnace::AVM2
             AST::Node.new(:begin, captures[:body])
           ])
         end
+
+        node
       end
 
       def on_begin(node)
+        # Fix for-in loops.
+        node.children.map! do |child|
+          if child.type == :if
+            do_if(child, node)
+          elsif child.type == :while
+            do_while(child, node)
+          else
+            child
+          end
+        end
+        node.children.flatten!
+
+        node.children.reject! do |child|
+          child.type == :remove
+        end
+
         # Fold (with)'s
         with_begin = node.children.index do |child|
           child.type == :push_with
@@ -218,7 +185,7 @@ module Furnace::AVM2
 
         # Remove obviously dead code
         first_ctn = node.children.index do |child|
-          [:return_void, :return_value, :break, :continue, :throw].include? child.type
+          [:return, :break, :continue, :throw].include? child.type
         end
         return unless first_ctn
 
