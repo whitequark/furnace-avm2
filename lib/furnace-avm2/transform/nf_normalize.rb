@@ -44,20 +44,22 @@ module Furnace::AVM2
 
       # Loops can get expanded, but conditionals would never contain
       # has-next2.
-      def on_if(node)
+      def do_if(node, parent)
         if ExpandedForInMatcher.match node
           condition, body, rest = node.children
 
           body.children << AST::Node.new(:break)
 
           loop = AST::Node.new(:while, [ condition, body ])
-          on_while(loop, node.parent, node)
+          do_while(loop, parent, node)
 
           if rest
-            node.update(:expand, [ loop ] + rest.children)
+            [ loop ] + rest.children
           else
-            node.update(:expand, [ loop ])
+            [ loop ]
           end
+        else
+          node
         end
       end
 
@@ -86,8 +88,7 @@ module Furnace::AVM2
             capture(:root)]]
       end
 
-=begin
-      def on_while(node, parent=node.parent, enclosure=node)
+      def do_while(node, parent, enclosure=node)
         *whatever, code = node.children
 
         if captures = ForInMatcher.match(node)
@@ -125,9 +126,27 @@ module Furnace::AVM2
             AST::Node.new(:begin, captures[:body])
           ])
         end
+
+        node
       end
-=end
+
       def on_begin(node)
+        # Fix for-in loops.
+        node.children.map! do |child|
+          if child.type == :if
+            do_if(child, node)
+          elsif child.type == :while
+            do_while(child, node)
+          else
+            child
+          end
+        end
+        node.children.flatten!
+
+        node.children.reject! do |child|
+          child.type == :remove
+        end
+
         # Fold (with)'s
         with_begin = node.children.index do |child|
           child.type == :push_with
