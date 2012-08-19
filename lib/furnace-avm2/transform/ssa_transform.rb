@@ -5,7 +5,7 @@ module Furnace::AVM2
     class SSAMetadata
       attr_reader :sets, :gets
       attr_reader :set_map, :gets_map, :gets_upper
-      attr_accessor :live, :dead
+      attr_accessor :live
 
       def initialize(hash={})
         @hash = hash.freeze
@@ -20,13 +20,12 @@ module Furnace::AVM2
       end
 
       def any?
-        @sets.any? || @gets.any? || @live.any? || @dead
+        @sets.any? || @gets.any? || @live.any?
       end
 
       def inspect
         str  = "| sets: #{@sets.to_a.join(", ")} gets: #{@gets.to_a.join(", ")}\n"
         str << "| live: #{@live.to_a.join(", ")}"
-        str << "\n| dead: #{@dead.to_a.join(", ")}" if @dead
         #str << "\n| set_map: #{@set_map.pretty_inspect}"
         #str << "| gets_map: #{@gets_map.pretty_inspect}"
         #str << "| gets_upper: #{@gets_upper.pretty_inspect}"
@@ -36,6 +35,7 @@ module Furnace::AVM2
       def merge!(other)
         @sets.merge other.sets
         @gets.merge other.gets
+        @live.merge other.live
 
         @set_map.merge!(other.set_map)
         @gets_map.merge!(other.gets_map) { |key, ours, theirs| ours + theirs }
@@ -77,10 +77,13 @@ module Furnace::AVM2
       def remove_set(id)
         @sets.delete id
         @set_map.delete id
+        @live.delete id
       end
     end
 
     class SSATransform
+      include SubgraphOperations
+
       class ASTNormalizer
         include Furnace::AST::StrictVisitor
 
@@ -121,7 +124,6 @@ module Furnace::AVM2
 
       def transform(cfg)
         @cfg     = cfg
-        @dom     = cfg.dominators
         @stacks  = {}
 
         @next_rid = 0
@@ -129,47 +131,9 @@ module Furnace::AVM2
 
         @next_rlabel = 0
 
-        # Compose worklist, an ordered list of basic blocks.
-        # General idea: for every block except loop heads, have each
-        # source visited before this block. For loop heads, have
-        # everything except blocks with back edges visited beforehand.
-
-        visited  = Set[ nil ]
-        nodes    = Set[ cfg.entry ]
-        worklist = []
-
-        while nodes.any?
-          applicable_nodes = nodes.select do |node|
-            node.sources.reduce(true) do |result, source|
-              result &&
-                (visited.include?(source) ||
-                @dom[source].include?(node))
-            end
-          end
-
-          if applicable_nodes.empty?
-            raise "no applicable nodes"
-          end
-
-          nodes.subtract applicable_nodes
-          visited.merge applicable_nodes
-
-          worklist += applicable_nodes
-
-          applicable_nodes.each do |node|
-            node.targets.each do |target|
-              nodes.add target unless visited.include? target
-            end
-
-            nodes.add node.exception unless visited.include? node.exception
-          end
-        end
-
-        # Do the transformation itself.
-
         normalizer = ASTNormalizer.new
 
-        next_rid = 0
+        worklist = ssa_worklist(cfg)
         visited  = Set[]
 
         while worklist.any?
@@ -181,11 +145,11 @@ module Furnace::AVM2
 
           visited.add block
 
+          block.metadata = SSAMetadata.new(block.metadata)
+
           if block == cfg.entry
             stack = []
           elsif block.metadata[:exception]
-            block.metadata = SSAMetadata.new(block.metadata)
-
             @stacks[block] = [
               block.label # :"exc_N"
             ]
@@ -203,14 +167,13 @@ module Furnace::AVM2
                     "(from #{block.sources.map(&:label).join(", ")})"
             end
 
+            block.metadata.live.merge parent_stacks.flatten
+
             first, *others = parent_stacks
             stack = first.zip(*others).map { |list| list.flatten.uniq }
           end
 
           nodes = []
-
-          metadata = SSAMetadata.new
-          block.metadata = metadata
 
           block.insns.each do |opcode|
             case opcode
@@ -237,9 +200,11 @@ module Furnace::AVM2
                 toplevel_node = node
               end
 
-              parameters = consume(stack, opcode.consumes, toplevel_node, metadata)
+              parameters = consume(stack, opcode.consumes,
+                    toplevel_node, block.metadata)
               if opcode.consumes_context
-                context = opcode.context(consume(stack, opcode.consumes_context, toplevel_node, metadata))
+                context = opcode.context(consume(stack, opcode.consumes_context,
+                      toplevel_node, block.metadata))
               end
 
               node.children.concat context if context
@@ -251,7 +216,8 @@ module Furnace::AVM2
               nodes.push(toplevel_node)
 
               if opcode.produces == 1
-                produce(stack, stack_id, toplevel_node, metadata)
+                produce(stack, stack_id,
+                      toplevel_node, block.metadata)
               end
 
               if block.cti == opcode
@@ -264,6 +230,8 @@ module Furnace::AVM2
 
           @stacks[block] = stack
         end
+
+        @cfg.exit.metadata.live.clear
 
         @cfg
       end
@@ -331,6 +299,7 @@ module Furnace::AVM2
 
       def produce(stack, id, node, metadata)
         metadata.add_set id, node
+        metadata.live.add id
 
         stack.push [id]
       end

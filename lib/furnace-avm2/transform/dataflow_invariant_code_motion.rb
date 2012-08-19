@@ -65,9 +65,7 @@ module Furnace::AVM2
 
                 if do_move
                   block.insns.delete src_node
-
-                  block_meta.sets.delete id
-                  block_meta.set_map.delete id
+                  block_meta.remove_set id
 
                   value = src_node.children.last
                   dst_node.update(value.type, value.children, value.metadata)
@@ -76,6 +74,7 @@ module Furnace::AVM2
                     dst_upper.metadata[key].merge src_node.metadata[key]
                   end
 
+                  # TODO merge rnodes properly
                   target_meta.gets.delete id
                   target_meta.gets_map.delete id
                   target_meta.gets_upper.delete dst_node
@@ -88,9 +87,7 @@ module Furnace::AVM2
             elsif targets.empty?
               if src_node.nil? || src_node.metadata[:write_barrier].empty?
                 block.insns.delete src_node
-
-                block_meta.sets.delete id
-                block_meta.set_map.delete id
+                block_meta.remove_set id
 
                 block_changed = true
               end

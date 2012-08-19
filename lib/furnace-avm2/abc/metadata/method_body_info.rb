@@ -29,25 +29,20 @@ module Furnace::AVM2::ABC
         Furnace::AVM2::Transform::SSAOptimize.new(idempotent: true),
 
         Furnace::Transform::IterativeProcess.new([
-          Furnace::AVM2::Transform::LivenessAnalysis.new,
           Furnace::AVM2::Transform::DataflowInvariantCodeMotion.new,
           Furnace::AVM2::Transform::PartialEvaluation.new,
           Furnace::AVM2::Transform::SSAOptimize.new,
 
-          Furnace::AVM2::Transform::LivenessAnalysis.new,
           Furnace::AVM2::Transform::FoldBooleanShortcuts.new,
           Furnace::AVM2::Transform::FoldTernaryOperators.new,
           Furnace::AVM2::Transform::FoldIncrementDecrement.new,
           Furnace::AVM2::Transform::SSAOptimize.new,
         ]),
 
-        Furnace::AVM2::Transform::LivenessAnalysis.new(idempotent: true),
-
         Furnace::AVM2::Transform::FoldPassthroughAssignments.new,
         Furnace::AVM2::Transform::PropagateConstants.new,
 
         Furnace::AVM2::Transform::ExpandUnreferencedSets.new,
-
         Furnace::AVM2::Transform::UpdateExceptionVariables.new,
       ])
 

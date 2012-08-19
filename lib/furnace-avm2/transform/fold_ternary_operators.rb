@@ -6,12 +6,12 @@ module Furnace::AVM2
       def transform(cfg)
         changed = false
 
-        cfg.nodes.each do |node|
-          node_changed = false
+        cfg.nodes.each do |block|
+          block_changed = false
 
           # Find a phi node.
 
-          gets = node.metadata.gets_map.values.
+          gets = block.metadata.gets_map.values.
                           map(&:to_a).flatten.uniq
 
           gets.select do |get|
@@ -22,7 +22,7 @@ module Furnace::AVM2
             # id => source
             sources = Hash[
               phi.children.map do |id|
-                [ id, node.sources.find { |source| source.metadata.sets.include?(id) } ]
+                [ id, block.sources.find { |source| source.metadata.sets.include?(id) } ]
               end.select do |id, source|
                 source && source.sources.count == 1
               end
@@ -82,12 +82,12 @@ module Furnace::AVM2
             shared.metadata.merge! right.metadata
 
             shared.metadata.remove_set right_id
-            node.metadata.remove_get right_id
+            block.metadata.remove_get right_id
 
             shared.metadata.set_map[left_id] = shared.cti
             shared.cti = nil
 
-            shared.target_labels = [ node.label ]
+            shared.target_labels = [ block.label ]
 
             cfg.nodes.delete left
             cfg.nodes.delete right
@@ -95,10 +95,10 @@ module Furnace::AVM2
 
             reduce_phi_nodes(cfg, shared, right_id, left_id)
 
-            changed = node_changed = true
+            changed = block_changed = true
           end
 
-          redo if node_changed
+          redo if block_changed
         end
 
         cfg if changed

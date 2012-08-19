@@ -15,8 +15,11 @@ module Furnace::AVM2
 
             # TODO add options for folding complex constants
             if evaluator.immediate?(set_value)
-              replace_r_nodes(cfg, block, id, set_value)
-              block.metadata.remove_set(id)
+              replace_r_nodes(cfg, block, id, set_value) do |child_block|
+                child_block.metadata.live.delete id
+              end
+
+              block.metadata.remove_set id
               block.insns.delete set
 
               changed = true
