@@ -28,6 +28,37 @@ module Furnace::AVM2
                   exc.target_offset ])
         end
 
+        # Handle nested exception handling blocks.
+
+        exceptions_within = Hash.new { |h,k| h[k] = Set[] }
+
+        @exceptions = Hash[
+          @exceptions.sort do |(left_range, left), (right_range, right)|
+            intersection = (left_range & right_range)
+            if intersection.nil?
+              0
+            elsif intersection == left_range
+              exceptions_within[left].add right
+              -1
+            elsif intersection == right_range
+              exceptions_within[right].add left
+              1
+            else
+              raise "impossible exception handler layout"
+            end
+          end
+        ]
+
+        # Set nearest outermost exception handler.
+
+        @exceptions.each do |range, inner|
+          if exceptions_within[inner].any?
+            inner.exception_label = @exceptions.values.find do |outer|
+              exceptions_within[inner].include? outer
+            end.label
+          end
+        end
+
         @pending_label = nil
         @pending_exc_block = nil
         @pending_exc_range = nil
