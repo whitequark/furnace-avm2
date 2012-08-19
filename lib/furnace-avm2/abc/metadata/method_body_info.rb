@@ -42,10 +42,13 @@ module Furnace::AVM2::ABC
         ]),
 
         Furnace::AVM2::Transform::LivenessAnalysis.new(idempotent: true),
+
+        Furnace::AVM2::Transform::FoldPassthroughAssignments.new,
         Furnace::AVM2::Transform::PropagateConstants.new,
 
+        Furnace::AVM2::Transform::ExpandUnreferencedSets.new,
+
         Furnace::AVM2::Transform::UpdateExceptionVariables.new,
-        Furnace::AVM2::Transform::FoldPassthroughAssignments.new,
       ])
 
       pipeline.run(code, self)
