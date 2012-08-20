@@ -9,6 +9,9 @@ module Furnace::AVM2
           expr
         else
           case expr.type
+          when :this
+            expr
+
           when :"===", :"!==", :"==", :"!="
             args = expr.children.map { |e| fold e }
             return nil unless args.all?
@@ -23,6 +26,19 @@ module Furnace::AVM2
               emit compare(*args)
             when :"!="
               emit !compare(*args)
+            end
+
+          when :or, :and
+            left, right = expr.children
+            if left = fold(left)
+              left_value = value(to_boolean(left))
+              compare_to = (expr.type == :and ? true : false)
+
+              if left_value ^ compare_to
+                left
+              else
+                right
+              end
             end
           end
         end
@@ -109,7 +125,7 @@ module Furnace::AVM2
           str = value(x)
           emit (str == "")
         else
-          true
+          emit true
         end
       end
 
