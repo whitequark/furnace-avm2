@@ -40,6 +40,14 @@ module Furnace::AVM2::ABC
         ]),
 
         Furnace::AVM2::Transform::FoldPassthroughAssignments.new,
+=begin
+        Furnace::AVM2::Transform::ConvertLocalsToSSA.new,
+        Furnace::Transform::IterativeProcess.new([
+          Furnace::AVM2::Transform::DataflowInvariantCodeMotion.new,
+          Furnace::AVM2::Transform::PartialEvaluation.new,
+          Furnace::AVM2::Transform::SSAOptimize.new,
+        ]),
+=end
         Furnace::AVM2::Transform::PropagateConstants.new,
 
         Furnace::AVM2::Transform::ExpandUnreferencedSets.new,
@@ -52,7 +60,7 @@ module Furnace::AVM2::ABC
     def code_to_nf(options={})
       pipeline = Furnace::Transform::Pipeline.new([
         Furnace::AVM2::Transform::CFGReduce.new,
-        Furnace::AVM2::Transform::NFNormalize.new,
+        Furnace::AVM2::Transform::NFNormalize.new(method: method),
       ])
 
       pipeline.run(*code_to_cfg)

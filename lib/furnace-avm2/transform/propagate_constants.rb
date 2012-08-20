@@ -14,7 +14,10 @@ module Furnace::AVM2
             _, set_value = set.children
 
             # TODO add options for folding complex constants
-            if evaluator.immediate?(set_value)
+            if evaluator.immediate?(set_value) ||
+                set_value.type == :this ||
+                set_value.type == :find_property_strict
+
               replace_r_nodes(cfg, block, id, set_value) do |child_block|
                 child_block.metadata.live.delete id
               end

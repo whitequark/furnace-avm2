@@ -247,8 +247,6 @@ module Furnace::AVM2
     def stmt_return(opcode, nodes)
       nodes << token(ReturnToken, exprs(opcode.children))
     end
-    alias :stmt_return_value :stmt_return
-    alias :stmt_return_void  :stmt_return
 
     def stmt_try(opcode, nodes)
       body, *handlers = opcode.children
@@ -312,8 +310,9 @@ module Furnace::AVM2
     KnownPushScopeMatcher = AST::Matcher.new do
       [:push_scope,
         either[
-          [:get_local, capture(:get_local)],
-          [:set_local, capture(:set_activation_local),
+          [:this],
+          [:get, [:local, capture(:get_local)]],
+          [:set, [:local, capture(:set_activation_local)],
             [:new_activation]]
         ]
       ]
@@ -323,7 +322,7 @@ module Furnace::AVM2
       if @options[:global_code]
         @scopes.push opcode.children.first
       elsif captures = KnownPushScopeMatcher.match(opcode)
-        if captures[:get_local] == 0
+        if opcode.children.first.type == :this
           @scopes << :this
         elsif !@activation_local.nil? &&
             captures[:get_local] == @activation_local
@@ -440,28 +439,36 @@ module Furnace::AVM2
 
     ## Locals
 
-    def local_token(index)
-      if index < 0
-        token(VariableNameToken, "sp#{-index}")
-      elsif index == 0
+    def local_token(node)
+      case node.type
+      when :this
         if @options[:static]
           token(VariableNameToken, @options[:instance].name.name)
         else
           token(ThisToken)
         end
-      elsif index <= @method.param_count
+
+      when :param
+        index, = node.children
         if @method.has_param_names?
           token(VariableNameToken, @method.param_names[index - 1])
         else
-          token(VariableNameToken, "param#{index - 1}")
+          token(VariableNameToken, "param#{index}")
         end
-      else
-        token(VariableNameToken, "local#{index - @method.param_count - 1}")
+
+      when :local
+        index, = node.children
+        if index < 0
+          token(VariableNameToken, "sp#{-index}")
+        else
+          token(VariableNameToken, "local#{index}")
+        end
       end
     end
+    alias :expr_this :local_token
 
-    def expr_get_local(opcode)
-      index, = opcode.children
+    def expr_get(node)
+      index, = node.children
       local_token(index)
     end
 
@@ -560,8 +567,9 @@ module Furnace::AVM2
       end
     end
 
-    def expr_set_local(opcode, toplevel=false)
+    def expr_set(opcode, toplevel=false)
       index, value = opcode.children
+
       if IMMEDIATE_TYPE_MAP.include?(value.type)
         type = token(TypeToken, [
           token(ImmediateTypenameToken, IMMEDIATE_TYPE_MAP[value.type])
@@ -577,13 +585,16 @@ module Furnace::AVM2
         value = value.children.last
       end
 
-      expr_set_var(local_token(index), value, type, !@locals.include?(index), toplevel)
+      digest  = "#{index.type}-#{index.children[0]}"
+      declare = !@locals.include?(digest)
+
+      expr_set_var(local_token(index), value, type, declare, toplevel)
     ensure
-      @locals.add index if index
+      @locals.add digest if digest
     end
 
-    def expr_set_local_toplevel(opcode)
-      expr_set_local(opcode, true)
+    def expr_set_toplevel(opcode)
+      expr_set(opcode, true)
     end
 
     SetSlot = Matcher.new do
@@ -593,7 +604,7 @@ module Furnace::AVM2
           [:get_scope_object, capture(:scope_pos)],
           [:get_global_scope],
           [:push_scope,
-            [:set_local, capture(:catch_local),
+            [:set, [:local, capture(:catch_local)],
               [:new_catch, capture(:catch_id)]]]
         ],
         capture(:value)
@@ -661,22 +672,6 @@ module Furnace::AVM2
 
     ## Arithmetics
 
-    INPLACE_OPERATOR_MAP = {
-      :inc_local   => :"++",
-      :dec_local   => :"--",
-    }
-
-    def expr_inplace_arithmetic(opcode)
-      index, = opcode.children
-
-      token(UnaryPostOperatorToken,
-        local_token(index),
-        INPLACE_OPERATOR_MAP[opcode.type])
-    end
-
-    alias :expr_inc_local :expr_inplace_arithmetic
-    alias :expr_dec_local :expr_inplace_arithmetic
-
     PSEUDO_OPERATOR_MAP = {
       :increment   => [:"+", 1],
       :decrement   => [:"-", 1],
@@ -693,27 +688,27 @@ module Furnace::AVM2
       ], operator)
     end
 
-    alias :expr_increment   :expr_pseudo_arithmetic
-    alias :expr_decrement   :expr_pseudo_arithmetic
+    alias :expr_increment :expr_pseudo_arithmetic
+    alias :expr_decrement :expr_pseudo_arithmetic
 
-    def expr_prepost_incdec_local(opcode)
+    def expr_prepost_incdec(opcode)
       index, = opcode.children
       lvar = local_token(index)
 
-      if opcode.type == :post_increment_local
+      if opcode.type == :post_increment
         token(UnaryPostOperatorToken, lvar, "++")
-      elsif opcode.type == :post_decrement_local
+      elsif opcode.type == :post_decrement
         token(UnaryPostOperatorToken, lvar, "--")
-      elsif opcode.type == :pre_increment_local
+      elsif opcode.type == :pre_increment
         token(UnaryOperatorToken, lvar, "++")
-      elsif opcode.type == :pre_decrement_local
+      elsif opcode.type == :pre_decrement
         token(UnaryOperatorToken, lvar, "--")
       end
     end
-    alias :expr_post_increment_local :expr_prepost_incdec_local
-    alias :expr_post_decrement_local :expr_prepost_incdec_local
-    alias :expr_pre_increment_local  :expr_prepost_incdec_local
-    alias :expr_pre_decrement_local  :expr_prepost_incdec_local
+    alias :expr_post_increment :expr_prepost_incdec
+    alias :expr_post_decrement :expr_prepost_incdec
+    alias :expr_pre_increment  :expr_prepost_incdec
+    alias :expr_pre_decrement  :expr_prepost_incdec
 
     PrePostIncDecSlot = Matcher.new do
       [any,
@@ -829,10 +824,6 @@ module Furnace::AVM2
 
     ## Properties and objects
 
-    This = Matcher.new do
-      [:get_local, 0]
-    end
-
     PropertyGlobal = Matcher.new do
       [any,
         either_multi[
@@ -881,7 +872,7 @@ module Furnace::AVM2
 
       stmt = get_name(token(SuperToken), multiname)
 
-      unless This.match subject
+      unless subject.type == :this
         stmt = token(SupplementaryCommentToken,
           "subject != this: #{subject.inspect}",
           [ stmt ])
@@ -915,7 +906,7 @@ module Furnace::AVM2
         parenthesize(expr(value))
       ])
 
-      unless This.match subject
+      unless subject.type == :this
         stmt = token(SupplementaryCommentToken,
           "subject != this: #{subject.inspect}",
           [ stmt ])
@@ -951,7 +942,7 @@ module Furnace::AVM2
 
     def expr_call_super(opcode)
       subject, multiname, *args = opcode.children
-      if This.match subject
+      if subject.type == :this
         token(CallToken, [
           get_name(token(SuperToken), multiname),
           token(ArgumentsToken, exprs(args))
@@ -975,7 +966,7 @@ module Furnace::AVM2
 
     def expr_construct_super(opcode)
       subject, *args = opcode.children
-      if This.match subject
+      if subject.type == :this
         token(CallToken, [
           token(SuperToken),
           token(ArgumentsToken, exprs(args))
@@ -989,14 +980,11 @@ module Furnace::AVM2
       token(TernaryOperatorToken, parenthesize_each(exprs(opcode.children)))
     end
 
-    # See /src/java/macromedia/asc/semantics/CodeGenerator.java
-    # If this looks stupid to you, that's because it IS stupid.
-    CallThisGlobal = Matcher.new do
-      [:get_global_scope]
-    end
-
-    CallThisLocal = Matcher.new do
-      [ either[:get_scope_object, :get_local], 0 ]
+    CallThisScope = Matcher.new do
+      either[
+        [:get_global_scope],
+        [:get_scope_object, capture(:scope)],
+      ]
     end
 
     def expr_call(opcode)
@@ -1007,15 +995,16 @@ module Furnace::AVM2
         token(PropertyNameToken, "call")
       ])
 
-      if CallThisGlobal.match(this) || CallThisLocal.match(this)
-        # FUCK YOU!
-        token(CallToken, [
-          subject_token,
-          token(ArgumentsToken, [
-            local_token(0),
-            *exprs(args)
+      if captures = CallThisScope.match(this)
+        if @scopes[captures[:scope] || 0] == :this
+          token(CallToken, [
+            subject_token,
+            token(ArgumentsToken, [
+              token(ThisToken),
+              *exprs(args)
+            ])
           ])
-        ])
+        end
       else
         token(CallToken, [
           subject_token,
@@ -1264,7 +1253,7 @@ module Furnace::AVM2
           ])
         elsif @scopes[0] == :this
           token(IndexToken, [
-            local_token(0),
+            token(ThisToken),
             expr(multiname.children.last)
           ])
         else

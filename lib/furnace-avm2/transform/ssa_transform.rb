@@ -43,7 +43,7 @@ module Furnace::AVM2
       end
 
       def add_get(ids, upper, node)
-        @gets.merge(ids)
+        @gets.merge ids
         ids.each do |id|
           @gets_map[id].add node
         end
@@ -51,8 +51,9 @@ module Furnace::AVM2
       end
 
       def add_set(id, node)
-        @sets.add(id)
+        @sets.add id
         @set_map[id] = node
+        @live.add id
       end
 
       def remove_get(id)
@@ -299,7 +300,6 @@ module Furnace::AVM2
 
       def produce(stack, id, node, metadata)
         metadata.add_set id, node
-        metadata.live.add id
 
         stack.push [id]
       end

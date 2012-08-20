@@ -42,7 +42,7 @@ module Furnace::AVM2
         worklist
       end
 
-      def walk_live_nodes(cfg, root, id)
+      def walk_nodes(cfg, root, cond=nil)
         worklist = Set[ root ]
         visited  = Set[]
 
@@ -51,14 +51,20 @@ module Furnace::AVM2
           worklist.delete block
           visited.add block
 
-          yield block
-
           block.targets.each do |target|
-            if target.metadata.live.include? id
+            if cond.nil? || cond.(block, target)
               worklist.add target unless visited.include? target
             end
           end
+
+          yield block
         end
+      end
+
+      def walk_live_nodes(cfg, root, id, &block)
+        walk_nodes(cfg, root,
+          ->(node, target) { target.metadata.live.include? id },
+          &block)
       end
 
       def reduce_phi_nodes(cfg, root, target_id, supplementary_id)
@@ -74,7 +80,7 @@ module Furnace::AVM2
             end
           end
 
-          yield if block_given?
+          yield block if block_given?
         end
       end
 
@@ -86,6 +92,8 @@ module Furnace::AVM2
                 replacement.children,
                 replacement.metadata)
           end
+
+          block.metadata.unregister_get target_id
 
           yield block if block_given?
         end

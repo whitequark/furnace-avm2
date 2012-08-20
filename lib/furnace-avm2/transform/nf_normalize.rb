@@ -3,6 +3,10 @@ module Furnace::AVM2
     class NFNormalize
       include AST::Visitor
 
+      def initialize(options={})
+        @method = options[:method]
+      end
+
       def transform(nf)
         @nf = nf
 
@@ -18,8 +22,8 @@ module Furnace::AVM2
 
       def on_s(node)
         index, value = node.children
-        node.update(:set_local, [
-          -index, value
+        node.update(:set, [
+          AST::Node.new(:local, [ -index ]), value
         ])
       end
 
@@ -27,15 +31,79 @@ module Furnace::AVM2
         if node.children.one?
           index, = node.children
           if index.is_a? Symbol
-            node.update(:spurious_special_variable, [ index ])
+            node.update(:get, [
+              AST::Node.new(:special, [ index ])
+            ])
           else
-            node.update(:get_local, [
-              -index,
+            node.update(:get, [
+              AST::Node.new(:local, [ -index ])
             ])
           end
         else
           node.update(:phi, node.children)
         end
+      end
+
+      def local_to_node(index)
+        case index
+        when 0
+          AST::Node.new(:this)
+        when 1..@method.param_count
+          AST::Node.new(:param, [ index - 1 ])
+        else
+          AST::Node.new(:local, [ index - 1 - @method.param_count ])
+        end
+      end
+
+      def on_get_local(node)
+        index, = node.children
+
+        case index
+        when 0
+          node.update(:this, [])
+        else
+          node.update(:get, [
+            local_to_node(index)
+          ])
+        end
+      end
+
+      def on_set_local(node)
+        index, value = node.children
+
+        case index
+        when 0
+          raise "cannot setlocal 0"
+        else
+          node.update(:set, [
+            local_to_node(index), value
+          ])
+        end
+      end
+
+      XREMENT_LOCAL_MAP = {
+        :post_increment_local => :post_increment,
+        :pre_increment_local  => :pre_increment,
+        :post_decrement_local => :post_decrement,
+        :pre_decrement_local  => :pre_decrement,
+        :inc_local            => :post_increment,
+        :dec_local            => :post_decrement,
+      }
+
+      def on_xrement_local(node)
+        index, = node.children
+        node.update(XREMENT_LOCAL_MAP[node.type],
+          [ local_to_node(index) ])
+      end
+
+      XREMENT_LOCAL_MAP.each do |source, |
+        alias_method :"on_#{source}", :on_xrement_local
+      end
+
+      def on_has_next2(node)
+        left, right = node.children
+        node.update(:has_next2,
+          [ local_to_node(left), local_to_node(right) ])
       end
 
       ExpandedForInMatcher = AST::Matcher.new do
@@ -68,22 +136,22 @@ module Furnace::AVM2
           [:has_next2, capture(:object_reg), capture(:index_reg)],
           [:begin,
             [ either_multi[
-                [ :set_local, capture(:value_reg) ],
+                [ :set, capture(:value_reg) ],
                 [ :set_slot, capture(:value_reg), [:get_scope_object, any] ],
               ],
               [ either[:coerce, :convert], capture(:value_type),
                 [ capture(:iterator),
-                  [:get_local, backref(:object_reg)],
-                  [:get_local, backref(:index_reg)]]]],
+                  [:get, backref(:object_reg)],
+                  [:get, backref(:index_reg)]]]],
             capture_rest(:body)]]
       end
 
       ForInIndexMatcher = AST::Matcher.new do
-        [:set_local, backref(:index_reg), [:integer, 0]]
+        [:set, backref(:index_reg), [:integer, 0]]
       end
 
       ForInObjectMatcher = AST::Matcher.new do
-        [:set_local, backref(:object_reg),
+        [:set, backref(:object_reg),
           [:coerce, :any,
             capture(:root)]]
       end
@@ -195,7 +263,7 @@ module Furnace::AVM2
       OptimizedSwitchSeed = AST::Matcher.new do
         [:ternary,
           [:===, capture(:case_value),
-            [:get_local, capture(:local_index)]],
+            [:get, capture(:local_index)]],
           [:integer, capture(:case_index)],
           capture(:nested)]
       end
@@ -204,7 +272,7 @@ module Furnace::AVM2
         either[
           [:ternary,
             [:===, capture(:case_value),
-              [:get_local, backref(:local_index)]],
+              [:get, backref(:local_index)]],
             [:integer, capture(:case_index)],
             capture(:nested)],
           [:integer, capture(:default_index)]
@@ -245,7 +313,7 @@ module Furnace::AVM2
 
           # At this point, we are sure that this switch can be transformed.
 
-          node.children[0] = AST::Node.new(:get_local, [ captures[:local_index] ])
+          node.children[0] = AST::Node.new(:get, [ captures[:local_index] ])
 
           case_mapping.each do |child, value|
             if value.nil?
