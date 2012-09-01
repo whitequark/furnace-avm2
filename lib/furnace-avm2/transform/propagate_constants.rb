@@ -16,14 +16,15 @@ module Furnace::AVM2
             # TODO add options for folding complex constants
             if evaluator.immediate?(set_value) ||
                 set_value.type == :this ||
+                set_value.type == :param ||
                 set_value.type == :find_property_strict
 
-              replace_r_nodes(cfg, block, id, set_value) do |child_block|
-                child_block.metadata.live.delete id
-              end
+              replaced_all = replace_r_nodes(cfg, block, id, set_value)
 
-              block.metadata.remove_set id
-              block.insns.delete set
+              if replaced_all
+                block.metadata.remove_set id
+                block.insns.delete set
+              end
 
               changed = true
             end

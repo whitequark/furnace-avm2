@@ -30,19 +30,32 @@ module Furnace::AVM2
         end
       end
 
+      def initialize(options={})
+        @method = options[:method]
+      end
+
       def transform(cfg)
         next_id      = 0
         variable_map = Hash.new { |h, k| h[k] = Set[] }
 
-        # Prepend implicit `this'.
-        this_set = AST::Node.new(:set_local, [
-            0, AST::Node.new(:this)
-          ], {
-            read_barrier:  Set[],
-            write_barrier: Set[],
-          })
+        # Prepend implicit `this' and params.
+        implicit = 0.upto(1 + @method.param_count).map do |local|
+          case local
+          when 0
+            inner_node = AST::Node.new(:this)
+          else
+            inner_node = AST::Node.new(:param, [ local - 1 ])
+          end
 
-        cfg.entry.insns.insert(0, this_set)
+          AST::Node.new(:set_local, [
+              local, inner_node
+            ], {
+              read_barrier:  Set[],
+              write_barrier: Set[],
+            })
+        end
+
+        cfg.entry.insns.insert(0, *implicit)
 
         # Convert (set-local) to (s).
         cfg.nodes.each do |block|

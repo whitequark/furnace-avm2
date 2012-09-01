@@ -465,7 +465,8 @@ module Furnace::AVM2
         end
       end
     end
-    alias :expr_this :local_token
+    alias :expr_this  :local_token
+    alias :expr_param :local_token
 
     def expr_get(node)
       index, = node.children
