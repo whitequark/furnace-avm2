@@ -202,13 +202,7 @@ process = lambda do |what|
   end
 end
 
-threads = opts[:threads]
-if threads.nil?
-  processors = Parallel.processor_count
-  threads    = processors / 2
-  $stderr.puts "Using #{threads} threads. Pass `--threads #{processors}' option if " <<
-               "your CPU does NOT feature hyperthreading or it is disabled."
-end
+threads = opts[:threads] || Parallel.processor_count
 
 if defined?(JRUBY_VERSION)
   parallel_options = { in_threads:   threads }
