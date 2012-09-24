@@ -20,6 +20,7 @@ module Furnace::AVM2
               end
 
               block.insns.delete block.cti
+              block.metadata.unregister_upper block.cti
               block.cti = nil
 
               changed = true

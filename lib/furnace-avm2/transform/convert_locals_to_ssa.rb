@@ -74,6 +74,12 @@ module Furnace::AVM2
                 node.metadata)
               block.metadata.add_set s_index, s_node
 
+              block.metadata.gets_upper.each do |get, upper|
+                if upper == node
+                  block.metadata.gets_upper[get] = s_node
+                end
+              end
+
               set_locals << s_index
               variable_map[index].add s_index
 

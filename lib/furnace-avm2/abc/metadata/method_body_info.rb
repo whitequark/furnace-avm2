@@ -40,15 +40,20 @@ module Furnace::AVM2::ABC
         ]),
 
         Furnace::AVM2::Transform::FoldPassthroughAssignments.new,
-=begin
-        Furnace::AVM2::Transform::ConvertLocalsToSSA.new,
+
+        Furnace::AVM2::Transform::ConvertLocalsToSSA.new(method: method),
+        Furnace::AVM2::Transform::PropagateConstants.new,
+
         Furnace::Transform::IterativeProcess.new([
           Furnace::AVM2::Transform::DataflowInvariantCodeMotion.new,
+          Furnace::AVM2::Transform::MetadataCheck.new(after: 'dicm'),
           Furnace::AVM2::Transform::PartialEvaluation.new,
+          Furnace::AVM2::Transform::MetadataCheck.new(after: 'pe'),
           Furnace::AVM2::Transform::SSAOptimize.new,
+          Furnace::AVM2::Transform::MetadataCheck.new(after: 'ssao'),
+          Furnace::AVM2::Transform::FoldInvariantPhiNodes.new,
+          Furnace::AVM2::Transform::MetadataCheck.new(after: 'fipn'),
         ]),
-=end
-        Furnace::AVM2::Transform::PropagateConstants.new,
 
         Furnace::AVM2::Transform::ExpandUnreferencedSets.new,
         Furnace::AVM2::Transform::UpdateExceptionVariables.new,

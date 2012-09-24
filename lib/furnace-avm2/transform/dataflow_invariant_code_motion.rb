@@ -11,7 +11,7 @@ module Furnace::AVM2
         end
 
         def on_r(node)
-          @meta.gets_upper[node] = @new_upper
+          @meta.add_get node.children, @new_upper, node
         end
       end
 
@@ -64,8 +64,9 @@ module Furnace::AVM2
                 end
 
                 if do_move
-                  block.insns.delete src_node
                   block_meta.remove_set id
+                  block_meta.unregister_upper src_node
+                  block.insns.delete src_node
 
                   value = src_node.children.last
                   dst_node.update(value.type, value.children, value.metadata)
@@ -88,6 +89,7 @@ module Furnace::AVM2
               if src_node.nil? || src_node.metadata[:write_barrier].empty?
                 block.insns.delete src_node
                 block_meta.remove_set id
+                block_meta.unregister_upper src_node
 
                 block_changed = true
               end

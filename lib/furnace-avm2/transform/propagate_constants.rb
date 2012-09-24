@@ -23,6 +23,7 @@ module Furnace::AVM2
 
               if replaced_all
                 block.metadata.remove_set id
+                block.metadata.unregister_upper set
                 block.insns.delete set
               end
 

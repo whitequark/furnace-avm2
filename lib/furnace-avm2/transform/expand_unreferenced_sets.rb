@@ -12,6 +12,7 @@ module Furnace::AVM2
 
               if set.metadata[:write_barrier].empty?
                 block.insns.delete set
+                block.metadata.unregister_upper set
               else
                 _, set_value = set.children
                 set.update(set_value.type,

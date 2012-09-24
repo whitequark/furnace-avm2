@@ -88,18 +88,24 @@ module Furnace::AVM2
         replaced_all = true
 
         walk_live_nodes(cfg, root, target_id) do |block|
-          gets = block.metadata.gets_map[target_id]
-          gets.each do |get|
-            if get.children.one?
-              get.update(replacement.type,
+          replaced_all_in_block = true
+
+          gets_map = block.metadata.gets_map[target_id]
+          gets_map.each do |node|
+            if node.children.one?
+              node.update(replacement.type,
                   replacement.children,
                   replacement.metadata)
             else
-              replaced_all = false
+              replaced_all_in_block = false
             end
           end
 
-          block.metadata.unregister_get target_id
+          if replaced_all_in_block
+            block.metadata.unregister_get target_id
+          else
+            replaced_all = false
+          end
         end
 
         if replaced_all

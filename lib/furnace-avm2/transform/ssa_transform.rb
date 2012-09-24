@@ -75,6 +75,27 @@ module Furnace::AVM2
         @gets_map.delete id
       end
 
+      def unregister_get_node(node)
+        node.children.each do |id|
+          @gets_map[id].delete node
+
+          if @gets_map[id].empty?
+            @gets_map.delete id
+            @gets.delete id
+          end
+        end
+
+        @gets_upper.delete node
+      end
+
+      def unregister_upper(target_upper)
+        @gets_upper.each do |node, upper|
+          if upper == target_upper
+            unregister_get_node(node)
+          end
+        end
+      end
+
       def remove_set(id)
         @sets.delete id
         @set_map.delete id
