@@ -23,6 +23,14 @@ module Furnace::AVM2
         @sets.any? || @gets.any? || @live.any?
       end
 
+      def to_hash
+        {
+          sets: @sets.to_a,
+          gets: @gets.to_a,
+          live: @live.to_a,
+        }.merge(@hash)
+      end
+
       def inspect
         str  = "| sets: #{@sets.to_a.join(", ")} gets: #{@gets.to_a.join(", ")}\n"
         str << "| live: #{@live.to_a.join(", ")}"

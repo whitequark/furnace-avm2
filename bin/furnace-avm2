@@ -24,10 +24,11 @@ require "trollop"
 require "furnace-avm2"
 require "thread"
 require "benchmark"
+require "json"
 
 include Furnace
 
-GRAPH_FORMATS = %w(none text graphviz)
+GRAPH_FORMATS = %w(none text graphviz json)
 
 opts = Trollop::options do
   version "furnace-avm2 #{AVM2::VERSION}"
@@ -137,6 +138,10 @@ loop do
         File.open("method-#{body.method_idx}.dot", "w") do |dot|
           dot.write cfg.to_graphviz
         end
+      elsif opts[:cfg] == 'json'
+        File.open("method-#{body.method_idx}.json", "w") do |json|
+          json.write JSON.dump(cfg.to_hash)
+        end
       end
 
       puts "Method #{body.method_idx}; dominators"
@@ -145,6 +150,7 @@ loop do
              "#{dominating.map(&:label).map(&:inspect).join(", ")}"
       end
       puts
+
 =begin
       puts "Method #{body.method_idx}; postdominators"
       cfg.postdominators.each do |node, dominating|
@@ -153,6 +159,7 @@ loop do
       end
       puts
 =end
+
       puts "Method #{body.method_idx}; loops"
       cfg.identify_loops.each do |header, body|
         puts "#{header.label.inspect} => " +
