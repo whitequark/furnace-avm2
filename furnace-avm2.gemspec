@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
 
   s.required_ruby_version = '>= 1.9.1'
 
-  s.add_runtime_dependency "furnace", '= 0.2.5'
+  s.add_runtime_dependency "furnace", '= 0.2.6'
   s.add_runtime_dependency "trollop"
   s.add_runtime_dependency "parallel"
 end
